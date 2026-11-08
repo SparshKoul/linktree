@@ -599,9 +599,10 @@ export function App() {
     PRESET_THEMES[0].theme;
 
   const currentSlug = currentTree?.slug || currentUser?.username || 'riyast';
+  const currentHeaderLayout = currentTree?.headerLayout || currentTree?.customTheme?.headerLayout || 'classic';
 
   const renderPhoneHeader = () => {
-    const layout = currentTree?.headerLayout || currentTree?.customTheme?.headerLayout || 'classic';
+    const layout = currentHeaderLayout;
     const isLogo = (currentTree?.titleStyle || currentTree?.customTheme?.titleStyle) === 'logo';
     const logoUrl = currentTree?.logoUrl || currentTree?.customTheme?.logoUrl;
     const titleText = currentTree?.title || `@${currentSlug}`;
@@ -639,11 +640,11 @@ export function App() {
     if (layout === 'hero') {
       const heroImage = currentTree?.heroUrl || currentTree?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
       return (
-        <div className="w-full flex flex-col items-center text-center mb-3">
-          <div className="w-full h-44 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600">
+        <div className="w-full flex flex-col items-center text-center -mt-1 mb-3">
+          <div className="w-full h-52 sm:h-56 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600">
             <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
             {/* Soft gradient fade into card background matching Hero thumbnail */}
-            <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#EEF1F6] via-[#EEF1F6]/50 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#EEF1F6] via-[#EEF1F6]/50 to-transparent" />
           </div>
           {renderTitleBlock()}
         </div>
@@ -653,9 +654,9 @@ export function App() {
     if (layout === 'banner') {
       const bannerImage = currentTree?.bannerUrl;
       return (
-        <div className="w-full flex flex-col items-center text-center mb-3">
+        <div className="w-full flex flex-col items-center text-center -mt-1 mb-3">
           {/* Top wide banner cover matching Banner thumbnail */}
-          <div className="w-full h-28 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA]">
+          <div className="w-full h-32 sm:h-34 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA]">
             {bannerImage ? (
               <img src={bannerImage} alt="Banner" className="w-full h-full object-cover" />
             ) : (
@@ -663,7 +664,7 @@ export function App() {
             )}
           </div>
           {/* Circular avatar overlapping bottom of banner with crisp white border */}
-          <div className="-mt-10 mb-2 relative ring-4 ring-white rounded-full shadow-md w-20 h-20 overflow-hidden bg-white flex items-center justify-center">
+          <div className="-mt-11 mb-2 relative ring-4 ring-white rounded-full shadow-md w-20 h-20 overflow-hidden bg-white flex items-center justify-center">
             {currentTree?.avatarUrl ? (
               <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : defaultAvatarSvg}
@@ -1738,7 +1739,7 @@ export function App() {
               }}
             >
               {/* Top Icons Inside Phone matching Reference */}
-              <div className="w-full flex items-center justify-between text-xs mb-6 text-gray-700">
+              <div className={`w-full flex items-center justify-between text-xs text-gray-700 ${currentHeaderLayout === 'banner' || currentHeaderLayout === 'hero' ? 'mb-2' : 'mb-6'}`}>
                 <span className="font-extrabold text-sm leading-none">✱</span>
                 <span>
                   <Share2 className="w-3.5 h-3.5 text-gray-700" />
