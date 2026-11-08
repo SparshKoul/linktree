@@ -88,7 +88,7 @@ export function TreeSwitcher({
                           {slugDisplay}
                         </div>
                         <div className="text-[10px] text-gray-400 font-mono leading-tight truncate">
-                          linktr.ee/{tree.slug}
+                          indiataps.com/{tree.slug}
                         </div>
                       </div>
                     </div>
@@ -115,7 +115,7 @@ export function TreeSwitcher({
               })}
             </div>
 
-            {/* Tree Actions: New Linktree & Delete Current Linktree */}
+            {/* Tree Actions: New IndiaTaps & Delete Current IndiaTaps */}
             <div className="border-t border-gray-100 mt-2 pt-2 space-y-1">
               <button
                 onClick={() => {
@@ -127,7 +127,7 @@ export function TreeSwitcher({
                 <div className="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center shrink-0">
                   <Plus className="w-3.5 h-3.5 text-black stroke-[2.5]" />
                 </div>
-                <span>New Linktree</span>
+                <span>New IndiaTaps</span>
               </button>
 
               {currentTree && (
@@ -159,7 +159,7 @@ export function TreeSwitcher({
                   </div>
                   <div className="text-[10px] text-gray-600 leading-tight">
                     <strong className="text-black font-bold block text-[11px]">A faster way to switch!</strong>
-                    Try Workspaces, our new way to manage multiple Linktrees.
+                    Try Workspaces, our new way to manage multiple IndiaTaps pages.
                   </div>
                 </div>
                 <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />

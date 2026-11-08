@@ -202,7 +202,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
       {
         id: 'youtube',
         title: 'YouTube',
-        desc: 'Share YouTube videos on your Linktree',
+        desc: 'Share YouTube videos on your IndiaTaps',
         type: 'video',
         renderIcon: () => (
           <div className="w-9 h-9 rounded-full bg-[#EF4444] text-white flex items-center justify-center shrink-0">
@@ -226,7 +226,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
       {
         id: 'youtube',
         title: 'YouTube',
-        desc: 'Share YouTube videos on your Linktree',
+        desc: 'Share YouTube videos on your IndiaTaps',
         type: 'video',
         renderIcon: () => (
           <div className="w-9 h-9 rounded-full bg-[#EF4444] text-white flex items-center justify-center shrink-0">
@@ -285,7 +285,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
       {
         id: 'youtube',
         title: 'YouTube',
-        desc: 'Share YouTube videos on your Linktree',
+        desc: 'Share YouTube videos on your IndiaTaps',
         type: 'video',
         renderIcon: () => (
           <div className="w-9 h-9 rounded-full bg-[#EF4444] text-white flex items-center justify-center shrink-0">
@@ -296,7 +296,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
       {
         id: 'tiktok',
         title: 'TikTok',
-        desc: 'Share your TikToks on your Linktree',
+        desc: 'Share your TikToks on your IndiaTaps',
         type: 'video',
         renderIcon: () => (
           <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center shrink-0 font-bold text-xs tracking-tighter">

@@ -8,7 +8,7 @@ export function QRCodeModal({ isOpen, onClose, treeSlug = 'riyast' }) {
 
   if (!isOpen) return null;
 
-  const url = `https://linktr.ee/${treeSlug}`;
+  const url = `https://indiataps.com/${treeSlug}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(url);
@@ -17,7 +17,7 @@ export function QRCodeModal({ isOpen, onClose, treeSlug = 'riyast' }) {
   };
 
   const handleDownload = () => {
-    const svgElement = document.getElementById('linktree-qr-code-svg');
+    const svgElement = document.getElementById('indiataps-qr-code-svg');
     if (!svgElement) return;
 
     const svgData = new XMLSerializer().serializeToString(svgElement);
@@ -42,7 +42,7 @@ export function QRCodeModal({ isOpen, onClose, treeSlug = 'riyast' }) {
             </span>
             <div>
               <h3 className="font-extrabold text-base">QR Code</h3>
-              <p className="text-xs text-gray-400">Share your Linktree in print and offline</p>
+              <p className="text-xs text-gray-400">Share your IndiaTaps in print and offline</p>
             </div>
           </div>
           <button
@@ -61,7 +61,7 @@ export function QRCodeModal({ isOpen, onClose, treeSlug = 'riyast' }) {
           >
             {/* Vector SVG QR Code */}
             <svg
-              id="linktree-qr-code-svg"
+              id="indiataps-qr-code-svg"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 200 200"
               className="w-44 h-44"
@@ -126,7 +126,7 @@ export function QRCodeModal({ isOpen, onClose, treeSlug = 'riyast' }) {
           </div>
 
           <div className="font-mono text-xs font-semibold text-gray-500">
-            linktr.ee/{treeSlug}
+            indiataps.com/{treeSlug}
           </div>
         </div>
 

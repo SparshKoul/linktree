@@ -61,7 +61,7 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
       <div className="min-h-screen bg-[#F3F3F1] flex flex-col items-center justify-center p-6 text-center text-[#111111]">
         <h1 className="text-2xl font-bold mb-2">Page Not Found</h1>
         <p className="text-sm text-gray-500 mb-6 max-w-sm">
-          The linktree <code className="font-mono bg-gray-200 px-1.5 py-0.5 rounded">/{slug}</code> does not exist or has been unpublished.
+          The IndiaTaps page <code className="font-mono bg-gray-200 px-1.5 py-0.5 rounded">/{slug}</code> does not exist or has been unpublished.
         </p>
         {onBackToAdmin && (
           <button

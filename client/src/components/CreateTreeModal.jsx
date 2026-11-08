@@ -130,7 +130,7 @@ export function CreateTreeModal({
   };
 
   const handleCopyUrl = () => {
-    const url = `https://linktr.ee/${createdTree?.slug || cleanSlug}`;
+    const url = `https://indiataps.com/${createdTree?.slug || cleanSlug}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -158,7 +158,7 @@ export function CreateTreeModal({
           /* Step 1: Username & Business Selection */
           <form onSubmit={handleCreate} className="space-y-6">
             <div>
-              <h2 className="text-3xl font-extrabold tracking-tight mb-2">Create a new Linktree</h2>
+              <h2 className="text-3xl font-extrabold tracking-tight mb-2">Create a new IndiaTaps</h2>
               <p className="text-sm text-gray-500">
                 Choose a unique username for your new business page. This will be your permanent URL.
               </p>
@@ -184,7 +184,7 @@ export function CreateTreeModal({
                 </label>
                 <div className="flex items-center rounded-2xl border border-gray-200 bg-[#F6F6F7] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#7033FF] overflow-hidden transition-all">
                   <span className="px-4 py-3 text-gray-400 text-sm font-semibold select-none border-r border-gray-200">
-                    linktr.ee/
+                    indiataps.com/
                   </span>
                   <input
                     type="text"
@@ -241,7 +241,7 @@ export function CreateTreeModal({
                 disabled={!cleanSlug || cleanSlug.length < 3 || isAvailable === false || isSubmitting}
                 className="px-6 py-3 rounded-full bg-[#7033FF] hover:bg-[#6025e6] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold shadow-lg shadow-[#7033FF]/25 transition-all"
               >
-                {isSubmitting ? 'Creating...' : 'Create Linktree'}
+                {isSubmitting ? 'Creating...' : 'Create IndiaTaps'}
               </button>
             </div>
           </form>
@@ -251,11 +251,11 @@ export function CreateTreeModal({
             {/* Header Title */}
             <div>
               <h1 className="text-3xl sm:text-[34px] font-extrabold tracking-tight leading-tight text-[#111111]">
-                Great work! You've got a brand new Linktree
+                Great work! You've got a brand new IndiaTaps
               </h1>
             </div>
 
-            {/* Linktree Identity Card (Gray Box with Avatar, Username, URL, Copy URL) */}
+            {/* IndiaTaps Identity Card (Gray Box with Avatar, Username, URL, Copy URL) */}
             <div className="bg-[#F3F3F1] rounded-[24px] p-5 sm:p-6 flex items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 {/* Circle Avatar with Initial */}
@@ -269,7 +269,7 @@ export function CreateTreeModal({
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium mt-0.5">
                     <span className="text-xs">✱</span>
-                    <span>linktr.ee/{createdTree?.slug || cleanSlug}</span>
+                    <span>indiataps.com/{createdTree?.slug || cleanSlug}</span>
                   </div>
                 </div>
               </div>
@@ -299,7 +299,7 @@ export function CreateTreeModal({
                   <User className="w-5 h-5 stroke-[1.75]" />
                 </span>
                 <p className="text-[14px]">
-                  Your Linktree will now be managed by an account linked to{' '}
+                  Your IndiaTaps will now be managed by an account linked to{' '}
                   <strong className="font-bold text-black">{adminEmail}</strong>.
                 </p>
               </div>
@@ -320,7 +320,7 @@ export function CreateTreeModal({
                   <Shuffle className="w-5 h-5 stroke-[1.75]" />
                 </span>
                 <p className="text-[14px] text-gray-800">
-                  To switch between Linktrees, go to the account menu in the top right and click on your profile.
+                  To switch between IndiaTaps pages, go to the account menu in the top right and click on your profile.
                 </p>
               </div>
             </div>
@@ -332,7 +332,7 @@ export function CreateTreeModal({
                 onClick={handleContinueEditing}
                 className="w-full py-4 rounded-full bg-[#7033FF] hover:bg-[#6025e6] text-white font-bold text-sm tracking-wide shadow-lg shadow-[#7033FF]/25 hover:shadow-xl transition-all"
               >
-                Continue editing this Linktree
+                Continue editing this IndiaTaps
               </button>
             </div>
           </div>

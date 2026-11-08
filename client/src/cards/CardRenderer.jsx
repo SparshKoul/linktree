@@ -743,7 +743,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
 
           {/* Mini Linktree Footer */}
           <div className="pt-2 text-center text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
-            Linktree Card Page
+            IndiaTaps Card Page
           </div>
         </div>
       </div>

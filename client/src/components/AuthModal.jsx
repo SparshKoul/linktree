@@ -192,7 +192,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
               ? 'Account Dashboard'
               : mode === 'signup'
               ? 'Create a new account'
-              : 'Sign in to Linktree'}
+              : 'Sign in to IndiaTaps'}
           </h2>
           <p className="text-xs text-gray-500">
             {mode === 'dashboard'
@@ -234,7 +234,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
                     <div className="flex items-center gap-1.5">
                       <span className="font-extrabold text-sm text-black truncate">@{currentUser.username}</span>
                     </div>
-                    <span className="text-[10px] text-gray-500 font-mono">linktr.ee/{currentUser.username}</span>
+                    <span className="text-[10px] text-gray-500 font-mono">indiataps.com/{currentUser.username}</span>
                   </div>
                 </div>
                 <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1 shrink-0">
@@ -439,10 +439,10 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
               <form onSubmit={handleRegister} className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    New Username (Your linktr.ee URL)
+                    New Username (Your IndiaTaps URL)
                   </label>
                   <div className="flex items-center px-3.5 py-2.5 rounded-2xl bg-[#F6F6F7] border border-gray-200 text-xs">
-                    <span className="text-gray-400 font-mono mr-1">linktr.ee/</span>
+                    <span className="text-gray-400 font-mono mr-1">indiataps.com/</span>
                     <input
                       type="text"
                       required
@@ -493,7 +493,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
                   disabled={loading}
                   className="w-full py-3 rounded-full bg-black hover:bg-neutral-800 text-white font-bold text-xs transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
                 >
-                  {loading ? 'Creating account...' : 'Create account & Linktree'}
+                  {loading ? 'Creating account...' : 'Create account & IndiaTaps'}
                 </button>
               </form>
             )}

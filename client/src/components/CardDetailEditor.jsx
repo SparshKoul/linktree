@@ -231,7 +231,7 @@ export function CardDetailEditor({
             className={`w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center transition-colors cursor-pointer ${
               card.visible !== false ? 'text-gray-700 hover:bg-gray-100' : 'text-amber-600 bg-amber-50'
             }`}
-            title={card.visible !== false ? 'Visible on Linktree' : 'Hidden from Linktree'}
+            title={card.visible !== false ? 'Visible on IndiaTaps' : 'Hidden from IndiaTaps'}
           >
             {card.visible !== false ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
           </button>
@@ -328,7 +328,7 @@ export function CardDetailEditor({
                   Location Card
                 </div>
                 <div className="text-[11px] text-[#3B82F6]">
-                  Displays your location pin, address, and directions on your Linktree.
+                  Displays your location pin, address, and directions on your IndiaTaps.
                 </div>
               </div>
             </div>
@@ -651,7 +651,7 @@ export function CardDetailEditor({
           </div>
           <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100 space-y-2">
             <h4 className="font-bold text-xs text-black">Schedule Link</h4>
-            <p className="text-[11px] text-gray-500">Choose dates for when this location appears on your Linktree</p>
+            <p className="text-[11px] text-gray-500">Choose dates for when this location appears on your IndiaTaps</p>
           </div>
         </div>
       )}

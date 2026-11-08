@@ -472,7 +472,7 @@ export function App() {
         const defaultTree = {
           id: Date.now(),
           adminId: currentUser?.id || 1,
-          name: 'My Linktree',
+          name: 'My IndiaTaps',
           slug: 'riyast',
           status: 'live',
           title: 'riyast',
@@ -514,7 +514,7 @@ export function App() {
     setLastDeletedTreeData(null);
 
     setTopToast({
-      title: 'Linktree restored',
+      title: 'IndiaTaps restored',
       subtitle: `@${tree.slug} is back`,
     });
     setTimeout(() => setTopToast(null), 3000);
@@ -889,7 +889,7 @@ export function App() {
                       className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left bg-[#F3F3F1] text-black font-bold transition-colors cursor-pointer"
                     >
                       <LayoutGrid className="w-4 h-4 text-black" />
-                      <span>My Linktree</span>
+                      <span>My IndiaTaps</span>
                     </button>
 
                     <button className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-gray-50 text-gray-600 hover:text-black transition-colors cursor-pointer">
@@ -964,7 +964,7 @@ export function App() {
                       </div>
                       <div className="truncate">
                         <div className="font-bold text-xs text-[#111111]">{currentSlug}</div>
-                        <div className="text-[10px] text-gray-400 font-mono">linktr.ee/{currentSlug}</div>
+                        <div className="text-[10px] text-gray-400 font-mono">indiataps.com/{currentSlug}</div>
                       </div>
                     </div>
                     <span className="text-[10px] font-semibold text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full bg-white">
@@ -979,14 +979,14 @@ export function App() {
                       className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                       <span className="text-sm">⇄</span>
-                      <span>Switch Linktrees</span>
+                      <span>Switch IndiaTaps</span>
                     </button>
                     <button
                       onClick={() => setIsCreateModalOpen(true)}
                       className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer"
                     >
                       <Plus className="w-4 h-4 text-gray-500" />
-                      <span>Create new Linktree</span>
+                      <span>Create new IndiaTaps</span>
                     </button>
                     <button
                       onClick={() => {
@@ -1317,7 +1317,7 @@ export function App() {
                   <div className="relative bg-white border border-gray-200/90 rounded-2xl p-3 flex items-center justify-between shadow-2xs hover:border-gray-300 transition-colors">
                     <div className="space-y-0.5">
                       <div className="font-extrabold text-xs text-[#111111]">Add to your bios</div>
-                      <div className="text-[10px] text-gray-400 font-mono">linktr.ee/{currentSlug}</div>
+                      <div className="text-[10px] text-gray-400 font-mono">indiataps.com/{currentSlug}</div>
                     </div>
                     <div className="flex items-center gap-2 pr-4">
                       {/* TikTok circle badge */}
@@ -1651,11 +1651,11 @@ export function App() {
                       });
                     })()}
 
-                    {/* Linktree footer toggle container matching Image 0 & 2 */}
+                    {/* IndiaTaps footer toggle container matching Image 0 & 2 */}
                     <div className="bg-white border border-gray-200/80 rounded-2xl p-3 shadow-2xs mt-3">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-[#111111]">Linktree footer</span>
+                          <span className="text-xs font-bold text-[#111111]">IndiaTaps footer</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
@@ -1683,7 +1683,7 @@ export function App() {
 
                       {/* Brand Wordmark & Asterisk matching Image 0 & 2 */}
                       <div className="font-extrabold text-xs flex items-center gap-0.5 text-[#111111] mt-1">
-                        <span>Linktree</span>
+                        <span>IndiaTaps</span>
                         <span className="text-[#10B981] font-black text-xs">✱</span>
                       </div>
                     </div>
@@ -1781,11 +1781,11 @@ export function App() {
                     type="button"
                     className="w-full max-w-[210px] py-2 px-4 rounded-full bg-white text-black text-xs font-bold shadow-md hover:scale-[1.02] transition-transform mx-auto block cursor-pointer"
                   >
-                    Get your own Linktree
+                    Get your own IndiaTaps
                   </button>
                   <div className="text-[9px] text-gray-400 leading-tight">
                     Cookie Preferences · Report · Privacy
-                    <div className="mt-0.5">More from Linktree</div>
+                    <div className="mt-0.5">More from IndiaTaps</div>
                   </div>
                 </div>
               )}
