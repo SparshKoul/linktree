@@ -637,19 +637,15 @@ export function App() {
     );
 
     if (layout === 'hero') {
-      const heroImage = currentTree?.heroUrl || currentTree?.avatarUrl;
+      const heroImage = currentTree?.heroUrl || currentTree?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
       return (
-        <div className="w-full flex flex-col items-center text-center -mx-4 -mt-4 mb-2">
-          <div className="w-full h-36 relative overflow-hidden bg-gradient-to-t from-gray-900 via-rose-950 to-rose-600 rounded-t-[28px]">
-            {heroImage ? (
-              <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-white/50 text-xs font-semibold">Hero cover</div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-3 text-white">
-              {renderTitleBlock(true)}
-            </div>
+        <div className="w-full flex flex-col items-center text-center mb-3">
+          <div className="w-full h-44 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600">
+            <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
+            {/* Soft gradient fade into card background matching Hero thumbnail */}
+            <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#EEF1F6] via-[#EEF1F6]/50 to-transparent" />
           </div>
+          {renderTitleBlock()}
         </div>
       );
     }
@@ -657,20 +653,20 @@ export function App() {
     if (layout === 'banner') {
       const bannerImage = currentTree?.bannerUrl;
       return (
-        <div className="w-full flex flex-col items-center text-center -mx-4 -mt-4 mb-2">
-          <div className="w-full h-20 relative overflow-hidden bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 rounded-t-[28px]">
-            {bannerImage && (
+        <div className="w-full flex flex-col items-center text-center mb-3">
+          {/* Top wide banner cover matching Banner thumbnail */}
+          <div className="w-full h-28 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA]">
+            {bannerImage ? (
               <img src={bannerImage} alt="Banner" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full opacity-90 bg-gradient-to-r from-[#FF007A] via-[#A855F7] to-[#7928CA]" />
             )}
           </div>
-          <div className="-mt-8 mb-2 relative">
-            <div className="w-16 h-16 rounded-full bg-white p-1 shadow-md">
-              <div className="w-full h-full rounded-full bg-[#D1D5DB] flex items-center justify-center overflow-hidden">
-                {currentTree?.avatarUrl ? (
-                  <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                ) : defaultAvatarSvg}
-              </div>
-            </div>
+          {/* Circular avatar overlapping bottom of banner with crisp white border */}
+          <div className="-mt-10 mb-2 relative ring-4 ring-white rounded-full shadow-md w-20 h-20 overflow-hidden bg-white flex items-center justify-center">
+            {currentTree?.avatarUrl ? (
+              <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : defaultAvatarSvg}
           </div>
           {renderTitleBlock()}
         </div>
@@ -678,16 +674,12 @@ export function App() {
     }
 
     if (layout === 'cutout') {
+      const cutoutImg = currentTree?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
       return (
-        <div className="flex flex-col items-center text-center mb-2">
-          <div className="w-20 h-24 relative flex items-center justify-center mb-1">
-            {currentTree?.avatarUrl ? (
-              <img src={currentTree.avatarUrl} alt="Cutout" className="w-full h-full object-contain filter drop-shadow-md" />
-            ) : (
-              <div className="w-18 h-18 rounded-full bg-gradient-to-tr from-gray-200 to-gray-300 flex items-center justify-center">
-                {defaultAvatarSvg}
-              </div>
-            )}
+        <div className="w-full flex flex-col items-center text-center mb-3">
+          {/* Cutout silhouette with soft fade at chest matching Cutout thumbnail */}
+          <div className="w-28 h-32 relative flex items-end justify-center mb-1 overflow-hidden [mask-image:linear-gradient(to_bottom,black_75%,transparent_100%)]">
+            <img src={cutoutImg} alt="Cutout" className="w-full h-full object-cover filter drop-shadow-md" />
           </div>
           {renderTitleBlock()}
         </div>
@@ -695,14 +687,16 @@ export function App() {
     }
 
     if (layout === 'shape') {
+      const shapeImg = currentTree?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
       return (
-        <div className="flex flex-col items-center text-center mb-2">
-          <div className="w-20 h-20 rounded-[38%_62%_63%_37%_/_41%_44%_56%_59%] bg-gradient-to-tr from-purple-500 to-pink-500 p-0.5 shadow-md mb-2">
-            <div className="w-full h-full rounded-[38%_62%_63%_37%_/_41%_44%_56%_59%] bg-[#D1D5DB] flex items-center justify-center overflow-hidden">
-              {currentTree?.avatarUrl ? (
-                <img src={currentTree.avatarUrl} alt="Shape" className="w-full h-full object-cover" />
-              ) : defaultAvatarSvg}
-            </div>
+        <div className="w-full flex flex-col items-center text-center mb-3">
+          {/* Exact 4-lobed cloud/flower organic shape matching Shape thumbnail */}
+          <div
+            className="w-28 h-20 relative flex items-center justify-center mb-2 shadow-xs"
+            style={{ clipPath: 'url(#linktree-organic-shape)' }}
+          >
+            <div className="absolute inset-0 bg-rose-600" />
+            <img src={shapeImg} alt="Shape" className="w-full h-full object-cover relative z-10" />
           </div>
           {renderTitleBlock()}
         </div>
@@ -711,8 +705,8 @@ export function App() {
 
     // Default: 'classic'
     return (
-      <div className="flex flex-col items-center text-center mb-2">
-        <div className="w-20 h-20 rounded-full bg-[#D1D5DB] flex items-center justify-center shadow-inner overflow-hidden mb-3">
+      <div className="flex flex-col items-center text-center mb-3">
+        <div className="w-20 h-20 rounded-full bg-[#9CA3AF]/60 flex items-center justify-center shadow-inner overflow-hidden mb-3 ring-2 ring-white/80">
           {currentTree?.avatarUrl ? (
             <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
           ) : defaultAvatarSvg}
@@ -724,6 +718,14 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#FAFBFB] text-[#111111] flex flex-col font-sans select-none antialiased">
+      {/* Global Organic Shape SVG clipPath for Shape layout */}
+      <svg className="absolute w-0 h-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        <defs>
+          <clipPath id="linktree-organic-shape" clipPathUnits="objectBoundingBox">
+            <path d="M 0.5,0.02 C 0.72,0.02, 0.94,0.12, 0.98,0.32 C 1.01,0.42, 0.95,0.48, 0.91,0.5 C 0.95,0.52, 1.01,0.58, 0.98,0.68 C 0.94,0.88, 0.72,0.98, 0.5,0.98 C 0.28,0.98, 0.06,0.88, 0.02,0.68 C -0.01,0.58, 0.05,0.52, 0.09,0.5 C 0.05,0.48, -0.01,0.42, 0.02,0.32 C 0.06,0.12, 0.28,0.02, 0.5,0.02 Z" />
+          </clipPath>
+        </defs>
+      </svg>
       {/* 1. Topmost Dark Header Band matching Reference */}
       <div className="h-10 bg-[#232833] px-5 flex items-center shrink-0">
         <span className="text-[#26D07C] font-black text-xl leading-none select-none tracking-tight">✱</span>
@@ -1206,7 +1208,7 @@ export function App() {
                 />
               </div>
             ) : activeRail === 'header' ? (
-              <div className="bg-white rounded-[28px] xl:rounded-[32px] px-4 sm:px-8 py-5 sm:py-7 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar">
+              <div className="bg-white rounded-[28px] xl:rounded-[32px] px-6 sm:px-10 py-6 sm:py-8 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar">
                 <HeaderEditor currentTree={currentTree} onUpdateTree={handleUpdateTree} />
               </div>
             ) : (
@@ -1728,7 +1730,7 @@ export function App() {
           <div className="relative">
             {/* Phone Screen Mockup Container matching Reference */}
             <div
-              className="w-[325px] xl:w-[335px] h-[650px] xl:h-[670px] max-h-[calc(100vh-110px)] rounded-[42px] shadow-xl px-2.5 xl:px-3 py-5 xl:py-6 flex flex-col justify-between text-center overflow-y-auto relative border border-gray-200/80"
+              className="w-[325px] xl:w-[335px] h-[650px] xl:h-[670px] max-h-[calc(100vh-110px)] rounded-[42px] shadow-xl px-2.5 xl:px-3 py-5 xl:py-6 flex flex-col justify-between text-center overflow-y-auto relative border border-gray-200/80 no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               style={{
                 background: '#EEF1F6',
                 color: '#111111',

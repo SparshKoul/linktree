@@ -37,11 +37,16 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
     setLoading(true);
     try {
       const res = await fetch(`/api/auth/google?redirect_to=${encodeURIComponent(window.location.origin)}`);
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Google authentication service unavailable');
+      }
       if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error('Google authentication service unavailable');
+        throw new Error(data.error || 'Google authentication service unavailable');
       }
     } catch (err) {
       setError(err.message);
@@ -118,7 +123,12 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier: id, password: pwd }),
       });
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error('Server connection error. Please make sure the backend is running.');
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to sign in');
       onAuthSuccess(data.user);
       setSuccessMsg(`Switched to @${data.user.username}`);

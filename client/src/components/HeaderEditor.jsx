@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Image, Upload, Trash2, Check, RotateCcw, RotateCw } from 'lucide-react';
+import { Image, Trash2, Check, RotateCcw, RotateCw } from 'lucide-react';
 
 const FONTS = [
   'Inter',
@@ -151,9 +151,9 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
   const demoGirlImg = current.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80';
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
-      {/* Top Header Row with Undo, Redo, Cancel, Save matching Image 2 */}
-      <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+    <div className="w-full space-y-6 animate-in fade-in duration-200">
+      {/* Top Header Row with Undo, Redo, Cancel, Save matching Reference Images */}
+      <div className="flex items-center justify-between pb-4 border-b border-gray-100">
         <h1 className="text-xl sm:text-2xl font-black tracking-tight text-[#111111]">
           Header
         </h1>
@@ -185,7 +185,7 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
           <button
             type="button"
             onClick={handleCancel}
-            className="py-1.5 px-3.5 rounded-full border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-800 transition-all cursor-pointer shadow-2xs"
+            className="py-1.5 px-4 rounded-full border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-800 transition-all cursor-pointer shadow-2xs bg-white"
           >
             Cancel
           </button>
@@ -208,67 +208,63 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
         </div>
       </div>
 
-      {/* Main 2-Column Section matching Image 2 */}
-      <div className="space-y-5 text-xs text-gray-900">
+      {/* Main Form Rows with Strict Label Width Alignment matching Reference Images */}
+      <div className="space-y-6 text-xs text-gray-900">
         {/* ROW 1: Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] items-start gap-3 sm:gap-6 pb-5 border-b border-gray-100">
-          <label className="font-bold text-gray-900 pt-2 text-xs">Layout</label>
+        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-8 pb-6 border-b border-gray-100">
+          <div className="w-44 sm:w-48 shrink-0 pt-2">
+            <label className="font-bold text-gray-900 text-[13px]">Layout</label>
+          </div>
 
-          {/* 5 Layout Cards matching Reference Images 0, 1 & 2 */}
-          <div className="flex items-center gap-2.5 overflow-x-auto pb-1 max-w-full">
+          {/* 5 Layout Cards matching Reference Images - NO THUNDER ICONS */}
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 max-w-full">
             {/* 1. Classic */}
             <button
               type="button"
               onClick={() => commitChange({ headerLayout: 'classic' })}
-              className={`w-[88px] sm:w-[94px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all ${
+              className={`w-[92px] sm:w-[96px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all ${
                 current.headerLayout === 'classic'
                   ? 'border-2 border-black bg-white shadow-xs'
                   : 'border border-gray-200/90 bg-white hover:border-gray-300'
               }`}
             >
               <div className="w-full flex-1 flex items-center justify-center">
-                <div className="w-11 h-11 rounded-full overflow-hidden bg-rose-500 shadow-2xs">
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-rose-500 shadow-2xs">
                   <img src={demoGirlImg} alt="Classic" className="w-full h-full object-cover" />
                 </div>
               </div>
-              <span className="font-bold text-xs text-gray-900">Classic</span>
+              <span className="font-semibold text-[11px] text-gray-900">Classic</span>
             </button>
 
-            {/* 2. Hero (⚡ Pro) */}
+            {/* 2. Hero */}
             <button
               type="button"
               onClick={() => commitChange({ headerLayout: 'hero' })}
-              className={`w-[88px] sm:w-[94px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all relative ${
+              className={`w-[92px] sm:w-[96px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all ${
                 current.headerLayout === 'hero'
                   ? 'border-2 border-black bg-white shadow-xs'
                   : 'border border-gray-200/90 bg-white hover:border-gray-300'
               }`}
             >
-              <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-black/60 backdrop-blur-xs text-[#00E575] flex items-center justify-center text-[9px] z-10">
-                ⚡
-              </span>
-              <div className="w-full flex-1 flex items-center justify-center overflow-hidden rounded-xl relative">
-                <div className="w-full h-full rounded-xl overflow-hidden bg-gradient-to-t from-white via-transparent to-transparent relative">
+              <div className="w-full flex-1 flex items-center justify-center overflow-hidden rounded-[14px] relative">
+                <div className="w-full h-full rounded-[14px] overflow-hidden bg-gradient-to-t from-white via-transparent to-transparent relative">
                   <img src={demoGirlImg} alt="Hero" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-white via-white/10 to-transparent" />
                 </div>
               </div>
-              <span className="font-bold text-xs text-gray-900">Hero</span>
+              <span className="font-semibold text-[11px] text-gray-900">Hero</span>
             </button>
 
-            {/* 3. Banner (⚡ Pro) */}
+            {/* 3. Banner */}
             <button
               type="button"
               onClick={() => commitChange({ headerLayout: 'banner' })}
-              className={`w-[88px] sm:w-[94px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all relative ${
+              className={`w-[92px] sm:w-[96px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all ${
                 current.headerLayout === 'banner'
                   ? 'border-2 border-black bg-white shadow-xs'
                   : 'border border-gray-200/90 bg-white hover:border-gray-300'
               }`}
             >
-              <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-black/60 backdrop-blur-xs text-[#00E575] flex items-center justify-center text-[9px] z-10">
-                ⚡
-              </span>
               <div className="w-full flex-1 flex flex-col items-center justify-center relative">
                 {/* Top pink banner */}
                 <div className="w-full h-7 rounded-t-lg bg-gradient-to-r from-pink-200 via-rose-200 to-pink-300 overflow-hidden">
@@ -279,57 +275,57 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
                   <img src={demoGirlImg} alt="Banner" className="w-full h-full object-cover" />
                 </div>
               </div>
-              <span className="font-bold text-xs text-gray-900">Banner</span>
+              <span className="font-semibold text-[11px] text-gray-900">Banner</span>
             </button>
 
-            {/* 4. Cutout (⚡ Pro) */}
+            {/* 4. Cutout */}
             <button
               type="button"
               onClick={() => commitChange({ headerLayout: 'cutout' })}
-              className={`w-[88px] sm:w-[94px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all relative ${
+              className={`w-[92px] sm:w-[96px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all ${
                 current.headerLayout === 'cutout'
                   ? 'border-2 border-black bg-white shadow-xs'
                   : 'border border-gray-200/90 bg-white hover:border-gray-300'
               }`}
             >
-              <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-black/60 backdrop-blur-xs text-[#00E575] flex items-center justify-center text-[9px] z-10">
-                ⚡
-              </span>
               <div className="w-full flex-1 flex items-center justify-center overflow-hidden">
                 <div className="w-10 h-13 rounded-t-full overflow-hidden filter drop-shadow-sm">
                   <img src={demoGirlImg} alt="Cutout" className="w-full h-full object-cover" />
                 </div>
               </div>
-              <span className="font-bold text-xs text-gray-900">Cutout</span>
+              <span className="font-semibold text-[11px] text-gray-900">Cutout</span>
             </button>
 
-            {/* 5. Shape (⚡ Pro) */}
+            {/* 5. Shape */}
             <button
               type="button"
               onClick={() => commitChange({ headerLayout: 'shape' })}
-              className={`w-[88px] sm:w-[94px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all relative ${
+              className={`w-[92px] sm:w-[96px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all ${
                 current.headerLayout === 'shape'
                   ? 'border-2 border-black bg-white shadow-xs'
                   : 'border border-gray-200/90 bg-white hover:border-gray-300'
               }`}
             >
-              <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-black/60 backdrop-blur-xs text-[#00E575] flex items-center justify-center text-[9px] z-10">
-                ⚡
-              </span>
               <div className="w-full flex-1 flex items-center justify-center">
-                {/* 4-lobed cloud/flower shape matching Image 0, 1 & 2 */}
-                <div className="w-12 h-9 rounded-[38%_62%_63%_37%_/_41%_44%_56%_59%] bg-rose-600 overflow-hidden shadow-2xs p-0.5">
-                  <img src={demoGirlImg} alt="Shape" className="w-full h-full object-cover rounded-[38%_62%_63%_37%_/_41%_44%_56%_59%]" />
+                {/* 4-lobed cloud/flower shape matching Reference Images */}
+                <div
+                  className="w-14 h-10 relative flex items-center justify-center overflow-hidden shadow-2xs"
+                  style={{ clipPath: 'url(#linktree-organic-shape)' }}
+                >
+                  <div className="absolute inset-0 bg-rose-600" />
+                  <img src={demoGirlImg} alt="Shape" className="w-full h-full object-cover relative z-10" />
                 </div>
               </div>
-              <span className="font-bold text-xs text-gray-900">Shape</span>
+              <span className="font-semibold text-[11px] text-gray-900">Shape</span>
             </button>
           </div>
         </div>
 
-        {/* ROW 2: Profile Image matching Image 0, 1 & 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] items-center gap-3 sm:gap-6 pb-5 border-b border-gray-100">
-          <label className="font-bold text-gray-900 text-xs">Profile image</label>
+        {/* ROW 2: Profile Image matching Reference Images 0, 1 & 2 */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-8 pb-6 border-b border-gray-100">
+          <div className="w-44 sm:w-48 shrink-0">
+            <label className="font-bold text-gray-900 text-[13px]">Profile image</label>
+          </div>
 
           <div className="flex items-center gap-4">
             <input
@@ -343,7 +339,7 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
             {/* Squircle container matching Reference Images */}
             <div
               onClick={() => avatarInputRef.current?.click()}
-              className="w-18 h-18 rounded-[24px] bg-[#9CA3AF]/60 relative flex items-center justify-center cursor-pointer overflow-hidden group hover:opacity-90 transition-all shadow-inner"
+              className="w-18 h-18 rounded-[24px] bg-[#9CA3AF]/60 relative flex items-center justify-center cursor-pointer overflow-hidden group hover:opacity-95 transition-all shadow-inner"
               title="Upload profile image"
             >
               {current.avatarUrl ? (
@@ -360,24 +356,35 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
               </div>
             </div>
 
-            {/* Remove option if photo is uploaded */}
+            {/* Actions if photo is uploaded */}
             {current.avatarUrl && (
-              <button
-                type="button"
-                onClick={() => commitChange({ avatarUrl: null })}
-                className="text-xs text-red-600 hover:text-red-700 font-bold transition-colors cursor-pointer"
-              >
-                Remove photo
-              </button>
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="block text-xs font-bold text-gray-800 hover:text-black cursor-pointer"
+                >
+                  Change image
+                </button>
+                <button
+                  type="button"
+                  onClick={() => commitChange({ avatarUrl: null })}
+                  className="block text-xs text-red-600 hover:text-red-700 font-semibold cursor-pointer"
+                >
+                  Remove
+                </button>
+              </div>
             )}
           </div>
         </div>
 
         {/* Optional Banner Upload if Banner layout is active */}
         {current.headerLayout === 'banner' && (
-          <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] items-start gap-3 sm:gap-6 pb-5 border-b border-gray-100 animate-in fade-in">
-            <label className="font-bold text-gray-900 text-xs">Banner cover</label>
-            <div className="space-y-2 max-w-md">
+          <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-8 pb-6 border-b border-gray-100 animate-in fade-in">
+            <div className="w-44 sm:w-48 shrink-0">
+              <label className="font-bold text-gray-900 text-[13px]">Banner cover</label>
+            </div>
+            <div className="space-y-2 max-w-sm w-full">
               <input
                 type="file"
                 ref={bannerInputRef}
@@ -388,7 +395,7 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
               <button
                 type="button"
                 onClick={() => bannerInputRef.current?.click()}
-                className="py-1.5 px-3.5 rounded-full border border-gray-300 hover:bg-gray-50 text-xs font-bold text-gray-800 transition-colors cursor-pointer"
+                className="py-1.5 px-4 rounded-full border border-gray-300 hover:bg-gray-50 text-xs font-bold text-gray-800 transition-colors cursor-pointer"
               >
                 {current.bannerUrl ? 'Change banner image' : 'Upload banner image'}
               </button>
@@ -410,9 +417,11 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
 
         {/* Optional Hero Upload if Hero layout is active */}
         {current.headerLayout === 'hero' && (
-          <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] items-start gap-3 sm:gap-6 pb-5 border-b border-gray-100 animate-in fade-in">
-            <label className="font-bold text-gray-900 text-xs">Hero cover</label>
-            <div className="space-y-2 max-w-md">
+          <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-8 pb-6 border-b border-gray-100 animate-in fade-in">
+            <div className="w-44 sm:w-48 shrink-0">
+              <label className="font-bold text-gray-900 text-[13px]">Hero cover</label>
+            </div>
+            <div className="space-y-2 max-w-sm w-full">
               <input
                 type="file"
                 ref={heroInputRef}
@@ -423,7 +432,7 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
               <button
                 type="button"
                 onClick={() => heroInputRef.current?.click()}
-                className="py-1.5 px-3.5 rounded-full border border-gray-300 hover:bg-gray-50 text-xs font-bold text-gray-800 transition-colors cursor-pointer"
+                className="py-1.5 px-4 rounded-full border border-gray-300 hover:bg-gray-50 text-xs font-bold text-gray-800 transition-colors cursor-pointer"
               >
                 {current.heroUrl ? 'Change hero image' : 'Upload hero image'}
               </button>
@@ -443,11 +452,13 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
           </div>
         )}
 
-        {/* ROW 3: Title matching Image 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] items-start gap-3 sm:gap-6 pb-5 border-b border-gray-100">
-          <label className="font-bold text-gray-900 pt-2 text-xs">Title</label>
+        {/* ROW 3: Title matching Image 0, 1 & 2 */}
+        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-8 pb-6 border-b border-gray-100">
+          <div className="w-44 sm:w-48 shrink-0 pt-2.5">
+            <label className="font-bold text-gray-900 text-[13px]">Title</label>
+          </div>
 
-          <div className="max-w-md w-full">
+          <div className="max-w-[340px] w-full">
             <input
               type="text"
               maxLength={30}
@@ -462,41 +473,45 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
           </div>
         </div>
 
-        {/* ROW 4: Bio matching Image 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] items-start gap-3 sm:gap-6 pb-5 border-b border-gray-100">
-          <label className="font-bold text-gray-900 pt-2 text-xs">Bio</label>
+        {/* ROW 4: Bio matching Image 0, 1 & 2 */}
+        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-8 pb-6 border-b border-gray-100">
+          <div className="w-44 sm:w-48 shrink-0 pt-2.5">
+            <label className="font-bold text-gray-900 text-[13px]">Bio</label>
+          </div>
 
-          <div className="max-w-md w-full">
-            <div className="relative">
+          <div className="max-w-[340px] w-full">
+            <div>
               <textarea
                 maxLength={160}
                 rows={3}
                 value={current.bio}
                 onChange={(e) => commitChange({ bio: e.target.value })}
                 placeholder="Add a short bio"
-                className="w-full px-4 py-3 rounded-[20px] bg-white border border-gray-200/90 focus:border-black focus:outline-none text-xs font-medium text-black resize-none transition-all"
+                className="w-full px-4 py-3 rounded-[20px] bg-white border border-black focus:outline-none text-xs font-medium text-black resize-none min-h-[96px] transition-all"
               />
               <div className="flex items-center justify-end gap-1 text-[11px] font-mono text-gray-400 pt-1">
                 <span>{current.bio.length}/160</span>
-                <span className="text-gray-300 select-none"> //</span>
+                <span className="text-gray-300 select-none">//</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* ROW 5: Title style matching Image 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] items-start gap-3 sm:gap-6 pb-5 border-b border-gray-100">
-          <label className="font-bold text-gray-900 pt-2 text-xs">Title style</label>
+        {/* ROW 5: Title style matching Image 0, 1 & 2 - NO THUNDER ICON */}
+        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-8 pb-6 border-b border-gray-100">
+          <div className="w-44 sm:w-48 shrink-0 pt-2">
+            <label className="font-bold text-gray-900 text-[13px]">Title style</label>
+          </div>
 
-          <div className="space-y-3 max-w-md">
+          <div className="space-y-3 max-w-[340px] w-full">
             <div className="flex items-center gap-3">
               {/* Aa Text */}
               <button
                 type="button"
                 onClick={() => commitChange({ titleStyle: 'text' })}
-                className={`w-28 py-3 rounded-[18px] flex flex-col items-center justify-center gap-1 cursor-pointer transition-all ${
+                className={`w-28 py-2.5 rounded-[18px] flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
                   current.titleStyle === 'text'
-                    ? 'border-2 border-black bg-white shadow-xs'
+                    ? 'border-2 border-black bg-white shadow-2xs'
                     : 'border border-gray-200/90 bg-white hover:border-gray-300'
                 }`}
               >
@@ -504,19 +519,16 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
                 <span className="text-xs font-bold text-gray-900">Text</span>
               </button>
 
-              {/* Logo (⚡ Pro) */}
+              {/* Logo (NO THUNDER ICON) */}
               <button
                 type="button"
                 onClick={() => commitChange({ titleStyle: 'logo' })}
-                className={`w-28 py-3 rounded-[18px] flex flex-col items-center justify-center gap-1 cursor-pointer transition-all relative ${
+                className={`w-28 py-2.5 rounded-[18px] flex flex-col items-center justify-center gap-0.5 cursor-pointer transition-all ${
                   current.titleStyle === 'logo'
-                    ? 'border-2 border-black bg-white shadow-xs'
+                    ? 'border-2 border-black bg-white shadow-2xs'
                     : 'border border-gray-200/90 bg-white hover:border-gray-300'
                 }`}
               >
-                <span className="absolute top-2 right-2 w-3.5 h-3.5 rounded-full bg-black/60 text-[#00E575] flex items-center justify-center text-[8px] z-10">
-                  ⚡
-                </span>
                 <Image className="w-4 h-4 text-gray-800" />
                 <span className="text-xs font-bold text-gray-900">Logo</span>
               </button>
@@ -537,7 +549,7 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
                   <button
                     type="button"
                     onClick={() => logoInputRef.current?.click()}
-                    className="py-1 px-3 rounded-full bg-black text-white text-[11px] font-bold"
+                    className="py-1 px-3 rounded-full bg-black text-white text-[11px] font-bold cursor-pointer"
                   >
                     {current.logoUrl ? 'Change' : 'Pick logo'}
                   </button>
@@ -548,7 +560,7 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
                     <button
                       type="button"
                       onClick={() => commitChange({ logoUrl: null })}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-500 hover:text-red-700 cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -559,18 +571,14 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
           </div>
         </div>
 
-        {/* ROW 6: Alternative title font matching Image 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] items-center gap-3 sm:gap-6 pb-5 border-b border-gray-100">
-          <div>
-            <label className="font-bold text-gray-900 block text-xs">Alternative title font</label>
-            <span className="text-[11px] text-gray-400 block pt-0.5">Matches page font by default</span>
+        {/* ROW 6: Alternative title font matching Image 0, 1 & 2 - NO THUNDER ICON */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-8 pb-6 border-b border-gray-100">
+          <div className="w-44 sm:w-48 shrink-0">
+            <label className="font-bold text-gray-900 block text-[13px]">Alternative title font</label>
+            <span className="text-[11px] text-gray-400 block pt-0.5 leading-tight">Matches page font by default</span>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="w-4 h-4 rounded-full bg-black/60 text-[#00E575] flex items-center justify-center text-[9px] shrink-0">
-              ⚡
-            </span>
-
             {/* Toggle switch */}
             <button
               type="button"
@@ -603,18 +611,20 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
           </div>
         </div>
 
-        {/* ROW 7: Title color matching Image 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-[140px_1fr] items-center gap-3 sm:gap-6 pb-2">
-          <label className="font-bold text-gray-900 text-xs">Title color</label>
+        {/* ROW 7: Title color matching Image 0, 1 & 2 */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-8 pb-2">
+          <div className="w-44 sm:w-48 shrink-0">
+            <label className="font-bold text-gray-900 text-[13px]">Title color</label>
+          </div>
 
           <div className="flex items-center gap-2">
-            {/* Color swatch pill button */}
-            <label className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-[#F6F6F7] border border-gray-200/90 hover:border-gray-300 cursor-pointer shadow-2xs transition-all">
+            {/* Color swatch pill button matching Reference Images */}
+            <label className="flex items-center gap-2 px-3 py-1.5 rounded-[16px] bg-[#F6F6F7] border border-gray-200/90 hover:border-gray-300 cursor-pointer shadow-2xs transition-all">
               <input
                 type="color"
                 value={current.titleColor}
                 onChange={(e) => commitChange({ titleColor: e.target.value })}
-                className="w-5 h-5 rounded-lg border-0 cursor-pointer p-0 bg-transparent"
+                className="w-5 h-5 rounded-[6px] border-0 cursor-pointer p-0 bg-transparent"
               />
               <span className="font-mono text-xs font-bold text-gray-900 uppercase">
                 {current.titleColor}

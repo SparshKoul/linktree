@@ -91,6 +91,13 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
         fontFamily: activeTheme.fontFamily,
       }}
     >
+      <svg className="absolute w-0 h-0 overflow-hidden pointer-events-none" aria-hidden="true">
+        <defs>
+          <clipPath id="linktree-organic-shape" clipPathUnits="objectBoundingBox">
+            <path d="M 0.5,0.02 C 0.72,0.02, 0.94,0.12, 0.98,0.32 C 1.01,0.42, 0.95,0.48, 0.91,0.5 C 0.95,0.52, 1.01,0.58, 0.98,0.68 C 0.94,0.88, 0.72,0.98, 0.5,0.98 C 0.28,0.98, 0.06,0.88, 0.02,0.68 C -0.01,0.58, 0.05,0.52, 0.09,0.5 C 0.05,0.48, -0.01,0.42, 0.02,0.32 C 0.06,0.12, 0.28,0.02, 0.5,0.02 Z" />
+          </clipPath>
+        </defs>
+      </svg>
       {/* Top Bar for Admin Return & Share */}
       <div className="w-full max-w-[640px] flex items-center justify-between py-2 mb-4">
         {onBackToAdmin ? (
@@ -148,27 +155,31 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
           );
 
           if (layout === 'hero') {
-            const heroImage = tree.heroUrl || tree.avatarUrl;
+            const heroImage = tree.heroUrl || tree.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80';
             return (
-              <div className="w-full flex flex-col items-center text-center -mt-4 mb-2">
-                <div className="w-full h-48 sm:h-56 relative overflow-hidden rounded-3xl bg-gradient-to-t from-gray-900 via-rose-950 to-rose-600 shadow-lg">
-                  {heroImage && (
-                    <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-5 text-white">
-                    {renderTitleBio(true)}
-                  </div>
+              <div className="w-full flex flex-col items-center text-center -mt-4 mb-3">
+                <div className="w-full h-52 sm:h-64 relative overflow-hidden rounded-3xl shadow-md bg-rose-600">
+                  <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
+                  <div
+                    className="absolute inset-x-0 bottom-0 h-20"
+                    style={{
+                      background: `linear-gradient(to top, ${activeTheme.backgroundValue || '#F3F3F1'}, transparent)`,
+                    }}
+                  />
                 </div>
+                {renderTitleBio()}
               </div>
             );
           }
 
           if (layout === 'banner') {
             return (
-              <div className="w-full flex flex-col items-center text-center -mt-4 mb-2">
-                <div className="w-full h-28 sm:h-36 relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 shadow-md">
-                  {tree.bannerUrl && (
+              <div className="w-full flex flex-col items-center text-center -mt-4 mb-3">
+                <div className="w-full h-32 sm:h-40 relative overflow-hidden rounded-3xl bg-gradient-to-r from-pink-300 via-rose-300 to-rose-400 shadow-md">
+                  {tree.bannerUrl ? (
                     <img src={tree.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full opacity-60 bg-[radial-gradient(#ec4899_1.5px,transparent_1.5px)] [background-size:8px_8px]" />
                   )}
                 </div>
                 <div className="-mt-12 mb-2 relative">
@@ -189,13 +200,13 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
 
           if (layout === 'cutout') {
             return (
-              <div className="flex flex-col items-center text-center mb-2">
-                <div className="w-28 h-32 relative flex items-center justify-center mb-1">
+              <div className="flex flex-col items-center text-center mb-3">
+                <div className="w-32 h-36 relative flex items-end justify-center mb-1 overflow-hidden [mask-image:linear-gradient(to_bottom,black_75%,transparent_100%)]">
                   {tree.avatarUrl ? (
-                    <img src={tree.avatarUrl} alt="Cutout" className="w-full h-full object-contain filter drop-shadow-xl" />
+                    <img src={tree.avatarUrl} alt="Cutout" className="w-full h-full object-cover filter drop-shadow-xl" />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-[#E5E7EB] flex items-center justify-center">
-                      <Users className="w-12 h-12 text-gray-400" />
+                    <div className="w-26 h-30 rounded-t-full bg-gradient-to-tr from-rose-500 to-rose-600 flex items-center justify-center">
+                      <Users className="w-12 h-12 text-white" />
                     </div>
                   )}
                 </div>
@@ -206,15 +217,19 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
 
           if (layout === 'shape') {
             return (
-              <div className="flex flex-col items-center text-center mb-2">
-                <div className="w-24 h-24 rounded-[38%_62%_63%_37%_/_41%_44%_56%_59%] bg-gradient-to-tr from-purple-500 to-pink-500 p-1 shadow-md mb-2">
-                  <div className="w-full h-full rounded-[38%_62%_63%_37%_/_41%_44%_56%_59%] bg-[#E5E7EB] flex items-center justify-center overflow-hidden">
-                    {tree.avatarUrl ? (
-                      <img src={tree.avatarUrl} alt="Shape" className="w-full h-full object-cover" />
-                    ) : (
-                      <Users className="w-12 h-12 text-gray-400" />
-                    )}
-                  </div>
+              <div className="flex flex-col items-center text-center mb-3">
+                <div
+                  className="w-28 h-24 relative flex items-center justify-center mb-2 shadow-md"
+                  style={{ clipPath: 'url(#linktree-organic-shape)' }}
+                >
+                  <div className="absolute inset-0 bg-rose-600" />
+                  {tree.avatarUrl ? (
+                    <img src={tree.avatarUrl} alt="Shape" className="w-full h-full object-cover relative z-10" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center relative z-10">
+                      <Users className="w-12 h-12 text-white" />
+                    </div>
+                  )}
                 </div>
                 {renderTitleBio()}
               </div>

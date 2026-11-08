@@ -165,7 +165,10 @@ export const db = {
         updates.bannerUrl !== undefined ||
         updates.heroUrl !== undefined ||
         updates.titleStyle !== undefined ||
-        updates.logoUrl !== undefined
+        updates.logoUrl !== undefined ||
+        updates.altFontEnabled !== undefined ||
+        updates.titleFont !== undefined ||
+        updates.titleColor !== undefined
       ) {
         const baseTheme = updates.customTheme || updates.custom_theme || {};
         payload.custom_theme = {
@@ -175,6 +178,9 @@ export const db = {
           ...(updates.heroUrl !== undefined ? { heroUrl: updates.heroUrl } : {}),
           ...(updates.titleStyle !== undefined ? { titleStyle: updates.titleStyle } : {}),
           ...(updates.logoUrl !== undefined ? { logoUrl: updates.logoUrl } : {}),
+          ...(updates.altFontEnabled !== undefined ? { altFontEnabled: updates.altFontEnabled } : {}),
+          ...(updates.titleFont !== undefined ? { titleFont: updates.titleFont } : {}),
+          ...(updates.titleColor !== undefined ? { titleColor: updates.titleColor } : {}),
         };
       }
       if (updates.status !== undefined) payload.status = updates.status;
