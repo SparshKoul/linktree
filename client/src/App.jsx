@@ -1,0 +1,1341 @@
+import { useState, useEffect, useRef } from 'react';
+import {
+  Plus,
+  Share2,
+  ExternalLink,
+  Layers,
+  Palette,
+  Settings,
+  MoreVertical,
+  Check,
+  Zap,
+  Undo2,
+  Sparkles,
+  Link2,
+  Menu,
+  Bell,
+  Instagram,
+  Mail,
+  MessageCircle,
+  Users,
+  Wrench,
+  Search,
+  ChevronRight,
+  ChevronDown,
+  ListFilter,
+  Trash2,
+  HelpCircle,
+  MessageSquare,
+  LogOut,
+  Smartphone,
+  CheckCircle2,
+  Calendar,
+  CreditCard,
+  Send,
+  BarChart3,
+  Tv,
+  Coins,
+  QrCode,
+  LayoutGrid,
+  Pencil,
+  EyeOff,
+} from 'lucide-react';
+import { TreeSwitcher } from './components/TreeSwitcher.jsx';
+import { CreateTreeModal } from './components/CreateTreeModal.jsx';
+import { AddCardModal } from './components/AddCardModal.jsx';
+import { CardEditorModal } from './components/CardEditorModal.jsx';
+import { CardDetailEditor } from './components/CardDetailEditor.jsx';
+import { FaviconIcon } from './components/FaviconIcon.jsx';
+import { CardRenderer } from './cards/CardRenderer.jsx';
+import { AuthModal } from './components/AuthModal.jsx';
+import { PRESET_THEMES } from './constants/themes.js';
+import { storage } from './services/storage.js';
+
+export function App() {
+  const initialUser = storage.getUser();
+  const initialSettings = storage.getSettings();
+
+  const [currentUser, setCurrentUser] = useState(initialUser);
+  const [trees, setTrees] = useState([]);
+  const [currentTree, setCurrentTree] = useState(null);
+  const [activeTab, setActiveTab] = useState('links'); // 'links' | 'shop'
+  const [activeRail, setActiveRail] = useState('content'); // 'content' | 'header' | 'design' | 'settings'
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarMenuMode, setSidebarMenuMode] = useState('main'); // 'main' (Image 0) | 'account' (Image 1)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isAddCardOpen, setIsAddCardOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState('login');
+  const [editingCard, setEditingCard] = useState(null);
+  const [activeCardDetail, setActiveCardDetail] = useState(null);
+  const [topToast, setTopToast] = useState(null);
+  const [footerEnabled, setFooterEnabled] = useState(initialSettings.footerEnabled);
+  const [previewPhoneView, setPreviewPhoneView] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [lastDeletedCard, setLastDeletedCard] = useState(null);
+  const [undoToast, setUndoToast] = useState(false);
+  const [cardPendingDelete, setCardPendingDelete] = useState(null);
+  const [undoSecondsLeft, setUndoSecondsLeft] = useState(15);
+  const undoIntervalRef = useRef(null);
+  const [cardMenuId, setCardMenuId] = useState(null);
+  const [isBioBannerVisible, setIsBioBannerVisible] = useState(initialSettings.bioBannerVisible);
+
+  // Load current user and trees on mount or user change using localStorage first
+  const fetchUserData = (userId) => {
+    const user = storage.getUser();
+    setCurrentUser(user);
+
+    const localTrees = storage.getTrees(user?.id || userId || 1);
+    setTrees(localTrees);
+
+    const activeTreeId = Number(storage.getActiveTreeId());
+    const matched = localTrees.find((t) => t.id === activeTreeId) || localTrees[0];
+    if (matched) {
+      const cards = storage.getCards(matched.id);
+      setCurrentTree({ ...matched, cards });
+    }
+
+    // Optional background sync with server
+    fetch('/api/auth/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((serverUser) => {
+        if (serverUser) {
+          setCurrentUser(serverUser);
+          storage.setUser(serverUser);
+        }
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const loadTreeDetails = (id) => {
+    const numId = Number(id);
+    storage.setActiveTreeId(numId);
+    const allTrees = storage.getTrees(currentUser?.id);
+    const targetTree = allTrees.find((t) => t.id === numId) || trees.find((t) => t.id === numId);
+    const cards = storage.getCards(numId);
+    if (targetTree) {
+      setCurrentTree({ ...targetTree, cards });
+    }
+  };
+
+  const handleAuthSuccess = (user) => {
+    setCurrentUser(user);
+    storage.setUser(user);
+    setTopToast({
+      title: `Welcome, @${user.username}`,
+      subtitle: 'Account loaded with your trees',
+    });
+    setTimeout(() => setTopToast(null), 3000);
+    fetchUserData(user.id);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    storage.setUser(null);
+    setCurrentUser(null);
+    setTrees([]);
+    setCurrentTree(null);
+    setTopToast({
+      title: 'Logged out',
+      subtitle: 'Sign in to access your trees',
+    });
+    setTimeout(() => setTopToast(null), 3000);
+  };
+
+  const handleUpdateTree = async (updates) => {
+    if (!currentTree) return;
+    const updated = { ...currentTree, ...updates };
+    setCurrentTree(updated);
+
+    const allTrees = storage.getTrees();
+    const updatedAll = allTrees.map((t) => (t.id === currentTree.id ? updated : t));
+    storage.saveTrees(updatedAll);
+    setTrees(updatedAll.filter((t) => t.adminId === currentUser?.id));
+
+    // Optional background sync
+    fetch(`/api/admin/trees/${currentTree.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    }).catch(() => {});
+  };
+
+  const handleAddCard = async (type, title, defaultSettings = {}) => {
+    if (!currentTree) return;
+
+    const newCardData = {
+      id: Date.now(),
+      treeId: currentTree.id,
+      type,
+      title,
+      subtitle: defaultSettings.subtitle || defaultSettings.address || '',
+      url: defaultSettings.url || '',
+      thumbnailUrl: defaultSettings.thumbnailUrl || null,
+      clicks: 0,
+      visible: true,
+      animation: 'none',
+      settings: defaultSettings,
+    };
+
+    // Save directly to localStorage
+    const savedCard = storage.addCard(newCardData);
+    const updatedCards =
+      type === 'maps'
+        ? [savedCard, ...(currentTree.cards || [])]
+        : [...(currentTree.cards || []), savedCard];
+
+    setCurrentTree({
+      ...currentTree,
+      cards: updatedCards,
+    });
+
+    // Optional background sync
+    fetch(`/api/admin/trees/${currentTree.id}/cards`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newCardData),
+    }).catch(() => {});
+
+    if (type === 'maps' || defaultSettings.isSettingUp) {
+      setActiveCardDetail(savedCard);
+    } else {
+      setTopToast({
+        title: 'Link added',
+        subtitle: 'Share a tracked link',
+      });
+      setTimeout(() => setTopToast(null), 4000);
+
+      if (!defaultSettings.url || defaultSettings.url === '' || defaultSettings.url === 'https://') {
+        setActiveCardDetail(savedCard);
+      }
+    }
+  };
+
+  const handleUpdateCard = async (cardId, updates) => {
+    if (!currentTree || !currentTree.cards) return;
+
+    // Save directly to localStorage
+    storage.updateCard(cardId, updates);
+
+    const updatedCards = currentTree.cards.map((c) =>
+      c.id === cardId ? { ...c, ...updates, settings: { ...(c.settings || {}), ...(updates.settings || {}) } } : c
+    );
+    setCurrentTree({ ...currentTree, cards: updatedCards });
+
+    if (activeCardDetail && activeCardDetail.id === cardId) {
+      setActiveCardDetail((prev) =>
+        prev ? { ...prev, ...updates, settings: { ...(prev.settings || {}), ...(updates.settings || {}) } } : null
+      );
+    }
+
+    // Optional background sync
+    fetch(`/api/admin/cards/${cardId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    }).catch(() => {});
+  };
+
+  const promptDeleteCard = (cardId) => {
+    const target = currentTree?.cards?.find((c) => c.id === cardId) || activeCardDetail;
+    if (target) {
+      setCardPendingDelete(target);
+    }
+  };
+
+  const confirmDeleteCard = async (cardId) => {
+    if (!currentTree || !currentTree.cards) return;
+    const toDelete = currentTree.cards.find((c) => c.id === cardId) || activeCardDetail;
+    if (!toDelete) return;
+
+    if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
+
+    setLastDeletedCard(toDelete);
+    setUndoToast(true);
+    setUndoSecondsLeft(15);
+
+    // Remove from localStorage
+    storage.deleteCard(cardId);
+
+    const updatedCards = currentTree.cards.filter((c) => c.id !== cardId);
+    setCurrentTree({ ...currentTree, cards: updatedCards });
+
+    if (activeCardDetail && activeCardDetail.id === cardId) {
+      setActiveCardDetail(null);
+    }
+
+    // Live 15 seconds countdown
+    let count = 15;
+    undoIntervalRef.current = setInterval(() => {
+      count -= 1;
+      if (count <= 0) {
+        clearInterval(undoIntervalRef.current);
+        setUndoToast(false);
+      } else {
+        setUndoSecondsLeft(count);
+      }
+    }, 1000);
+
+    // Optional background sync
+    fetch(`/api/admin/cards/${cardId}`, { method: 'DELETE' }).catch(() => {});
+  };
+
+  const handleDeleteCard = (cardId) => {
+    promptDeleteCard(cardId);
+  };
+
+  const handleUndoDelete = async () => {
+    if (!currentTree || !lastDeletedCard) return;
+    if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
+    setUndoToast(false);
+
+    // Restore to localStorage
+    const restored = storage.addCard(lastDeletedCard);
+    setCurrentTree({
+      ...currentTree,
+      cards: [...(currentTree.cards || []), restored],
+    });
+    setLastDeletedCard(null);
+
+    // Optional background sync
+    fetch(`/api/admin/trees/${currentTree.id}/cards`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(lastDeletedCard),
+    }).catch(() => {});
+  };
+
+  const handleCopyLiveUrl = () => {
+    if (!currentTree) return;
+    const host = window.location.host;
+    const url = `${window.location.protocol}//${host}/${currentTree.slug}`;
+    navigator.clipboard.writeText(url);
+    setCopiedUrl(true);
+    setTimeout(() => setCopiedUrl(false), 2000);
+  };
+
+  const activeTheme =
+    currentTree?.customTheme ||
+    PRESET_THEMES.find((p) => p.id === currentTree?.themeId)?.theme ||
+    PRESET_THEMES[0].theme;
+
+  const currentSlug = currentTree?.slug || currentUser?.username || 'riyast';
+
+  return (
+    <div className="min-h-screen bg-[#FAFBFB] text-[#111111] flex flex-col font-sans select-none antialiased">
+      {/* 1. Topmost Dark Header Band matching Reference */}
+      <div className="h-10 bg-[#232833] px-5 flex items-center shrink-0">
+        <span className="text-[#26D07C] font-black text-xl leading-none select-none tracking-tight">✱</span>
+      </div>
+
+      {/* 2. Secondary Navigation Bar matching Reference */}
+      <header className="h-12 bg-[#FAFBFB] px-4 sm:px-6 flex items-center justify-between z-30 shrink-0">
+        {/* Left: Hamburger menu button */}
+        <div className="flex items-center gap-3 w-16">
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-1.5 rounded-xl hover:bg-gray-200/60 text-gray-800 transition-colors cursor-pointer"
+            title="Toggle Sidebar"
+          >
+            <Menu className="w-5 h-5 stroke-[2.2]" />
+          </button>
+        </div>
+
+        {/* Center: Tree Switcher Dropdown Pill */}
+        <div className="flex items-center justify-center">
+          <TreeSwitcher
+            trees={trees}
+            currentTree={currentTree}
+            onSelectTree={(tree) => loadTreeDetails(tree.id)}
+            onOpenCreateModal={() => setIsCreateModalOpen(true)}
+            initialOpen={false}
+          />
+        </div>
+
+        {/* Right: Copy link pill button */}
+        <div className="flex items-center gap-3 justify-end">
+          <button
+            onClick={() => setPreviewPhoneView(!previewPhoneView)}
+            className="lg:hidden p-2 rounded-full border border-gray-200 hover:bg-gray-50 cursor-pointer"
+          >
+            <Smartphone className="w-4 h-4 text-[#7033FF]" />
+          </button>
+
+          {activeCardDetail ? (
+            <button
+              onClick={handleCopyLiveUrl}
+              className="flex items-center gap-2 px-3.5 py-1 rounded-full border border-gray-200/90 hover:border-gray-300 bg-white hover:bg-gray-50 text-xs font-bold text-[#111111] shadow-2xs transition-all cursor-pointer"
+            >
+              <Share2 className="w-3.5 h-3.5 text-gray-700" />
+              <span>Share</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleCopyLiveUrl}
+              className="flex items-center gap-2 px-3.5 py-1 rounded-full border border-gray-200/90 hover:border-gray-300 bg-white hover:bg-gray-50 text-xs font-bold text-[#111111] shadow-2xs transition-all cursor-pointer"
+            >
+              {copiedUrl ? (
+                <Check className="w-3.5 h-3.5 text-green-600" />
+              ) : (
+                <Share2 className="w-3.5 h-3.5 text-gray-700" />
+              )}
+              <span>{copiedUrl ? 'Copied' : 'Copy link'}</span>
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* Floating Toast Notification */}
+      {topToast && (
+        <div className="fixed top-18 left-1/2 -translate-x-1/2 z-50 bg-white border border-gray-200 rounded-full pl-3.5 pr-2 py-1.5 shadow-xl flex items-center gap-3 text-xs animate-in fade-in slide-in-from-top-3">
+          <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center shrink-0">
+            <Check className="w-3 h-3 stroke-[3]" />
+          </div>
+          <div className="flex flex-col text-left">
+            <span className="font-extrabold text-[#111111] text-[11px] leading-tight">
+              {topToast.title}
+            </span>
+            <span className="text-[10px] text-gray-400 leading-tight">
+              {topToast.subtitle}
+            </span>
+          </div>
+          <button
+            onClick={handleCopyLiveUrl}
+            className="ml-2 px-3.5 py-1 rounded-full bg-black hover:bg-gray-800 text-white font-bold text-[11px] transition-colors shrink-0 shadow-xs cursor-pointer"
+          >
+            Share link
+          </button>
+        </div>
+      )}
+
+      {/* 2. Main Body Container */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Left Side: Either Expanded Sidebar (Image 0 & 1) OR Compact Icon Dock (Image 2) */}
+        {isSidebarOpen ? (
+          /* EXPANDED SIDEBAR matching Image 0 & Image 1 */
+          <aside className="w-64 bg-white border-r border-gray-200 flex flex-col justify-between p-4 shrink-0 overflow-y-auto z-20 shadow-2xs">
+            <div className="space-y-4">
+              {/* Top row: User pill button + Bell notification */}
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <button
+                  onClick={() => setSidebarMenuMode(sidebarMenuMode === 'main' ? 'account' : 'main')}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-gray-100 text-left transition-colors cursor-pointer"
+                  title="Click to toggle account menu"
+                >
+                  <div className="w-6 h-6 rounded-full bg-[#D1D5DB] flex items-center justify-center overflow-hidden shrink-0">
+                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+                    </svg>
+                  </div>
+                  <span className="font-bold text-xs truncate max-w-[120px] text-black">
+                    {currentSlug}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ${sidebarMenuMode === 'account' ? 'rotate-180' : ''}`} />
+                </button>
+
+                <button className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                  <Bell className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* View 1: Main Navigation (matching Image 0) */}
+              {sidebarMenuMode === 'main' ? (
+                <div className="space-y-4">
+                  {/* Primary Navigation Links matching Image 0 */}
+                  <div className="space-y-0.5 text-xs font-semibold text-gray-700">
+                    <button
+                      onClick={() => setActiveTab('links')}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left bg-[#F3F3F1] text-black font-bold transition-colors cursor-pointer"
+                    >
+                      <LayoutGrid className="w-4 h-4 text-black" />
+                      <span>My Linktree</span>
+                    </button>
+
+                    <button className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-gray-50 text-gray-600 hover:text-black transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <Coins className="w-4 h-4 text-gray-400" />
+                        <span>Earn</span>
+                      </div>
+                      <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                    </button>
+
+                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 text-gray-600 hover:text-black transition-colors cursor-pointer">
+                      <Tv className="w-4 h-4 text-gray-400" />
+                      <span>Media kit</span>
+                    </button>
+
+                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 text-gray-600 hover:text-black transition-colors cursor-pointer">
+                      <Users className="w-4 h-4 text-gray-400" />
+                      <span>Audience</span>
+                    </button>
+
+                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 text-gray-600 hover:text-black transition-colors cursor-pointer">
+                      <BarChart3 className="w-4 h-4 text-gray-400" />
+                      <span>Insights</span>
+                    </button>
+
+                    <button className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-gray-50 text-gray-600 hover:text-black transition-colors cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <Send className="w-4 h-4 text-gray-400 -rotate-45" />
+                        <span>Messaging</span>
+                      </div>
+                      <span className="w-2 h-2 rounded-full bg-[#7033FF]" />
+                    </button>
+                  </div>
+
+                  {/* Tools Section matching Image 0 */}
+                  <div className="pt-2 border-t border-gray-100 space-y-0.5">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 mb-1">
+                      Tools
+                    </div>
+                    <button className="w-full px-3 py-1.5 text-xs text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer">
+                      <CreditCard className="w-3.5 h-3.5 text-gray-400" />
+                      <span>Business cards</span>
+                    </button>
+                    <button className="w-full px-3 py-1.5 text-xs text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer">
+                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                      <span>Social planner</span>
+                    </button>
+                    <button className="w-full px-3 py-1.5 text-xs text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer">
+                      <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
+                      <span>Instagram auto-reply</span>
+                    </button>
+                    <button className="w-full px-3 py-1.5 text-xs text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer">
+                      <Link2 className="w-3.5 h-3.5 text-gray-400" />
+                      <span>Link shortener</span>
+                    </button>
+                    <button className="w-full px-3 py-1.5 text-xs text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer">
+                      <Sparkles className="w-3.5 h-3.5 text-gray-400" />
+                      <span>Post ideas</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* View 2: Account Menu (matching Image 1) */
+                <div className="space-y-3 animate-in fade-in duration-150">
+                  {/* Account Card matching Image 1 */}
+                  <div className="flex items-center justify-between p-2.5 rounded-2xl bg-[#F6F6F7] border border-gray-100">
+                    <div className="flex items-center gap-2.5 overflow-hidden">
+                      <div className="w-8 h-8 rounded-full bg-[#D1D5DB] flex items-center justify-center overflow-hidden shrink-0">
+                        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+                        </svg>
+                      </div>
+                      <div className="truncate">
+                        <div className="font-bold text-xs text-[#111111]">{currentSlug}</div>
+                        <div className="text-[10px] text-gray-400 font-mono">linktr.ee/{currentSlug}</div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-semibold text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full bg-white">
+                      Free
+                    </span>
+                  </div>
+
+                  {/* Account Action Items matching Image 1 */}
+                  <div className="space-y-0.5 text-xs font-semibold text-gray-700">
+                    <button
+                      onClick={() => setSidebarMenuMode('main')}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <span className="text-sm">⇄</span>
+                      <span>Switch Linktrees</span>
+                    </button>
+                    <button
+                      onClick={() => setIsCreateModalOpen(true)}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4 text-gray-500" />
+                      <span>Create new Linktree</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAuthModalMode('switch');
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <Users className="w-4 h-4 text-gray-500" />
+                      <span>Account</span>
+                    </button>
+                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer">
+                      <HelpCircle className="w-4 h-4 text-gray-500" />
+                      <span>Ask a question</span>
+                    </button>
+                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer">
+                      <span>📖</span>
+                      <span>Help topics</span>
+                    </button>
+                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer">
+                      <MessageSquare className="w-4 h-4 text-gray-500" />
+                      <span>Share feedback</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAuthModalMode('login');
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                    >
+                      <LogOut className="w-4 h-4 text-red-500" />
+                      <span>Log out</span>
+                    </button>
+                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer pt-2 border-t border-gray-100">
+                      <Sparkles className="w-4 h-4 text-purple-600" />
+                      <span>Post ideas</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Setup checklist widget matching Image 0 & 1 */}
+            <div className="pt-4 border-t border-gray-100 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="relative w-8 h-8 rounded-full border-2 border-purple-500 flex items-center justify-center font-bold text-[10px] text-purple-600">
+                  17%
+                </div>
+                <div className="text-[11px] leading-tight">
+                  <div className="font-bold text-black">Your setup checklist</div>
+                  <div className="text-gray-400">1 of 6 complete</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAddCardOpen(true)}
+                className="w-full py-2.5 rounded-full bg-[#7033FF] hover:bg-[#6025e6] text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+              >
+                Finish setup
+              </button>
+
+              {/* Bottom Settings Button: opens Login / Sign up / Account modal as requested! */}
+              <button
+                onClick={() => {
+                  setAuthModalMode(currentUser ? 'switch' : 'login');
+                  setIsAuthModalOpen(true);
+                }}
+                className="w-full flex items-center gap-2.5 px-2 py-1 text-xs font-semibold text-gray-700 hover:text-black cursor-pointer transition-colors"
+              >
+                <Settings className="w-4 h-4 text-gray-500" />
+                <span>Settings</span>
+                {currentUser ? (
+                  <span className="ml-auto text-[10px] text-green-600 font-bold">@{currentUser.username}</span>
+                ) : (
+                  <span className="ml-auto text-[10px] text-purple-600 font-bold">Login / Sign up</span>
+                )}
+              </button>
+            </div>
+          </aside>
+        ) : (
+          /* COMPACT DOCK matching Reference with navigation links in vertical center */
+          <aside className="w-[72px] bg-[#FAFBFB] flex flex-col items-center py-6 shrink-0 z-20 self-stretch">
+            {/* Top spacer to center nav icons */}
+            <div className="flex-1" />
+
+            {/* Nav links centered in the left side */}
+            <div className="flex flex-col items-center gap-6 py-2">
+              {/* Content Button (selected state) */}
+              <button
+                onClick={() => {
+                  setActiveRail('content');
+                  setActiveTab('links');
+                }}
+                className="flex flex-col items-center gap-1.5 cursor-pointer group"
+                title="Content"
+              >
+                <div
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                    activeRail === 'content'
+                      ? 'bg-black text-white shadow-xs'
+                      : 'bg-transparent text-gray-500 hover:bg-gray-200/60 hover:text-black'
+                  }`}
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="7" y="3" width="13" height="13" rx="2" />
+                    <path d="M4 8v11a2 2 0 0 0 2 2h11" />
+                  </svg>
+                </div>
+                <span className={`text-[10px] font-semibold ${activeRail === 'content' ? 'text-black font-bold' : 'text-gray-500'}`}>
+                  Content
+                </span>
+              </button>
+
+              {/* Header Button */}
+              <button
+                onClick={() => setActiveRail('header')}
+                className="flex flex-col items-center gap-1.5 cursor-pointer group"
+                title="Header"
+              >
+                <div
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                    activeRail === 'header'
+                      ? 'bg-black text-white shadow-xs'
+                      : 'bg-transparent text-gray-500 hover:bg-gray-200/60 hover:text-black'
+                  }`}
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="16" rx="3" />
+                    <circle cx="9" cy="10" r="2" />
+                    <line x1="15" y1="9" x2="17" y2="9" />
+                    <line x1="15" y1="13" x2="17" y2="13" />
+                    <path d="M6 16c0-1.5 1.5-2.5 3-2.5s3 1 3 2.5" />
+                  </svg>
+                </div>
+                <span className={`text-[10px] font-semibold ${activeRail === 'header' ? 'text-black font-bold' : 'text-gray-500'}`}>
+                  Header
+                </span>
+              </button>
+
+              {/* Design Button */}
+              <button
+                onClick={() => {
+                  setActiveRail('design');
+                  setActiveTab('design');
+                }}
+                className="flex flex-col items-center gap-1.5 cursor-pointer group"
+                title="Design"
+              >
+                <div
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                    activeRail === 'design'
+                      ? 'bg-black text-white shadow-xs'
+                      : 'bg-transparent text-gray-500 hover:bg-gray-200/60 hover:text-black'
+                  }`}
+                >
+                  <Palette className="w-5 h-5 stroke-[2]" />
+                </div>
+                <span className={`text-[10px] font-semibold ${activeRail === 'design' ? 'text-black font-bold' : 'text-gray-500'}`}>
+                  Design
+                </span>
+              </button>
+
+              {/* Enhance Button */}
+              <button
+                onClick={() => setActiveRail('enhance')}
+                className="flex flex-col items-center gap-1.5 cursor-pointer group"
+                title="Enhance"
+              >
+                <div
+                  className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                    activeRail === 'enhance'
+                      ? 'bg-black text-white shadow-xs'
+                      : 'bg-transparent text-gray-500 hover:bg-gray-200/60 hover:text-black'
+                  }`}
+                >
+                  <Sparkles className="w-5 h-5 stroke-[2]" />
+                </div>
+                <span className={`text-[10px] font-semibold ${activeRail === 'enhance' ? 'text-black font-bold' : 'text-gray-500'}`}>
+                  Enhance
+                </span>
+              </button>
+            </div>
+
+            {/* Bottom Settings Button with matching bottom spacer */}
+            <div className="flex-1 flex flex-col justify-end items-center">
+              <button
+                onClick={() => {
+                  setAuthModalMode(currentUser ? 'switch' : 'login');
+                  setIsAuthModalOpen(true);
+                }}
+                className="w-11 h-11 rounded-full flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-200/60 transition-colors cursor-pointer"
+                title="Settings & Accounts (Login / Sign up)"
+              >
+                <Settings className="w-5 h-5 stroke-[2]" />
+              </button>
+            </div>
+          </aside>
+        )}
+
+        {/* 3. Center Main Editor Column matching Reference */}
+        <main className="flex-1 px-4 sm:px-6 pt-2 pb-4 flex justify-center lg:justify-end items-start h-[calc(100vh-88px)] overflow-hidden">
+          <div className="w-full max-w-[580px] xl:max-w-[620px] h-full flex flex-col">
+            {activeCardDetail ? (
+              <div className="bg-white rounded-[28px] xl:rounded-[32px] p-5 sm:p-6 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar">
+                <CardDetailEditor
+                  card={activeCardDetail}
+                  onBack={() => {
+                    setActiveCardDetail(null);
+                    setTopToast({
+                      title: 'Link added',
+                      subtitle: 'Share a tracked link',
+                    });
+                    setTimeout(() => setTopToast(null), 4000);
+                  }}
+                  onUpdateCard={handleUpdateCard}
+                  onDeleteCard={(id) => {
+                    handleDeleteCard(id);
+                    setActiveCardDetail(null);
+                  }}
+                  activeTheme={activeTheme}
+                />
+              </div>
+            ) : (
+              <div className="bg-white rounded-[28px] xl:rounded-[32px] p-5 sm:p-6 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar space-y-4">
+                {/* Header Title & Top Right Icons matching Image 0, 1 & 2 */}
+                <div className="flex items-center justify-between">
+                  <h1 className="text-xl font-bold tracking-tight text-[#111111]">
+                    Content
+                  </h1>
+                  <div className="flex items-center gap-1 text-gray-500">
+                    <button
+                      className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-600 hover:text-black transition-colors cursor-pointer"
+                      title="View options"
+                    >
+                      <ListFilter className="w-4 h-4" />
+                    </button>
+                    <button
+                      className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-600 hover:text-black transition-colors cursor-pointer"
+                      title="Archive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Profile Block matching Reference */}
+                <div className="flex items-center gap-3.5">
+                  {/* Avatar Placeholder */}
+                  <div className="w-14 h-14 rounded-full bg-[#D1D5DB] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                    <svg className="w-9 h-9 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+                    </svg>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="font-bold text-xs text-[#111111]">@{currentSlug}</div>
+
+                    {/* Social icons row with mini + badges matching Reference */}
+                    <div className="flex items-center gap-1.5">
+                      {/* Instagram */}
+                      <div className="relative">
+                        <div className="w-6 h-6 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-700">
+                          <Instagram className="w-3 h-3" />
+                        </div>
+                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[8px] font-bold text-gray-600">
+                          +
+                        </span>
+                      </div>
+
+                      {/* TikTok */}
+                      <div className="relative">
+                        <div className="w-6 h-6 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-700 font-bold text-[9px]">
+                          TT
+                        </div>
+                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[8px] font-bold text-gray-600">
+                          +
+                        </span>
+                      </div>
+
+                      {/* WhatsApp */}
+                      <div className="relative">
+                        <div className="w-6 h-6 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-700">
+                          <MessageCircle className="w-3 h-3" />
+                        </div>
+                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[8px] font-bold text-gray-600">
+                          +
+                        </span>
+                      </div>
+
+                      {/* Mail */}
+                      <div className="relative">
+                        <div className="w-6 h-6 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-700">
+                          <Mail className="w-3 h-3" />
+                        </div>
+                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[8px] font-bold text-gray-600">
+                          +
+                        </span>
+                      </div>
+
+                      {/* Plus Button */}
+                      <button
+                        onClick={() => handleAddCard('social', 'Instagram Feed')}
+                        className="w-6 h-6 rounded-full border border-gray-300 hover:border-black text-gray-400 hover:text-black flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                        title="Add social icon"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Show total followers button matching Reference */}
+                    <div>
+                      <button className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-[10px] font-semibold text-gray-700 transition-colors shadow-2xs cursor-pointer">
+                        <Users className="w-2.5 h-2.5 text-gray-500" />
+                        <span>Show total followers</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Add to your bios banner matching Reference */}
+                {isBioBannerVisible && (
+                  <div className="relative bg-white border border-gray-200/90 rounded-2xl p-3 flex items-center justify-between shadow-2xs hover:border-gray-300 transition-colors">
+                    <div className="space-y-0.5">
+                      <div className="font-extrabold text-xs text-[#111111]">Add to your bios</div>
+                      <div className="text-[10px] text-gray-400 font-mono">linktr.ee/{currentSlug}</div>
+                    </div>
+                    <div className="flex items-center gap-2 pr-4">
+                      {/* TikTok circle badge */}
+                      <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[8px] font-bold">
+                        TT
+                      </span>
+                      {/* Phone graphic preview */}
+                      <div className="w-3.5 h-5 rounded-xs border border-gray-300 bg-gray-50 flex flex-col items-center justify-center gap-0.5 px-0.5 py-0.5">
+                        <div className="w-2 h-0.5 bg-gray-300 rounded-full" />
+                        <div className="w-2 h-0.5 bg-gray-200 rounded-full" />
+                      </div>
+                      <ChevronDown className="w-3 h-3 text-gray-400" />
+                    </div>
+                    {/* Dismiss button on top-right */}
+                    <button
+                      onClick={() => {
+                        setIsBioBannerVisible(false);
+                        storage.saveSettings({ bioBannerVisible: false });
+                      }}
+                      className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white border border-gray-200 text-gray-400 hover:text-black hover:border-gray-400 flex items-center justify-center text-[9px] leading-none transition-colors shadow-2xs cursor-pointer"
+                      title="Dismiss"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
+                {/* Tabs Row: Links / Shop matching Reference */}
+                <div className="flex items-center gap-5 border-b border-gray-100 text-xs font-bold pt-1">
+                  <button
+                    onClick={() => setActiveTab('links')}
+                    className={`pb-2 transition-colors relative cursor-pointer ${
+                      activeTab === 'links' ? 'text-black font-extrabold' : 'text-gray-400 hover:text-black'
+                    }`}
+                  >
+                    Links
+                    {activeTab === 'links' && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black rounded-full" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('shop')}
+                    className={`pb-2 transition-colors relative cursor-pointer ${
+                      activeTab === 'shop' ? 'text-black font-extrabold' : 'text-gray-400 hover:text-black'
+                    }`}
+                  >
+                    Shop
+                    {activeTab === 'shop' && (
+                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black rounded-full" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Action Buttons Row: [ ⊞ Add collection ] and [ + Add ] matching Reference */}
+                <div className="flex items-center gap-2.5">
+                  <button
+                    onClick={() => handleAddCard('collapsible', 'New Collection')}
+                    className="flex-1 py-2.5 px-4 rounded-full bg-[#EAEAE8] hover:bg-[#E2E2E0] text-xs font-semibold text-[#111111] flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    {/* Collection grid icon */}
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                    </svg>
+                    <span>Add collection</span>
+                  </button>
+
+                  <button
+                    onClick={() => setIsAddCardOpen(true)}
+                    className="flex-1 py-2.5 px-4 rounded-full bg-black hover:bg-neutral-800 text-xs font-bold text-white flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>Add</span>
+                  </button>
+                </div>
+
+                {/* Cards List with Internal Scroll Matching Reference */}
+                {activeTab === 'links' && (
+                  <div className="space-y-2 pt-1">
+                    {/* Render current tree cards */}
+                    {currentTree?.cards && currentTree.cards.length > 0 ? (
+                      currentTree.cards.map((card) => {
+                        const isSetupNeeded = Boolean(card.settings?.needsSetup && (!card.url || card.url.trim() === ''));
+                        const isHidden = card.visible === false;
+                        const displaySubtitle = card.url
+                          ? card.url.replace(/^https?:\/\//, '').split('/')[0]
+                          : (card.subtitle || 'link');
+
+                        return (
+                          <div
+                            key={card.id}
+                            onClick={() => setActiveCardDetail(card)}
+                            className={`group rounded-2xl py-2.5 px-3.5 shadow-2xs transition-all flex items-center justify-between gap-3 cursor-pointer ${
+                              isHidden
+                                ? 'bg-[#EAEAEA] border border-gray-300/80 text-gray-500 hover:bg-[#E2E2E2]'
+                                : 'bg-white border border-gray-200/80 hover:border-gray-300 hover:shadow-xs'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className={isHidden ? 'opacity-60' : ''}>
+                                <FaviconIcon card={card} className="w-4 h-4" containerClassName="w-8 h-8 rounded-xl shrink-0" />
+                              </div>
+
+                              <div className="min-w-0 space-y-0.5">
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className={`font-bold text-xs truncate leading-tight ${isHidden ? 'text-gray-500' : 'text-[#111111]'}`}>
+                                    {card.title}
+                                  </span>
+                                  {isHidden && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gray-300/80 text-[9px] font-bold text-gray-600 shrink-0">
+                                      <EyeOff className="w-2.5 h-2.5" />
+                                      Hidden
+                                    </span>
+                                  )}
+                                </div>
+                                <div className={`text-[10px] truncate flex items-center gap-1.5 ${isHidden ? 'text-gray-400' : 'text-gray-500'}`}>
+                                  <span>{card.clicks || 0} clicks</span>
+                                  <span>•</span>
+                                  <span className="truncate">{displaySubtitle}</span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                              {isSetupNeeded && (
+                                <button
+                                  onClick={() => setActiveCardDetail(card)}
+                                  className="px-2.5 py-0.5 rounded-full border border-gray-200 hover:bg-gray-50 text-[11px] font-bold text-[#111111] flex items-center gap-1 transition-colors cursor-pointer"
+                                >
+                                  <Wrench className="w-2.5 h-2.5 text-amber-600" />
+                                  <span>Setup</span>
+                                </button>
+                              )}
+
+                              <div className="relative">
+                                <button
+                                  onClick={() => setCardMenuId(cardMenuId === card.id ? null : card.id)}
+                                  className="p-1 rounded-lg text-gray-400 hover:text-black hover:bg-gray-100 transition-colors cursor-pointer"
+                                  title="More options"
+                                >
+                                  <MoreVertical className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* Card Context Menu matching Image 1 */}
+                                {cardMenuId === card.id && (
+                                  <>
+                                    <div
+                                      className="fixed inset-0 z-30"
+                                      onClick={() => setCardMenuId(null)}
+                                    />
+                                    <div className="absolute right-0 top-9 w-36 bg-white rounded-2xl shadow-xl border border-gray-100 p-1.5 z-40 text-xs font-semibold space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                                      <button
+                                        onClick={() => {
+                                          setCardMenuId(null);
+                                          setActiveCardDetail(card);
+                                        }}
+                                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:text-black hover:bg-[#F6F6F7] text-left transition-colors cursor-pointer"
+                                      >
+                                        <Pencil className="w-3.5 h-3.5 text-gray-500" />
+                                        <span>Edit</span>
+                                      </button>
+
+                                      <button
+                                        onClick={() => {
+                                          setCardMenuId(null);
+                                          if (card.url && navigator.clipboard) {
+                                            navigator.clipboard.writeText(card.url);
+                                            setTopToast({ title: 'Link copied', subtitle: card.url });
+                                            setTimeout(() => setTopToast(null), 3000);
+                                          }
+                                        }}
+                                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:text-black hover:bg-[#F6F6F7] text-left transition-colors cursor-pointer"
+                                      >
+                                        <Share2 className="w-3.5 h-3.5 text-gray-500" />
+                                        <span>Share</span>
+                                      </button>
+
+                                      <button
+                                        onClick={() => {
+                                          setCardMenuId(null);
+                                          const nextVisible = card.visible === false ? true : false;
+                                          handleUpdateCard(card.id, { visible: nextVisible });
+                                        }}
+                                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:text-black hover:bg-[#F6F6F7] text-left transition-colors cursor-pointer"
+                                      >
+                                        <EyeOff className="w-3.5 h-3.5 text-gray-500" />
+                                        <span>{card.visible === false ? 'Unhide' : 'Hide'}</span>
+                                      </button>
+
+                                      <button
+                                        onClick={() => {
+                                          setCardMenuId(null);
+                                          handleDeleteCard(card.id);
+                                        }}
+                                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:text-black hover:bg-[#F6F6F7] text-left transition-colors cursor-pointer"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5 text-gray-500" />
+                                        <span>Archive</span>
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-center py-12 text-gray-400 text-xs">
+                        No links in this tree yet. Click "+ Add" to add your first link!
+                      </div>
+                    )}
+
+                    {/* Linktree footer toggle container matching Image 0 & 2 */}
+                    <div className="bg-white border border-gray-200/80 rounded-2xl p-3 shadow-2xs mt-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-[#111111]">Linktree footer</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
+                            <Zap className="w-2.5 h-2.5 fill-gray-500 text-gray-500" />
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const next = !footerEnabled;
+                              setFooterEnabled(next);
+                              storage.saveSettings({ footerEnabled: next });
+                            }}
+                            className={`w-9 h-5 rounded-full transition-colors relative p-0.5 cursor-pointer ${
+                              footerEnabled ? 'bg-[#10B981]' : 'bg-gray-200'
+                            }`}
+                          >
+                            <span
+                              className={`w-4 h-4 rounded-full bg-white block shadow-sm transition-transform ${
+                                footerEnabled ? 'translate-x-4' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Brand Wordmark & Asterisk matching Image 0 & 2 */}
+                      <div className="font-extrabold text-xs flex items-center gap-0.5 text-[#111111] mt-1">
+                        <span>Linktree</span>
+                        <span className="text-[#10B981] font-black text-xs">✱</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Shop Tab */}
+                {activeTab === 'shop' && (
+                  <div className="space-y-4 pt-2">
+                    <button
+                      onClick={() =>
+                        handleAddCard('product', 'Special Edition Product', {
+                          price: '$49.00',
+                        })
+                      }
+                      className="w-full py-3 rounded-full bg-[#7033FF] hover:bg-[#6025e6] text-white text-xs font-bold transition-all cursor-pointer"
+                    >
+                      + Add Product Card
+                    </button>
+                    <div className="text-center py-10 bg-gray-50 rounded-2xl p-6 text-xs text-gray-500">
+                      Product cards allow visitors to purchase directly via your out-links (Stripe, PayPal, UPI).
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </main>
+
+        {/* 4. Right Side: Centered Phone Preview Mockup matching Reference */}
+        <aside
+          className={`flex-1 bg-[#FAFBFB] flex items-center justify-center p-4 lg:p-6 shrink-0 relative ${
+            previewPhoneView ? 'fixed inset-0 z-50 bg-black/60 p-4' : 'hidden lg:flex'
+          }`}
+        >
+          {previewPhoneView && (
+            <button
+              onClick={() => setPreviewPhoneView(false)}
+              className="absolute top-4 right-4 text-white p-2 rounded-full bg-black/50"
+            >
+              ✕
+            </button>
+          )}
+
+          <div className="relative">
+            {/* Phone Screen Mockup Container matching Reference */}
+            <div
+              className="w-[325px] xl:w-[335px] h-[650px] xl:h-[670px] max-h-[calc(100vh-110px)] rounded-[42px] shadow-xl p-5 xl:p-6 flex flex-col justify-between text-center overflow-y-auto relative border border-gray-200/80"
+              style={{
+                background: '#EEF1F6',
+                color: '#111111',
+                fontFamily: 'Inter, sans-serif',
+              }}
+            >
+              {/* Top Icons Inside Phone matching Reference */}
+              <div className="w-full flex items-center justify-between text-xs mb-6 text-gray-700">
+                <span className="font-extrabold text-sm leading-none">✱</span>
+                <span>
+                  <Share2 className="w-3.5 h-3.5 text-gray-700" />
+                </span>
+              </div>
+
+              {/* Profile Avatar & Username matching Reference */}
+              <div className="flex flex-col items-center">
+                <div className="w-20 h-20 rounded-full bg-[#D1D5DB] flex items-center justify-center shadow-inner overflow-hidden mb-3">
+                  <svg className="w-12 h-12 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+                  </svg>
+                </div>
+                <h2 className="font-extrabold text-sm text-[#111111]">@{currentSlug}</h2>
+              </div>
+
+              {/* Cards Stack inside Phone matching Reference */}
+              <div className="w-full space-y-2.5 flex-1 mt-6">
+                {currentTree?.cards &&
+                  currentTree.cards
+                    .filter((c) => c.visible !== false)
+                    .map((card) => (
+                      <CardRenderer key={card.id} card={card} theme={activeTheme} isPreview />
+                    ))}
+              </div>
+
+              {/* Bottom Footer Section inside Phone matching Reference */}
+              {footerEnabled && (
+                <div className="mt-auto pt-6 space-y-2.5 w-full">
+                  <button
+                    type="button"
+                    className="w-full max-w-[210px] py-2 px-4 rounded-full bg-white text-black text-xs font-bold shadow-md hover:scale-[1.02] transition-transform mx-auto block cursor-pointer"
+                  >
+                    Get your own Linktree
+                  </button>
+                  <div className="text-[9px] text-gray-400 leading-tight">
+                    Cookie Preferences · Report · Privacy
+                    <div className="mt-0.5">More from Linktree</div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Floating Side Action Pill on Phone Frame matching Reference */}
+            <div className="absolute -right-10 top-1/2 -translate-y-1/2 bg-white rounded-full p-2.5 shadow-md border border-gray-200/90 flex flex-col gap-3 text-gray-600">
+              <Link2 className="w-4 h-4 hover:text-black cursor-pointer transition-colors" />
+              <ExternalLink className="w-4 h-4 hover:text-black cursor-pointer transition-colors" />
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {/* Delete / Archive Confirmation Modal */}
+      {cardPendingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-[28px] shadow-2xl border border-gray-100 max-w-sm w-full p-6 text-center space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-5 h-5 stroke-[2.2]" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="font-extrabold text-base text-[#111111]">
+                Delete this link?
+              </h3>
+              <p className="text-xs text-gray-500 leading-relaxed px-2">
+                Are you sure you want to delete <span className="font-bold text-black">"{cardPendingDelete.title}"</span>? You can undo this for 15 seconds.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setCardPendingDelete(null)}
+                className="flex-1 py-2.5 px-4 rounded-full border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-700 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const id = cardPendingDelete.id;
+                  setCardPendingDelete(null);
+                  confirmDeleteCard(id);
+                }}
+                className="flex-1 py-2.5 px-4 rounded-full bg-red-600 hover:bg-red-700 text-xs font-bold text-white transition-colors shadow-xs cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Undo Toast with live 15s timer */}
+      {undoToast && lastDeletedCard && (
+        <div className="fixed bottom-6 left-24 z-50 bg-[#111111] text-white pl-4 pr-2.5 py-2.5 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 text-xs animate-in slide-in-from-bottom-5">
+          <div className="w-5 h-5 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
+            <Trash2 className="w-3 h-3" />
+          </div>
+          <span className="truncate max-w-[200px] text-gray-200 font-medium">
+            "{lastDeletedCard.title}" deleted
+          </span>
+          <button
+            onClick={handleUndoDelete}
+            className="ml-1 px-3.5 py-1 rounded-full bg-white hover:bg-gray-100 text-black font-extrabold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+            <span>Undo ({undoSecondsLeft}s)</span>
+          </button>
+        </div>
+      )}
+
+      {/* Add Card Modal */}
+      <AddCardModal
+        isOpen={isAddCardOpen}
+        onClose={() => setIsAddCardOpen(false)}
+        onAddCard={handleAddCard}
+      />
+
+      {/* Card Settings Editor Modal */}
+      <CardEditorModal
+        card={editingCard}
+        isOpen={!!editingCard}
+        onClose={() => setEditingCard(null)}
+        onSave={handleUpdateCard}
+        onDelete={handleDeleteCard}
+      />
+
+      {/* Create Tree Modal */}
+      <CreateTreeModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        adminEmail={currentUser?.email || 'sparshkoul6@gmail.com'}
+        onTreeCreated={(newTree) => {
+          const allTrees = storage.getTrees();
+          const exists = allTrees.find((t) => t.id === newTree.id);
+          if (!exists) allTrees.push(newTree);
+          storage.saveTrees(allTrees);
+          storage.setActiveTreeId(newTree.id);
+          setTrees(allTrees.filter((t) => t.adminId === currentUser?.id));
+          loadTreeDetails(newTree.id);
+          setActiveTab('links');
+        }}
+      />
+
+      {/* Login / Sign up / Account Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        currentUser={currentUser}
+        onAuthSuccess={handleAuthSuccess}
+        onLogout={handleLogout}
+        initialMode={authModalMode}
+      />
+    </div>
+  );
+}
+
+export default App;

@@ -1,0 +1,527 @@
+import { useState, useRef } from 'react';
+import {
+  X,
+  Search,
+  Link2,
+  Loader2,
+  ChevronRight,
+  LayoutGrid,
+  Tag,
+  MessageSquare,
+  Send,
+  Heart,
+  Play,
+  Calendar,
+  Lightbulb,
+  Store,
+  Contact,
+  AlignLeft,
+  MoreHorizontal,
+  Image as ImageIcon,
+  Instagram,
+  Music,
+  DownloadCloud,
+  MapPin,
+  CalendarClock,
+  Star,
+  Utensils,
+} from 'lucide-react';
+
+export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard }) {
+  const [query, setQuery] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('suggested');
+  const [loadingResultId, setLoadingResultId] = useState(null);
+  const inputRef = useRef(null);
+
+  if (!isOpen) return null;
+
+  const handleSelectMaps = async (type = 'maps') => {
+    setLoadingResultId(type);
+
+    const mapsUrl = query.trim() || 'https://maps.google.com';
+    const placeTitle = query.trim() || 'Location Pin';
+    const placeAddress = query.trim() || 'Location address';
+
+    setTimeout(async () => {
+      if (type === 'maps') {
+        const cardData = {
+          type: 'maps',
+          title: placeTitle,
+          subtitle: placeAddress,
+          url: mapsUrl,
+          settings: {
+            placeName: placeTitle,
+            address: placeAddress,
+            layout: 'classic',
+            hasMapThumbnail: true,
+            isSettingUp: true,
+          },
+        };
+        await onAddCard('maps', placeTitle, cardData.settings);
+      } else {
+        // Reviews
+        const cardData = {
+          type: 'reviews',
+          title: `Reviews · ${placeTitle}`,
+          subtitle: '4.8 ★ (142 reviews)',
+          url: mapsUrl,
+          settings: {
+            placeName: placeTitle,
+            rating: 4.8,
+            reviewCount: 142,
+            hasMapThumbnail: true,
+          },
+        };
+        await onAddCard('reviews', `Reviews · ${placeTitle}`, cardData.settings);
+      }
+
+      setLoadingResultId(null);
+      onClose();
+    }, 450);
+  };
+
+  const handleSelectUrl = async (urlStr) => {
+    if (!urlStr.trim()) return;
+    setLoadingResultId('generic');
+
+    const clean = urlStr.trim();
+    let url = clean;
+    if (!/^https?:\/\//i.test(clean)) {
+      url = `https://${clean}`;
+    }
+
+    const title = clean.replace(/^https?:\/\//i, '').replace(/\/$/, '');
+
+    await onAddCard('link', title, {
+      url,
+      subtitle: clean.split('/')[0],
+    });
+
+    setLoadingResultId(null);
+    onClose();
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (isMapsQuery) {
+        handleSelectMaps('maps');
+      } else {
+        handleSelectUrl(query);
+      }
+    }
+  };
+
+  const handleCancel = () => {
+    setQuery('');
+    setIsFocused(false);
+    if (inputRef.current) {
+      inputRef.current.blur();
+    }
+  };
+
+  const isMapsQuery =
+    query.toLowerCase().includes('maps') ||
+    query.toLowerCase().includes('goo.gl') ||
+    query.toLowerCase().includes('location') ||
+    query.toLowerCase().includes('place');
+
+  const isSearchActive = isFocused || query.length > 0;
+  const displayTitle = query.trim() || 'Location Pin';
+
+  const categories = [
+    { id: 'suggested', label: 'Suggested', icon: Lightbulb },
+    { id: 'commerce', label: 'Commerce', icon: Store },
+    { id: 'social', label: 'Social', icon: Heart },
+    { id: 'media', label: 'Media', icon: Play },
+    { id: 'contact', label: 'Contact', icon: Contact },
+    { id: 'events', label: 'Events', icon: Calendar },
+    { id: 'text', label: 'Text', icon: AlignLeft },
+    { id: 'view_all', label: 'View all', icon: MoreHorizontal },
+  ];
+
+  const suggestedIntegrations = [
+    {
+      id: 'maps',
+      title: 'Google Maps',
+      desc: 'Share directions and place location',
+      type: 'maps',
+      renderIcon: () => (
+        <div className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-2xs flex items-center justify-center shrink-0 p-1">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#4285F4" />
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 5.31 3.06 8.52L12 11.5V2z" fill="#34A853" />
+            <path d="M12 2v9.5l3.94 6.02C17.81 14.31 19 11.38 19 9c0-3.87-3.13-7-7-7z" fill="#EA4335" />
+            <path d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" fill="#FBBC05" />
+          </svg>
+        </div>
+      ),
+    },
+    {
+      id: 'reviews',
+      title: 'Google Reviews',
+      desc: 'Show ratings and collect customer reviews',
+      type: 'reviews',
+      renderIcon: () => (
+        <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+          <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+        </div>
+      ),
+    },
+    {
+      id: 'whatsapp',
+      title: 'WhatsApp',
+      desc: 'Chat directly with visitors via WhatsApp',
+      type: 'whatsapp',
+      renderIcon: () => (
+        <div className="w-9 h-9 rounded-full bg-[#25D366] text-white flex items-center justify-center shrink-0">
+          <MessageSquare className="w-4 h-4" />
+        </div>
+      ),
+    },
+    {
+      id: 'restaurant_menu',
+      title: 'Restaurant Menu',
+      desc: 'Display food and drinks menu for visitors',
+      type: 'menu',
+      renderIcon: () => (
+        <div className="w-9 h-9 rounded-full bg-[#EA580C] text-white flex items-center justify-center shrink-0">
+          <Utensils className="w-4 h-4" />
+        </div>
+      ),
+    },
+    {
+      id: 'instagram',
+      title: 'Instagram',
+      desc: 'Display your posts and reels',
+      type: 'instagram',
+      renderIcon: () => (
+        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white flex items-center justify-center shrink-0">
+          <Instagram className="w-4 h-4" />
+        </div>
+      ),
+    },
+    {
+      id: 'messaging',
+      title: 'Messaging',
+      desc: 'Let visitors message you directly from your Linktree',
+      type: 'contact',
+      renderIcon: () => (
+        <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center shrink-0">
+          <Send className="w-4 h-4 -rotate-45 ml-0.5" />
+        </div>
+      ),
+    },
+    {
+      id: 'tiktok',
+      title: 'TikTok',
+      desc: 'Share your TikToks on your Linktree',
+      type: 'video',
+      renderIcon: () => (
+        <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center shrink-0 font-bold text-xs tracking-tighter">
+          TT
+        </div>
+      ),
+    },
+    {
+      id: 'gallery',
+      title: 'Image gallery',
+      desc: 'Share a gallery of Images',
+      type: 'gallery',
+      renderIcon: () => (
+        <div className="w-9 h-9 rounded-full bg-[#60A5FA] text-white flex items-center justify-center shrink-0">
+          <ImageIcon className="w-4 h-4" />
+        </div>
+      ),
+    },
+    {
+      id: 'youtube',
+      title: 'YouTube',
+      desc: 'Share YouTube videos on your Linktree',
+      type: 'video',
+      renderIcon: () => (
+        <div className="w-9 h-9 rounded-full bg-[#EF4444] text-white flex items-center justify-center shrink-0">
+          <Play className="w-4 h-4 fill-white ml-0.5" />
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-white rounded-[32px] w-full max-w-[720px] p-6 sm:p-7 space-y-5 text-[#111111] shadow-2xl relative border border-gray-100 min-h-[460px] flex flex-col justify-start">
+        {/* Header */}
+        <div className="flex items-center justify-between shrink-0">
+          <div className="w-6" />
+          <h2 className="font-extrabold text-sm sm:text-base text-[#111111]">
+            Add
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-full text-gray-500 hover:text-black hover:bg-gray-100 transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4 stroke-[2.2]" />
+          </button>
+        </div>
+
+        {/* Top Input Bar: "Paste a link or search..." */}
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-full bg-[#F3F3F1] text-xs">
+            <Search className="w-4 h-4 text-gray-500 shrink-0" />
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onFocus={() => setIsFocused(true)}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Paste a link or search..."
+              className="w-full bg-transparent text-xs font-semibold text-[#111111] focus:outline-none placeholder:text-gray-500"
+            />
+          </div>
+
+          {isSearchActive && (
+            <button
+              onClick={handleCancel}
+              className="text-xs font-bold text-gray-700 hover:text-black transition-colors shrink-0 pr-1 cursor-pointer"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+
+        {/* Modal Body */}
+        {isSearchActive ? (
+          query ? (
+            isMapsQuery ? (
+              /* Google Maps 2 Results State matching Image 0 & 1 */
+              <div className="space-y-2 pt-1 flex-1">
+                <div className="text-[11px] font-semibold text-gray-500 px-1">
+                  2 results
+                </div>
+
+                {/* Result 1: Google Maps */}
+                <div
+                  onClick={() => handleSelectMaps('maps')}
+                  className="p-3.5 rounded-2xl hover:bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all flex items-center justify-between cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-2xs flex items-center justify-center shrink-0 p-1 group-hover:scale-105 transition-transform">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#4285F4" />
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 5.31 3.06 8.52L12 11.5V2z" fill="#34A853" />
+                        <path d="M12 2v9.5l3.94 6.02C17.81 14.31 19 11.38 19 9c0-3.87-3.13-7-7-7z" fill="#EA4335" />
+                        <path d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" fill="#FBBC05" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="font-bold text-xs text-[#111111]">Google Maps</div>
+                      <div className="text-[11px] text-gray-500 truncate">{displayTitle}</div>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 text-gray-400">
+                    {loadingResultId === 'maps' ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-black transition-colors" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Result 2: Reviews */}
+                <div
+                  onClick={() => handleSelectMaps('reviews')}
+                  className="p-3.5 rounded-2xl hover:bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all flex items-center justify-between cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-gray-100 text-[#4B5563] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="font-bold text-xs text-[#111111]">Reviews</div>
+                      <div className="text-[11px] text-gray-500 truncate">{displayTitle}</div>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 text-gray-400">
+                    {loadingResultId === 'reviews' ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-black transition-colors" />
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Generic 1 result view */
+              <div className="space-y-2 pt-1 flex-1">
+                <div className="text-[11px] font-semibold text-gray-500 px-1">
+                  1 result
+                </div>
+
+                <div
+                  onClick={() => handleSelectUrl(query)}
+                  className="p-3.5 rounded-2xl hover:bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all flex items-center justify-between cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-purple-50 text-[#7033FF] flex items-center justify-center shrink-0 border border-purple-100 group-hover:scale-105 transition-transform">
+                      <Link2 className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="font-bold text-xs text-[#111111]">Link</div>
+                      <div className="text-[11px] text-gray-500 truncate">{query}</div>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 text-gray-400">
+                    {loadingResultId === 'generic' ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-[#7033FF]" />
+                    ) : (
+                      <span className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-gray-400 group-hover:border-black group-hover:text-black">
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="flex-1" />
+          )
+        ) : (
+          /* Default Explorer View */
+          <div className="flex gap-6 pt-1 flex-1 overflow-hidden">
+            {/* Left Column: Categories List */}
+            <div className="w-36 space-y-1 shrink-0 overflow-y-auto pr-1">
+              {categories.map((cat) => {
+                const IconComponent = cat.icon;
+                const isSelected = activeCategory === cat.id;
+
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat.id)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-bold transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#F3F3F1] text-black font-extrabold'
+                        : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                    }`}
+                  >
+                    <IconComponent className="w-4 h-4 shrink-0 text-gray-700" />
+                    <span>{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Right Column: 4 Quick Tiles + Scrollable Suggested Integrations */}
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[340px]">
+              {/* 4 Quick Tiles */}
+              <div className="grid grid-cols-4 gap-2.5">
+                <button
+                  onClick={() => {
+                    onAddCard('collapsible', 'My Collection');
+                    onClose();
+                  }}
+                  className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
+                >
+                  <span className="font-bold text-xs text-[#111111]">Collection</span>
+                  <LayoutGrid className="w-4 h-4 text-black stroke-[2.2]" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    setQuery('https://maps.app.goo.gl/41pK4HQY5RHNe7qQA');
+                    setIsFocused(true);
+                  }}
+                  className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
+                >
+                  <span className="font-bold text-xs text-[#111111]">Link</span>
+                  <Link2 className="w-4 h-4 text-black stroke-[2.2]" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    onAddCard('product', 'Special Product', { price: '$49.00' });
+                    onClose();
+                  }}
+                  className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
+                >
+                  <span className="font-bold text-xs text-[#111111]">Product</span>
+                  <Tag className="w-4 h-4 text-black stroke-[2.2]" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    onAddCard('contact_form', 'Contact Form');
+                    onClose();
+                  }}
+                  className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
+                >
+                  <span className="font-bold text-xs text-[#111111]">Form</span>
+                  <MessageSquare className="w-4 h-4 text-black stroke-[2.2]" />
+                </button>
+              </div>
+
+              {/* Suggested Integrations */}
+              <div className="space-y-1.5 pt-1">
+                <h4 className="font-bold text-xs text-[#111111]">Suggested</h4>
+
+                <div className="space-y-1">
+                  {suggestedIntegrations.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        if (item.id === 'maps') {
+                          setQuery('https://maps.app.goo.gl/41pK4HQY5RHNe7qQA');
+                          setIsFocused(true);
+                        } else if (item.id === 'whatsapp') {
+                          onAddCard('whatsapp', 'WhatsApp Us', {
+                            url: 'https://wa.me/1234567890',
+                            platform: 'whatsapp',
+                          });
+                          onClose();
+                        } else if (item.id === 'restaurant_menu') {
+                          onAddCard('menu', 'Restaurant Menu', {
+                            url: 'https://example.com/menu',
+                            platform: 'menu',
+                          });
+                          onClose();
+                        } else {
+                          onAddCard(item.type, item.title, {
+                            url:
+                              item.id === 'instagram'
+                                ? 'https://instagram.com'
+                                : 'https://example.com',
+                          });
+                          onClose();
+                        }
+                      }}
+                      className="p-2.5 rounded-2xl hover:bg-[#F6F6F7] flex items-center justify-between transition-colors cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {item.renderIcon()}
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="font-bold text-xs text-[#111111] leading-snug">
+                            {item.title}
+                          </div>
+                          <div className="text-[11px] text-gray-500 leading-tight truncate">
+                            {item.desc}
+                          </div>
+                        </div>
+                      </div>
+
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-black shrink-0 transition-colors" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

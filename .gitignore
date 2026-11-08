@@ -1,0 +1,132 @@
+# ==============================================================================
+# Dependency directories
+# ==============================================================================
+node_modules/
+*/node_modules/
+web_modules/
+jspm_packages/
+.pnp
+.pnp.js
+.pnp.*
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# ==============================================================================
+# Environment variables, credentials, and secrets (CRITICAL)
+# ==============================================================================
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+.env.backup
+.env*.local
+
+# Secrets, API keys, and certificates
+*.pem
+*.key
+*.crt
+*.cert
+*.pfx
+*.p12
+*.id_rsa
+*.id_rsa.pub
+id_rsa*
+secrets/
+.secrets/
+*.secret
+credentials*.json
+service-account*.json
+token*.json
+jwt_secret*
+
+# ==============================================================================
+# Build outputs, bundles, and compiled assets
+# ==============================================================================
+dist/
+*/dist/
+build/
+*/build/
+out/
+*/out/
+.parcel-cache/
+.next/
+.nuxt/
+.vuepress/dist
+.serverless/
+.fusebox/
+.dynamodb/
+.vite/
+.turbo/
+*.tsbuildinfo
+*/tsconfig.tsbuildinfo
+
+# ==============================================================================
+# Logs and runtime diagnostics
+# ==============================================================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ==============================================================================
+# Databases, backups, and local storage dumps
+# ==============================================================================
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.rdb
+dump.rdb
+*.sql
+*.sql.gz
+data/
+storage/
+
+# ==============================================================================
+# Testing and code coverage
+# ==============================================================================
+coverage/
+*/coverage/
+.nyc_output/
+*.lcov
+
+# ==============================================================================
+# IDE, OS, and editor-specific files
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+*~
+*.bak
+
+# ==============================================================================
+# Local agents and AI caches
+# ==============================================================================
+.agents/
+.gemini/
+.cursor/
