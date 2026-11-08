@@ -640,7 +640,7 @@ export function App() {
     if (layout === 'hero') {
       const heroImage = currentTree?.heroUrl || currentTree?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
       return (
-        <div className="w-full flex flex-col items-center text-center -mt-1 mb-3">
+        <div className="w-full flex flex-col items-center text-center mb-3">
           <div className="w-full h-52 sm:h-56 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600">
             <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
             {/* Soft gradient fade into card background matching Hero thumbnail */}
@@ -654,8 +654,8 @@ export function App() {
     if (layout === 'banner') {
       const bannerImage = currentTree?.bannerUrl;
       return (
-        <div className="w-full flex flex-col items-center text-center -mt-1 mb-3">
-          {/* Top wide banner cover matching Banner thumbnail */}
+        <div className="w-full flex flex-col items-center text-center mb-3">
+          {/* Top wide banner cover with equal left, right, and top padding */}
           <div className="w-full h-32 sm:h-34 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA]">
             {bannerImage ? (
               <img src={bannerImage} alt="Banner" className="w-full h-full object-cover" />
@@ -1731,7 +1731,11 @@ export function App() {
           <div className="relative">
             {/* Phone Screen Mockup Container matching Reference */}
             <div
-              className="w-[325px] xl:w-[335px] h-[650px] xl:h-[670px] max-h-[calc(100vh-110px)] rounded-[42px] shadow-xl px-2.5 xl:px-3 py-5 xl:py-6 flex flex-col justify-between text-center overflow-y-auto relative border border-gray-200/80 no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              className={`w-[325px] xl:w-[335px] h-[650px] xl:h-[670px] max-h-[calc(100vh-110px)] rounded-[42px] shadow-xl px-2.5 xl:px-3 pb-5 xl:pb-6 flex flex-col justify-between text-center overflow-y-auto relative border border-gray-200/80 no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+                currentHeaderLayout === 'banner' || currentHeaderLayout === 'hero'
+                  ? 'pt-2.5 xl:pt-3'
+                  : 'pt-5 xl:pt-6'
+              }`}
               style={{
                 background: '#EEF1F6',
                 color: '#111111',
@@ -1739,12 +1743,23 @@ export function App() {
               }}
             >
               {/* Top Icons Inside Phone matching Reference */}
-              <div className={`w-full flex items-center justify-between text-xs text-gray-700 ${currentHeaderLayout === 'banner' || currentHeaderLayout === 'hero' ? 'mb-2' : 'mb-6'}`}>
-                <span className="font-extrabold text-sm leading-none">✱</span>
-                <span>
-                  <Share2 className="w-3.5 h-3.5 text-gray-700" />
-                </span>
-              </div>
+              {currentHeaderLayout === 'banner' || currentHeaderLayout === 'hero' ? (
+                <div className="absolute top-4.5 xl:top-5 left-4.5 xl:left-5 right-4.5 xl:right-5 z-20 flex items-center justify-between pointer-events-none">
+                  <span className="w-6 h-6 rounded-full bg-black/25 backdrop-blur-xs flex items-center justify-center text-white drop-shadow-xs font-bold text-xs pointer-events-auto">
+                    ✱
+                  </span>
+                  <span className="w-6 h-6 rounded-full bg-black/25 backdrop-blur-xs flex items-center justify-center text-white drop-shadow-xs pointer-events-auto">
+                    <Share2 className="w-3.5 h-3.5 text-white" />
+                  </span>
+                </div>
+              ) : (
+                <div className="w-full flex items-center justify-between text-xs mb-6 text-gray-700">
+                  <span className="font-extrabold text-sm leading-none">✱</span>
+                  <span>
+                    <Share2 className="w-3.5 h-3.5 text-gray-700" />
+                  </span>
+                </div>
+              )}
 
               {/* Profile Header matching selected layout (Classic, Hero, Banner, Cutout, Shape) */}
               {renderPhoneHeader()}
