@@ -210,56 +210,56 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
 
       {/* Main Form Rows with Strict Label Width Alignment matching Reference Images */}
       <div className="space-y-6 text-xs text-gray-900">
-        {/* ROW 1: Layout */}
-        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-8 pb-6 border-b border-gray-100">
-          <div className="w-44 sm:w-48 shrink-0 pt-2">
+        {/* ROW 1: Layout - NO SCROLL SLIDER, compact layout fitting cleanly */}
+        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-6 pb-6 border-b border-gray-100">
+          <div className="w-28 sm:w-36 shrink-0 pt-2">
             <label className="font-bold text-gray-900 text-[13px]">Layout</label>
           </div>
 
-          {/* 5 Layout Cards matching Reference Images - NO THUNDER ICONS */}
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 max-w-full">
+          {/* 5 Layout Cards fitting completely without horizontal scroll slider */}
+          <div className="flex items-center gap-2 sm:gap-2.5 flex-nowrap">
             {/* 1. Classic */}
             <button
               type="button"
               onClick={() => commitChange({ headerLayout: 'classic' })}
-              className={`w-[92px] sm:w-[96px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all ${
+              className={`w-[78px] sm:w-[84px] h-[100px] sm:h-[106px] rounded-[18px] sm:rounded-[20px] flex flex-col items-center justify-between p-1.5 sm:p-2 shrink-0 cursor-pointer transition-all ${
                 current.headerLayout === 'classic'
                   ? 'border-2 border-black bg-white shadow-xs'
                   : 'border border-gray-200/90 bg-white hover:border-gray-300'
               }`}
             >
               <div className="w-full flex-1 flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-rose-500 shadow-2xs">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden bg-rose-500 shadow-2xs">
                   <img src={demoGirlImg} alt="Classic" className="w-full h-full object-cover" />
                 </div>
               </div>
-              <span className="font-semibold text-[11px] text-gray-900">Classic</span>
+              <span className="font-semibold text-[10px] sm:text-[11px] text-gray-900">Classic</span>
             </button>
 
             {/* 2. Hero */}
             <button
               type="button"
               onClick={() => commitChange({ headerLayout: 'hero' })}
-              className={`w-[92px] sm:w-[96px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all ${
+              className={`w-[78px] sm:w-[84px] h-[100px] sm:h-[106px] rounded-[18px] sm:rounded-[20px] flex flex-col items-center justify-between p-1.5 sm:p-2 shrink-0 cursor-pointer transition-all ${
                 current.headerLayout === 'hero'
                   ? 'border-2 border-black bg-white shadow-xs'
                   : 'border border-gray-200/90 bg-white hover:border-gray-300'
               }`}
             >
-              <div className="w-full flex-1 flex items-center justify-center overflow-hidden rounded-[14px] relative">
-                <div className="w-full h-full rounded-[14px] overflow-hidden bg-gradient-to-t from-white via-transparent to-transparent relative">
+              <div className="w-full flex-1 flex items-center justify-center overflow-hidden rounded-[12px] relative">
+                <div className="w-full h-full rounded-[12px] overflow-hidden bg-gradient-to-t from-white via-transparent to-transparent relative">
                   <img src={demoGirlImg} alt="Hero" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-white via-white/10 to-transparent" />
                 </div>
               </div>
-              <span className="font-semibold text-[11px] text-gray-900">Hero</span>
+              <span className="font-semibold text-[10px] sm:text-[11px] text-gray-900">Hero</span>
             </button>
 
             {/* 3. Banner */}
             <button
               type="button"
               onClick={() => commitChange({ headerLayout: 'banner' })}
-              className={`w-[92px] sm:w-[96px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all ${
+              className={`w-[78px] sm:w-[84px] h-[100px] sm:h-[106px] rounded-[18px] sm:rounded-[20px] flex flex-col items-center justify-between p-1.5 sm:p-2 shrink-0 cursor-pointer transition-all ${
                 current.headerLayout === 'banner'
                   ? 'border-2 border-black bg-white shadow-xs'
                   : 'border border-gray-200/90 bg-white hover:border-gray-300'
@@ -267,63 +267,62 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
             >
               <div className="w-full flex-1 flex flex-col items-center justify-center relative">
                 {/* Top pink banner */}
-                <div className="w-full h-7 rounded-t-lg bg-gradient-to-r from-pink-200 via-rose-200 to-pink-300 overflow-hidden">
+                <div className="w-full h-6 rounded-t-lg bg-gradient-to-r from-pink-200 via-rose-200 to-pink-300 overflow-hidden">
                   <div className="w-full h-full opacity-60 bg-[radial-gradient(#ec4899_1px,transparent_1px)] [background-size:6px_6px]" />
                 </div>
                 {/* Overlapping circle */}
-                <div className="w-9 h-9 rounded-full overflow-hidden bg-rose-500 -mt-4 ring-2 ring-white shadow-2xs">
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-rose-500 -mt-3.5 ring-2 ring-white shadow-2xs">
                   <img src={demoGirlImg} alt="Banner" className="w-full h-full object-cover" />
                 </div>
               </div>
-              <span className="font-semibold text-[11px] text-gray-900">Banner</span>
+              <span className="font-semibold text-[10px] sm:text-[11px] text-gray-900">Banner</span>
             </button>
 
             {/* 4. Cutout */}
             <button
               type="button"
               onClick={() => commitChange({ headerLayout: 'cutout' })}
-              className={`w-[92px] sm:w-[96px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all ${
+              className={`w-[78px] sm:w-[84px] h-[100px] sm:h-[106px] rounded-[18px] sm:rounded-[20px] flex flex-col items-center justify-between p-1.5 sm:p-2 shrink-0 cursor-pointer transition-all ${
                 current.headerLayout === 'cutout'
                   ? 'border-2 border-black bg-white shadow-xs'
                   : 'border border-gray-200/90 bg-white hover:border-gray-300'
               }`}
             >
               <div className="w-full flex-1 flex items-center justify-center overflow-hidden">
-                <div className="w-10 h-13 rounded-t-full overflow-hidden filter drop-shadow-sm">
+                <div className="w-9 h-11 rounded-t-full overflow-hidden filter drop-shadow-xs">
                   <img src={demoGirlImg} alt="Cutout" className="w-full h-full object-cover" />
                 </div>
               </div>
-              <span className="font-semibold text-[11px] text-gray-900">Cutout</span>
+              <span className="font-semibold text-[10px] sm:text-[11px] text-gray-900">Cutout</span>
             </button>
 
             {/* 5. Shape */}
             <button
               type="button"
               onClick={() => commitChange({ headerLayout: 'shape' })}
-              className={`w-[92px] sm:w-[96px] h-[116px] rounded-[22px] flex flex-col items-center justify-between p-2 shrink-0 cursor-pointer transition-all ${
+              className={`w-[78px] sm:w-[84px] h-[100px] sm:h-[106px] rounded-[18px] sm:rounded-[20px] flex flex-col items-center justify-between p-1.5 sm:p-2 shrink-0 cursor-pointer transition-all ${
                 current.headerLayout === 'shape'
                   ? 'border-2 border-black bg-white shadow-xs'
                   : 'border border-gray-200/90 bg-white hover:border-gray-300'
               }`}
             >
               <div className="w-full flex-1 flex items-center justify-center">
-                {/* 4-lobed cloud/flower shape matching Reference Images */}
                 <div
-                  className="w-14 h-10 relative flex items-center justify-center overflow-hidden shadow-2xs"
+                  className="w-12 h-9 relative flex items-center justify-center overflow-hidden shadow-2xs"
                   style={{ clipPath: 'url(#linktree-organic-shape)' }}
                 >
                   <div className="absolute inset-0 bg-rose-600" />
                   <img src={demoGirlImg} alt="Shape" className="w-full h-full object-cover relative z-10" />
                 </div>
               </div>
-              <span className="font-semibold text-[11px] text-gray-900">Shape</span>
+              <span className="font-semibold text-[10px] sm:text-[11px] text-gray-900">Shape</span>
             </button>
           </div>
         </div>
 
-        {/* ROW 2: Profile Image matching Reference Images 0, 1 & 2 */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-8 pb-6 border-b border-gray-100">
-          <div className="w-44 sm:w-48 shrink-0">
+        {/* ROW 2: Profile Image - reduced to exact original Linktree size */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 pb-6 border-b border-gray-100">
+          <div className="w-28 sm:w-36 shrink-0">
             <label className="font-bold text-gray-900 text-[13px]">Profile image</label>
           </div>
 
@@ -336,29 +335,29 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
               onChange={(e) => handleUploadFile(e, 'avatarUrl', 'avatars')}
             />
 
-            {/* Squircle container matching Reference Images */}
+            {/* Sleek squircle container matching original Linktree */}
             <div
               onClick={() => avatarInputRef.current?.click()}
-              className="w-18 h-18 rounded-[24px] bg-[#9CA3AF]/60 relative flex items-center justify-center cursor-pointer overflow-hidden group hover:opacity-95 transition-all shadow-inner"
+              className="w-12 h-12 rounded-[16px] bg-[#9CA3AF]/60 relative flex items-center justify-center cursor-pointer overflow-hidden group hover:opacity-95 transition-all shadow-inner shrink-0"
               title="Upload profile image"
             >
               {current.avatarUrl ? (
                 <img src={current.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
-                <svg className="w-11 h-11 text-white" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
                 </svg>
               )}
 
-              {/* Circular plus button badge on bottom right matching image */}
-              <div className="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center text-gray-800 font-bold text-sm border border-gray-100">
+              {/* Circular plus button badge on bottom right */}
+              <div className="absolute bottom-0.5 right-0.5 w-4 h-4 rounded-full bg-white shadow-xs flex items-center justify-center text-gray-800 font-bold text-[10px] border border-gray-100">
                 +
               </div>
             </div>
 
             {/* Actions if photo is uploaded */}
             {current.avatarUrl && (
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <button
                   type="button"
                   onClick={() => avatarInputRef.current?.click()}
@@ -369,7 +368,7 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
                 <button
                   type="button"
                   onClick={() => commitChange({ avatarUrl: null })}
-                  className="block text-xs text-red-600 hover:text-red-700 font-semibold cursor-pointer"
+                  className="block text-[11px] text-red-600 hover:text-red-700 font-semibold cursor-pointer"
                 >
                   Remove
                 </button>
@@ -380,8 +379,8 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
 
         {/* Optional Banner Upload if Banner layout is active */}
         {current.headerLayout === 'banner' && (
-          <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-8 pb-6 border-b border-gray-100 animate-in fade-in">
-            <div className="w-44 sm:w-48 shrink-0">
+          <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-6 pb-6 border-b border-gray-100 animate-in fade-in">
+            <div className="w-28 sm:w-36 shrink-0">
               <label className="font-bold text-gray-900 text-[13px]">Banner cover</label>
             </div>
             <div className="space-y-2 max-w-sm w-full">
@@ -417,8 +416,8 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
 
         {/* Optional Hero Upload if Hero layout is active */}
         {current.headerLayout === 'hero' && (
-          <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-8 pb-6 border-b border-gray-100 animate-in fade-in">
-            <div className="w-44 sm:w-48 shrink-0">
+          <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-6 pb-6 border-b border-gray-100 animate-in fade-in">
+            <div className="w-28 sm:w-36 shrink-0">
               <label className="font-bold text-gray-900 text-[13px]">Hero cover</label>
             </div>
             <div className="space-y-2 max-w-sm w-full">
@@ -452,9 +451,9 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
           </div>
         )}
 
-        {/* ROW 3: Title matching Image 0, 1 & 2 */}
-        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-8 pb-6 border-b border-gray-100">
-          <div className="w-44 sm:w-48 shrink-0 pt-2.5">
+        {/* ROW 3: Title */}
+        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-6 pb-6 border-b border-gray-100">
+          <div className="w-28 sm:w-36 shrink-0 pt-2.5">
             <label className="font-bold text-gray-900 text-[13px]">Title</label>
           </div>
 
@@ -473,9 +472,9 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
           </div>
         </div>
 
-        {/* ROW 4: Bio matching Image 0, 1 & 2 */}
-        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-8 pb-6 border-b border-gray-100">
-          <div className="w-44 sm:w-48 shrink-0 pt-2.5">
+        {/* ROW 4: Bio */}
+        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-6 pb-6 border-b border-gray-100">
+          <div className="w-28 sm:w-36 shrink-0 pt-2.5">
             <label className="font-bold text-gray-900 text-[13px]">Bio</label>
           </div>
 
@@ -497,9 +496,9 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
           </div>
         </div>
 
-        {/* ROW 5: Title style matching Image 0, 1 & 2 - NO THUNDER ICON */}
-        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-8 pb-6 border-b border-gray-100">
-          <div className="w-44 sm:w-48 shrink-0 pt-2">
+        {/* ROW 5: Title style */}
+        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-6 pb-6 border-b border-gray-100">
+          <div className="w-28 sm:w-36 shrink-0 pt-2">
             <label className="font-bold text-gray-900 text-[13px]">Title style</label>
           </div>
 
@@ -571,9 +570,9 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
           </div>
         </div>
 
-        {/* ROW 6: Alternative title font matching Image 0, 1 & 2 - NO THUNDER ICON */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-8 pb-6 border-b border-gray-100">
-          <div className="w-44 sm:w-48 shrink-0">
+        {/* ROW 6: Alternative title font */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 pb-6 border-b border-gray-100">
+          <div className="w-28 sm:w-36 shrink-0">
             <label className="font-bold text-gray-900 block text-[13px]">Alternative title font</label>
             <span className="text-[11px] text-gray-400 block pt-0.5 leading-tight">Matches page font by default</span>
           </div>
@@ -611,9 +610,9 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
           </div>
         </div>
 
-        {/* ROW 7: Title color matching Image 0, 1 & 2 */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-8 pb-2">
-          <div className="w-44 sm:w-48 shrink-0">
+        {/* ROW 7: Title color */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 pb-2">
+          <div className="w-28 sm:w-36 shrink-0">
             <label className="font-bold text-gray-900 text-[13px]">Title color</label>
           </div>
 
