@@ -71,6 +71,11 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     if (isLocked) {
       e.preventDefault();
       setShowLockModal(true);
+      return;
+    }
+    // Record click analytics in Supabase
+    if (card?.id) {
+      fetch(`/api/public/cards/${card.id}/click`, { method: 'POST' }).catch(() => {});
     }
   };
 
@@ -409,7 +414,13 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     card.type === 'maps' ||
     Boolean(card.settings?.address) ||
     Boolean(card.url && /maps\.google|maps\.app\.goo\.gl/i.test(card.url));
-  const subtitle = card.subtitle || card.settings?.address || card.settings?.subtitle || '';
+  const isMenu =
+    card.type === 'menu' ||
+    card.settings?.platform === 'menu' ||
+    Boolean(card.settings?.isPdf) ||
+    Boolean(card.url && /\.pdf($|\?)/i.test(card.url));
+  const isPdf = Boolean(card.settings?.isPdf || card.settings?.pdfName || (card.url && /\.pdf($|\?)/i.test(card.url)));
+  const subtitle = card.subtitle || card.settings?.address || card.settings?.subtitle || (isPdf ? 'PDF Menu' : '');
   const hasThumbnail = Boolean(card.thumbnailUrl || isMap || card.type === 'reviews' || card.url);
 
   // 12. Featured Layout Card (Hero Preview)
@@ -437,7 +448,13 @@ export function CardRenderer({ card, theme, isPreview = false }) {
               </div>
             </div>
           ) : card.thumbnailUrl ? (
-            <img src={card.thumbnailUrl} alt={card.title} className="w-full h-32 object-cover" />
+            <img
+              src={card.thumbnailUrl}
+              alt={card.title}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-32 object-cover"
+            />
           ) : (
             <div className="w-full h-20 bg-black/5 flex items-center justify-center">
               <FaviconIcon card={card} className="w-8 h-8" containerClassName="w-12 h-12" />
@@ -464,7 +481,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                 rel="noopener noreferrer"
                 className="px-3 py-1.5 rounded-full bg-black text-white text-[10px] font-bold hover:bg-gray-800 transition-colors"
               >
-                {isMap ? 'Directions' : 'Visit'}
+                {isMap ? 'Directions' : isPdf ? 'View PDF' : 'Visit'}
               </a>
               <button
                 type="button"
@@ -492,7 +509,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
         onClick={handleLinkClick}
         target={isLocked ? '_self' : '_blank'}
         rel="noopener noreferrer"
-        className={`w-full py-2.5 px-3.5 text-xs font-semibold transition-all hover:scale-[1.01] active:scale-[0.99] shadow-2xs flex items-center justify-between relative group rounded-2xl ${animClass}`}
+        className={`w-full py-2 px-2 sm:px-2.5 text-xs font-semibold transition-all hover:scale-[1.01] active:scale-[0.99] shadow-2xs flex items-center justify-between relative group rounded-2xl ${animClass}`}
         style={buttonStyleObj}
       >
         {/* Left Side: Thumbnail / Icon + Title & Subtitle */}
@@ -517,7 +534,12 @@ export function CardRenderer({ card, theme, isPreview = false }) {
         )}
 
         {/* Right Side: Three Dots Action Menu that opens the Standalone Card Page */}
-        <div className="shrink-0 flex items-center gap-1 text-gray-400 group-hover:text-black transition-colors">
+        <div className="shrink-0 flex items-center gap-1.5 text-gray-400 group-hover:text-black transition-colors">
+          {isPdf && (
+            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-[3px] bg-red-100 text-red-600 uppercase tracking-tight">
+              PDF
+            </span>
+          )}
           {isLocked ? (
             <Lock className="w-3.5 h-3.5 text-amber-500" />
           ) : (

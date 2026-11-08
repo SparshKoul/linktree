@@ -11,11 +11,8 @@ import {
   Send,
   Heart,
   Play,
-  Calendar,
   Lightbulb,
-  Store,
   Contact,
-  AlignLeft,
   MoreHorizontal,
   Image as ImageIcon,
   Instagram,
@@ -25,6 +22,8 @@ import {
   CalendarClock,
   Star,
   Utensils,
+  Phone,
+  Mail,
 } from 'lucide-react';
 
 export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard }) {
@@ -132,121 +131,200 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
 
   const categories = [
     { id: 'suggested', label: 'Suggested', icon: Lightbulb },
-    { id: 'commerce', label: 'Commerce', icon: Store },
     { id: 'social', label: 'Social', icon: Heart },
     { id: 'media', label: 'Media', icon: Play },
     { id: 'contact', label: 'Contact', icon: Contact },
-    { id: 'events', label: 'Events', icon: Calendar },
-    { id: 'text', label: 'Text', icon: AlignLeft },
     { id: 'view_all', label: 'View all', icon: MoreHorizontal },
   ];
 
-  const suggestedIntegrations = [
-    {
-      id: 'maps',
-      title: 'Google Maps',
-      desc: 'Share directions and place location',
-      type: 'maps',
-      renderIcon: () => (
-        <div className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-2xs flex items-center justify-center shrink-0 p-1">
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#4285F4" />
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 5.31 3.06 8.52L12 11.5V2z" fill="#34A853" />
-            <path d="M12 2v9.5l3.94 6.02C17.81 14.31 19 11.38 19 9c0-3.87-3.13-7-7-7z" fill="#EA4335" />
-            <path d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" fill="#FBBC05" />
-          </svg>
-        </div>
-      ),
-    },
-    {
-      id: 'reviews',
-      title: 'Google Reviews',
-      desc: 'Show ratings and collect customer reviews',
-      type: 'reviews',
-      renderIcon: () => (
-        <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-          <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
-        </div>
-      ),
-    },
-    {
-      id: 'whatsapp',
-      title: 'WhatsApp',
-      desc: 'Chat directly with visitors via WhatsApp',
-      type: 'whatsapp',
-      renderIcon: () => (
-        <div className="w-9 h-9 rounded-full bg-[#25D366] text-white flex items-center justify-center shrink-0">
-          <MessageSquare className="w-4 h-4" />
-        </div>
-      ),
-    },
-    {
-      id: 'restaurant_menu',
-      title: 'Restaurant Menu',
-      desc: 'Display food and drinks menu for visitors',
-      type: 'menu',
-      renderIcon: () => (
-        <div className="w-9 h-9 rounded-full bg-[#EA580C] text-white flex items-center justify-center shrink-0">
-          <Utensils className="w-4 h-4" />
-        </div>
-      ),
-    },
-    {
-      id: 'instagram',
-      title: 'Instagram',
-      desc: 'Display your posts and reels',
-      type: 'instagram',
-      renderIcon: () => (
-        <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white flex items-center justify-center shrink-0">
-          <Instagram className="w-4 h-4" />
-        </div>
-      ),
-    },
-    {
-      id: 'messaging',
-      title: 'Messaging',
-      desc: 'Let visitors message you directly from your Linktree',
-      type: 'contact',
-      renderIcon: () => (
-        <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center shrink-0">
-          <Send className="w-4 h-4 -rotate-45 ml-0.5" />
-        </div>
-      ),
-    },
-    {
-      id: 'tiktok',
-      title: 'TikTok',
-      desc: 'Share your TikToks on your Linktree',
-      type: 'video',
-      renderIcon: () => (
-        <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center shrink-0 font-bold text-xs tracking-tighter">
-          TT
-        </div>
-      ),
-    },
-    {
-      id: 'gallery',
-      title: 'Image gallery',
-      desc: 'Share a gallery of Images',
-      type: 'gallery',
-      renderIcon: () => (
-        <div className="w-9 h-9 rounded-full bg-[#60A5FA] text-white flex items-center justify-center shrink-0">
-          <ImageIcon className="w-4 h-4" />
-        </div>
-      ),
-    },
-    {
-      id: 'youtube',
-      title: 'YouTube',
-      desc: 'Share YouTube videos on your Linktree',
-      type: 'video',
-      renderIcon: () => (
-        <div className="w-9 h-9 rounded-full bg-[#EF4444] text-white flex items-center justify-center shrink-0">
-          <Play className="w-4 h-4 fill-white ml-0.5" />
-        </div>
-      ),
-    },
-  ];
+  const categoryItems = {
+    suggested: [
+      {
+        id: 'maps',
+        title: 'Google Maps',
+        desc: 'Share directions and place location',
+        type: 'maps',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-2xs flex items-center justify-center shrink-0 p-1">
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#4285F4" />
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 5.31 3.06 8.52L12 11.5V2z" fill="#34A853" />
+              <path d="M12 2v9.5l3.94 6.02C17.81 14.31 19 11.38 19 9c0-3.87-3.13-7-7-7z" fill="#EA4335" />
+              <path d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" fill="#FBBC05" />
+            </svg>
+          </div>
+        ),
+      },
+      {
+        id: 'reviews',
+        title: 'Google Reviews',
+        desc: 'Show ratings and collect customer reviews',
+        type: 'reviews',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+            <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+          </div>
+        ),
+      },
+      {
+        id: 'whatsapp',
+        title: 'WhatsApp',
+        desc: 'Chat directly with visitors via WhatsApp',
+        type: 'whatsapp',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#25D366] text-white flex items-center justify-center shrink-0">
+            <MessageSquare className="w-4 h-4" />
+          </div>
+        ),
+      },
+      {
+        id: 'restaurant_menu',
+        title: 'Restaurant Menu',
+        desc: 'Display food and drinks menu for visitors',
+        type: 'menu',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#EA580C] text-white flex items-center justify-center shrink-0">
+            <Utensils className="w-4 h-4" />
+          </div>
+        ),
+      },
+      {
+        id: 'instagram',
+        title: 'Instagram',
+        desc: 'Display your posts and reels',
+        type: 'instagram',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white flex items-center justify-center shrink-0">
+            <Instagram className="w-4 h-4" />
+          </div>
+        ),
+      },
+      {
+        id: 'youtube',
+        title: 'YouTube',
+        desc: 'Share YouTube videos on your Linktree',
+        type: 'video',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#EF4444] text-white flex items-center justify-center shrink-0">
+            <Play className="w-4 h-4 fill-white ml-0.5" />
+          </div>
+        ),
+      },
+    ],
+    social: [
+      {
+        id: 'instagram',
+        title: 'Instagram',
+        desc: 'Display your posts, reels, and profile',
+        type: 'instagram',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white flex items-center justify-center shrink-0">
+            <Instagram className="w-4 h-4" />
+          </div>
+        ),
+      },
+      {
+        id: 'youtube',
+        title: 'YouTube',
+        desc: 'Share YouTube videos on your Linktree',
+        type: 'video',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#EF4444] text-white flex items-center justify-center shrink-0">
+            <Play className="w-4 h-4 fill-white ml-0.5" />
+          </div>
+        ),
+      },
+      {
+        id: 'whatsapp',
+        title: 'WhatsApp',
+        desc: 'Chat directly with visitors via WhatsApp',
+        type: 'whatsapp',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#25D366] text-white flex items-center justify-center shrink-0">
+            <MessageSquare className="w-4 h-4" />
+          </div>
+        ),
+      },
+      {
+        id: 'reviews',
+        title: 'Google Reviews',
+        desc: 'Show ratings and collect customer reviews',
+        type: 'reviews',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+            <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+          </div>
+        ),
+      },
+    ],
+    contact: [
+      {
+        id: 'phone',
+        title: 'Phone Number',
+        desc: 'Let visitors call or text you directly',
+        type: 'phone',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+            <Phone className="w-4 h-4" />
+          </div>
+        ),
+      },
+      {
+        id: 'email',
+        title: 'Mail',
+        desc: 'Let visitors send you an email directly',
+        type: 'email',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0">
+            <Mail className="w-4 h-4" />
+          </div>
+        ),
+      },
+    ],
+    media: [
+      {
+        id: 'youtube',
+        title: 'YouTube',
+        desc: 'Share YouTube videos on your Linktree',
+        type: 'video',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#EF4444] text-white flex items-center justify-center shrink-0">
+            <Play className="w-4 h-4 fill-white ml-0.5" />
+          </div>
+        ),
+      },
+      {
+        id: 'tiktok',
+        title: 'TikTok',
+        desc: 'Share your TikToks on your Linktree',
+        type: 'video',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center shrink-0 font-bold text-xs tracking-tighter">
+            TT
+          </div>
+        ),
+      },
+      {
+        id: 'gallery',
+        title: 'Image gallery',
+        desc: 'Share a gallery of Images',
+        type: 'gallery',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#60A5FA] text-white flex items-center justify-center shrink-0">
+            <ImageIcon className="w-4 h-4" />
+          </div>
+        ),
+      },
+    ],
+  };
+
+  const displayedIntegrations =
+    activeCategory === 'view_all'
+      ? [
+          ...categoryItems.suggested,
+          ...categoryItems.contact,
+        ]
+      : categoryItems[activeCategory] || categoryItems.suggested;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
@@ -465,12 +543,14 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                 </button>
               </div>
 
-              {/* Suggested Integrations */}
+              {/* Category-specific Integrations */}
               <div className="space-y-1.5 pt-1">
-                <h4 className="font-bold text-xs text-[#111111]">Suggested</h4>
+                <h4 className="font-bold text-xs text-[#111111]">
+                  {categories.find((c) => c.id === activeCategory)?.label || 'Suggested'}
+                </h4>
 
                 <div className="space-y-1">
-                  {suggestedIntegrations.map((item) => (
+                  {displayedIntegrations.map((item) => (
                     <div
                       key={item.id}
                       onClick={() => {
@@ -483,17 +563,46 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                             platform: 'whatsapp',
                           });
                           onClose();
+                        } else if (item.id === 'reviews') {
+                          onAddCard('reviews', 'Google Reviews', {
+                            url: 'https://google.com',
+                            rating: 5,
+                            reviewsCount: 42,
+                          });
+                          onClose();
+                        } else if (item.id === 'phone') {
+                          onAddCard('phone', 'Phone Number', {
+                            url: 'tel:+1234567890',
+                          });
+                          onClose();
+                        } else if (item.id === 'email') {
+                          onAddCard('email', 'Mail', {
+                            url: 'mailto:hello@example.com',
+                          });
+                          onClose();
                         } else if (item.id === 'restaurant_menu') {
                           onAddCard('menu', 'Restaurant Menu', {
                             url: 'https://example.com/menu',
                             platform: 'menu',
                           });
                           onClose();
+                        } else if (item.id === 'youtube') {
+                          onAddCard('video', 'YouTube', {
+                            url: 'https://youtube.com',
+                            platform: 'youtube',
+                          });
+                          onClose();
+                        } else if (item.id === 'instagram') {
+                          onAddCard('instagram', 'Instagram', {
+                            url: 'https://instagram.com',
+                            platform: 'instagram',
+                          });
+                          onClose();
                         } else {
                           onAddCard(item.type, item.title, {
                             url:
-                              item.id === 'instagram'
-                                ? 'https://instagram.com'
+                              item.id === 'tiktok'
+                                ? 'https://tiktok.com'
                                 : 'https://example.com',
                           });
                           onClose();

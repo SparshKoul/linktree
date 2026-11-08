@@ -116,26 +116,125 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
 
       {/* Main Centered Content (max width 680px per PRD) */}
       <main className="w-full max-w-[580px] flex flex-col items-center text-center space-y-4 flex-1">
-        {/* Profile Avatar */}
-        <div className="w-24 h-24 rounded-full bg-[#E5E7EB] text-white flex items-center justify-center shadow-md mb-1 overflow-hidden ring-4 ring-white/10">
-          {tree.avatarUrl ? (
-            <img src={tree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-          ) : (
-            <Users className="w-12 h-12 text-gray-400" />
-          )}
-        </div>
+        {/* Profile Header matching chosen layout */}
+        {(() => {
+          const layout = tree.headerLayout || tree.customTheme?.headerLayout || 'classic';
+          const isLogo = (tree.titleStyle || tree.customTheme?.titleStyle) === 'logo';
+          const logoUrl = tree.logoUrl || tree.customTheme?.logoUrl;
+          const titleText = tree.title || `@${tree.slug}`;
+          const bioText = tree.bio;
+          const titleColor = tree.titleColor || tree.customTheme?.titleColor || '';
+          const altFontEnabled = tree.altFontEnabled || tree.customTheme?.altFontEnabled || false;
+          const titleFont = altFontEnabled ? (tree.titleFont || tree.customTheme?.titleFont || 'inherit') : 'inherit';
 
-        {/* Title & Bio */}
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight mb-1">
-            {tree.title || `@${tree.slug}`}
-          </h1>
-          {tree.bio && (
-            <p className="text-xs sm:text-sm opacity-80 max-w-sm mx-auto leading-relaxed">
-              {tree.bio}
-            </p>
-          )}
-        </div>
+          const renderTitleBio = (isHero = false) => (
+            <div className="flex flex-col items-center text-center space-y-1">
+              {isLogo && logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="max-h-10 max-w-[200px] object-contain my-1" />
+              ) : (
+                <h1
+                  className={`text-xl sm:text-2xl font-black tracking-tight ${isHero ? 'text-white drop-shadow-sm' : ''}`}
+                  style={{ color: isHero ? '#ffffff' : (titleColor || undefined), fontFamily: titleFont }}
+                >
+                  {titleText}
+                </h1>
+              )}
+              {bioText && (
+                <p className={`text-xs sm:text-sm max-w-sm mx-auto leading-relaxed ${isHero ? 'text-white/90 drop-shadow-xs' : 'opacity-80'}`}>
+                  {bioText}
+                </p>
+              )}
+            </div>
+          );
+
+          if (layout === 'hero') {
+            const heroImage = tree.heroUrl || tree.avatarUrl;
+            return (
+              <div className="w-full flex flex-col items-center text-center -mt-4 mb-2">
+                <div className="w-full h-48 sm:h-56 relative overflow-hidden rounded-3xl bg-gradient-to-t from-gray-900 via-rose-950 to-rose-600 shadow-lg">
+                  {heroImage && (
+                    <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-5 text-white">
+                    {renderTitleBio(true)}
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (layout === 'banner') {
+            return (
+              <div className="w-full flex flex-col items-center text-center -mt-4 mb-2">
+                <div className="w-full h-28 sm:h-36 relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 shadow-md">
+                  {tree.bannerUrl && (
+                    <img src={tree.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                  )}
+                </div>
+                <div className="-mt-12 mb-2 relative">
+                  <div className="w-24 h-24 rounded-full bg-white p-1.5 shadow-lg">
+                    <div className="w-full h-full rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden">
+                      {tree.avatarUrl ? (
+                        <img src={tree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <Users className="w-10 h-10 text-gray-400" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {renderTitleBio()}
+              </div>
+            );
+          }
+
+          if (layout === 'cutout') {
+            return (
+              <div className="flex flex-col items-center text-center mb-2">
+                <div className="w-28 h-32 relative flex items-center justify-center mb-1">
+                  {tree.avatarUrl ? (
+                    <img src={tree.avatarUrl} alt="Cutout" className="w-full h-full object-contain filter drop-shadow-xl" />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-[#E5E7EB] flex items-center justify-center">
+                      <Users className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                {renderTitleBio()}
+              </div>
+            );
+          }
+
+          if (layout === 'shape') {
+            return (
+              <div className="flex flex-col items-center text-center mb-2">
+                <div className="w-24 h-24 rounded-[38%_62%_63%_37%_/_41%_44%_56%_59%] bg-gradient-to-tr from-purple-500 to-pink-500 p-1 shadow-md mb-2">
+                  <div className="w-full h-full rounded-[38%_62%_63%_37%_/_41%_44%_56%_59%] bg-[#E5E7EB] flex items-center justify-center overflow-hidden">
+                    {tree.avatarUrl ? (
+                      <img src={tree.avatarUrl} alt="Shape" className="w-full h-full object-cover" />
+                    ) : (
+                      <Users className="w-12 h-12 text-gray-400" />
+                    )}
+                  </div>
+                </div>
+                {renderTitleBio()}
+              </div>
+            );
+          }
+
+          // Default: Classic
+          return (
+            <div className="flex flex-col items-center text-center space-y-3 mb-2">
+              <div className="w-24 h-24 rounded-full bg-[#E5E7EB] text-white flex items-center justify-center shadow-md overflow-hidden ring-4 ring-white/10">
+                {tree.avatarUrl ? (
+                  <img src={tree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <Users className="w-12 h-12 text-gray-400" />
+                )}
+              </div>
+              {renderTitleBio()}
+            </div>
+          );
+        })()}
 
         {/* Cards Stack */}
         <div className="w-full space-y-3 pt-4">

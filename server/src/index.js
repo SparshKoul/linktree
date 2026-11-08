@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import { db } from './db/db.js';
 
 dotenv.config();
 
@@ -9,7 +10,8 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use(cookieParser());
 
 // Store (PostgreSQL / In-memory adapter)
@@ -119,11 +121,25 @@ app.get('/api/auth/me', (req, res) => {
 });
 
 // Auth Login
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { identifier, password } = req.body;
   if (!identifier || !password) {
     return res.status(400).json({ error: 'Username/Email and password are required' });
   }
+
+  try {
+    const user = await db.signInUser({ identifier, password });
+    if (user) {
+      store.currentUserId = user.id;
+      const { password: _, ...safeUser } = user;
+      return res.json({ user: safeUser, message: 'Logged in successfully via Supabase' });
+    }
+  } catch (err) {
+    if (err.message && !err.message.includes('fetch failed')) {
+      return res.status(401).json({ error: err.message || 'Invalid username/email or password' });
+    }
+  }
+
   const clean = identifier.toLowerCase().trim();
   const user = store.users.find(
     (u) =>
@@ -139,7 +155,7 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 // Auth Register / Signup
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   const { email, username, password } = req.body;
   if (!email || !username || !password) {
     return res.status(400).json({ error: 'All fields are required' });
@@ -148,6 +164,20 @@ app.post('/api/auth/register', (req, res) => {
   if (cleanUsername.length < 3) {
     return res.status(400).json({ error: 'Username must be at least 3 alphanumeric characters' });
   }
+
+  try {
+    const user = await db.signUpUser({ email, username: cleanUsername, password });
+    if (user) {
+      store.currentUserId = user.id;
+      const { password: _, ...safeUser } = user;
+      return res.status(201).json({ user: safeUser, message: 'Account verified & created in Supabase' });
+    }
+  } catch (err) {
+    if (err.message && (err.message.includes('already registered') || err.message.includes('duplicate key'))) {
+      return res.status(409).json({ error: 'Username or email already in use' });
+    }
+  }
+
   const existing = store.users.find(
     (u) =>
       u.email.toLowerCase() === email.toLowerCase().trim() ||
@@ -188,6 +218,29 @@ app.post('/api/auth/register', (req, res) => {
   res.status(201).json({ user: safeUser, message: 'Account created successfully' });
 });
 
+// Google OAuth Authorization URL
+app.get('/api/auth/google', (req, res) => {
+  const redirectTo = req.query.redirect_to || 'http://localhost:5173';
+  const supabaseUrl = process.env.SUPABASE_URL || 'https://qbnrhcllnuwdeivpxxoj.supabase.co';
+  const authUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
+  res.json({ url: authUrl });
+});
+
+// OAuth Callback / Session Sync
+app.post('/api/auth/oauth-callback', async (req, res) => {
+  const { email, username } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Email is required' });
+  }
+  const user = await db.syncOAuthUser({ email, username });
+  if (user) {
+    store.currentUserId = user.id;
+    const { password: _, ...safeUser } = user;
+    return res.json({ user: safeUser, message: 'OAuth account synced' });
+  }
+  res.status(500).json({ error: 'Failed to sync OAuth account' });
+});
+
 // Auth Logout
 app.post('/api/auth/logout', (req, res) => {
   store.currentUserId = null;
@@ -214,8 +267,13 @@ app.get('/api/admin/trees/check-slug/:slug', (req, res) => {
 });
 
 // List Trees (filtered by current logged in user)
-app.get('/api/admin/trees', (req, res) => {
+app.get('/api/admin/trees', async (req, res) => {
   const currentId = store.currentUserId;
+  const dbTrees = await db.getTrees(currentId);
+  if (dbTrees !== null) {
+    return res.json(dbTrees);
+  }
+
   const activeTrees = store.trees
     .filter((t) => !t.deletedAt && (!currentId || t.adminId === currentId))
     .map((t) => {
@@ -229,7 +287,7 @@ app.get('/api/admin/trees', (req, res) => {
 });
 
 // Create Tree
-app.post('/api/admin/trees', (req, res) => {
+app.post('/api/admin/trees', async (req, res) => {
   const { name, slug, title } = req.body;
   if (!slug || slug.length < 3) {
     return res.status(400).json({ error: 'Username must be at least 3 characters' });
@@ -245,9 +303,20 @@ app.post('/api/admin/trees', (req, res) => {
     return res.status(409).json({ error: 'This username is already taken' });
   }
 
+  const adminId = store.currentUserId || store.admin.id;
+  const createdDbTree = await db.createTree({
+    adminId,
+    name: name || cleanSlug,
+    slug: cleanSlug,
+    title: title || cleanSlug,
+  });
+  if (createdDbTree) {
+    return res.status(201).json(createdDbTree);
+  }
+
   const newTree = {
     id: Date.now(),
-    adminId: store.currentUserId || store.admin.id,
+    adminId,
     name: name || cleanSlug,
     slug: cleanSlug,
     status: 'live',
@@ -275,8 +344,13 @@ app.post('/api/admin/trees', (req, res) => {
 });
 
 // Get Tree Details with Cards
-app.get('/api/admin/trees/:id', (req, res) => {
+app.get('/api/admin/trees/:id', async (req, res) => {
   const treeId = parseInt(req.params.id, 10);
+  const dbTree = await db.getTreeById(treeId);
+  if (dbTree) {
+    return res.json(dbTree);
+  }
+
   const tree = store.trees.find((t) => t.id === treeId && !t.deletedAt);
   if (!tree) return res.status(404).json({ error: 'Tree not found' });
 
@@ -285,8 +359,13 @@ app.get('/api/admin/trees/:id', (req, res) => {
 });
 
 // Update Tree
-app.put('/api/admin/trees/:id', (req, res) => {
+app.put('/api/admin/trees/:id', async (req, res) => {
   const treeId = parseInt(req.params.id, 10);
+  const updatedDb = await db.updateTree(treeId, req.body);
+  if (updatedDb) {
+    return res.json(updatedDb);
+  }
+
   const treeIndex = store.trees.findIndex((t) => t.id === treeId && !t.deletedAt);
   if (treeIndex === -1) return res.status(404).json({ error: 'Tree not found' });
 
@@ -300,9 +379,34 @@ app.put('/api/admin/trees/:id', (req, res) => {
   res.json(updatedTree);
 });
 
-// Add Card
-app.post('/api/admin/trees/:id/cards', (req, res) => {
+// Delete Tree
+app.delete('/api/admin/trees/:id', async (req, res) => {
   const treeId = parseInt(req.params.id, 10);
+  await db.deleteTree(treeId);
+
+  const treeIndex = store.trees.findIndex((t) => t.id === treeId);
+  if (treeIndex !== -1) {
+    store.trees[treeIndex].deletedAt = new Date().toISOString();
+  }
+  res.json({ success: true, id: treeId });
+});
+
+// Add Card
+app.post('/api/admin/trees/:id/cards', async (req, res) => {
+  const treeId = parseInt(req.params.id, 10);
+  const createdCard = await db.createCard({
+    treeId,
+    type: req.body.type || 'link',
+    title: req.body.title || 'New Link',
+    url: req.body.url || 'https://',
+    thumbnailUrl: req.body.thumbnailUrl || null,
+    position: req.body.position || 0,
+    settings: req.body.settings || {},
+  });
+  if (createdCard) {
+    return res.status(201).json(createdCard);
+  }
+
   const tree = store.trees.find((t) => t.id === treeId && !t.deletedAt);
   if (!tree) return res.status(404).json({ error: 'Tree not found' });
 
@@ -326,8 +430,13 @@ app.post('/api/admin/trees/:id/cards', (req, res) => {
 });
 
 // Update Card
-app.put('/api/admin/cards/:id', (req, res) => {
+app.put('/api/admin/cards/:id', async (req, res) => {
   const cardId = parseInt(req.params.id, 10);
+  const updatedDb = await db.updateCard(cardId, req.body);
+  if (updatedDb) {
+    return res.json(updatedDb);
+  }
+
   const cardIndex = store.cards.findIndex((c) => c.id === cardId);
   if (cardIndex === -1) return res.status(404).json({ error: 'Card not found' });
 
@@ -340,18 +449,31 @@ app.put('/api/admin/cards/:id', (req, res) => {
 });
 
 // Delete Card
-app.delete('/api/admin/cards/:id', (req, res) => {
+app.delete('/api/admin/cards/:id', async (req, res) => {
   const cardId = parseInt(req.params.id, 10);
-  const cardIndex = store.cards.findIndex((c) => c.id === cardId);
-  if (cardIndex === -1) return res.status(404).json({ error: 'Card not found' });
+  await db.deleteCard(cardId);
 
-  store.cards.splice(cardIndex, 1);
+  const cardIndex = store.cards.findIndex((c) => c.id === cardId);
+  if (cardIndex !== -1) {
+    store.cards.splice(cardIndex, 1);
+  }
   res.json({ success: true, id: cardId });
 });
 
 // Public Tree Page
-app.get('/api/public/trees/:slug', (req, res) => {
+app.get('/api/public/trees/:slug', async (req, res) => {
   const slug = req.params.slug.toLowerCase();
+  const dbTree = await db.getTreeBySlug(slug);
+  if (dbTree) {
+    const publicCards = (dbTree.cards || [])
+      .filter((c) => c.visible)
+      .sort((a, b) => a.position - b.position);
+    return res.json({
+      tree: dbTree,
+      cards: publicCards,
+    });
+  }
+
   const tree = store.trees.find((t) => t.slug === slug && !t.deletedAt && t.status === 'live');
   if (!tree) return res.status(404).json({ error: 'Tree not found or unpublished' });
 
@@ -363,6 +485,39 @@ app.get('/api/public/trees/:slug', (req, res) => {
     tree,
     cards: publicCards,
   });
+});
+
+// Public Click Tracker
+app.post('/api/public/cards/:id/click', async (req, res) => {
+  const cardId = parseInt(req.params.id, 10);
+  await db.incrementCardClicks(cardId);
+
+  const localCard = store.cards.find((c) => c.id === cardId);
+  if (localCard) {
+    localCard.clicks = (localCard.clicks || 0) + 1;
+  }
+  res.json({ success: true, id: cardId });
+});
+
+// Upload Asset (Image / PDF) to Supabase Storage CDN
+app.post('/api/admin/upload', async (req, res) => {
+  const { file, filename, folder } = req.body;
+  if (!file) {
+    return res.status(400).json({ error: 'File data is required' });
+  }
+
+  const publicUrl = await db.uploadAsset({
+    base64Data: file,
+    filename,
+    folder: folder || 'assets',
+  });
+
+  if (publicUrl) {
+    return res.json({ url: publicUrl, success: true });
+  }
+
+  // Graceful fallback to echo data URL if storage error
+  res.json({ url: file, success: false, fallback: true });
 });
 
 app.listen(PORT, () => {

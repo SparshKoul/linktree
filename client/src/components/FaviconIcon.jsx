@@ -7,6 +7,7 @@ import {
   Music,
   Share2,
   Mail,
+  Phone,
   MessageCircle,
   Play,
   ShoppingCart,
@@ -24,13 +25,16 @@ export function FaviconIcon({ card, className = 'w-5 h-5', containerClassName = 
   const type = card?.type || 'link';
 
   // 1. Direct custom thumbnail URL
-  if (card?.thumbnailUrl) {
+  if (card?.thumbnailUrl && !imgError) {
     return (
       <div className={`${containerClassName} rounded-lg border border-gray-200 bg-white shrink-0 overflow-hidden shadow-2xs`}>
         <img
           src={card.thumbnailUrl}
           alt={card.title || 'Thumbnail'}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover"
+          onError={() => setImgError(true)}
         />
       </div>
     );
@@ -68,10 +72,33 @@ export function FaviconIcon({ card, className = 'w-5 h-5', containerClassName = 
   }
 
   // 4. Restaurant Menu type
-  if (type === 'menu') {
+  if (type === 'menu' || card?.settings?.platform === 'menu' || card?.settings?.isPdf || url.endsWith('.pdf')) {
     return (
-      <div className={`${containerClassName} rounded-xl bg-[#EA580C] text-white flex items-center justify-center shrink-0 shadow-2xs`}>
-        <Utensils className="w-4 h-4" />
+      <div className={`${containerClassName} rounded-xl bg-[#EA580C] text-white flex items-center justify-center shrink-0 shadow-2xs relative`}>
+        <Utensils className={className} />
+        {(card?.settings?.isPdf || url.endsWith('.pdf')) && (
+          <span className="absolute -bottom-1 -right-1 bg-red-600 text-white font-black text-[7px] px-1 py-0.5 rounded-[3px] leading-none shadow-xs uppercase">
+            PDF
+          </span>
+        )}
+      </div>
+    );
+  }
+
+  // 5. Phone
+  if (type === 'phone' || url.startsWith('tel:')) {
+    return (
+      <div className={`${containerClassName} rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-2xs`}>
+        <Phone className={className} />
+      </div>
+    );
+  }
+
+  // 6. Email
+  if (type === 'email' || type === 'mail' || url.startsWith('mailto:')) {
+    return (
+      <div className={`${containerClassName} rounded-xl bg-blue-500 text-white flex items-center justify-center shrink-0 shadow-2xs`}>
+        <Mail className={className} />
       </div>
     );
   }

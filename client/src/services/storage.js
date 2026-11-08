@@ -10,9 +10,10 @@ export const storage = {
   getUser() {
     try {
       const data = localStorage.getItem(USER_KEY);
+      if (data === 'null' || data === '') return null;
       return data ? JSON.parse(data) : { id: 1, username: 'riyast', email: 'sparshkoul6@gmail.com' };
     } catch {
-      return { id: 1, username: 'riyast', email: 'sparshkoul6@gmail.com' };
+      return null;
     }
   },
 
@@ -21,7 +22,7 @@ export const storage = {
       if (user) {
         localStorage.setItem(USER_KEY, JSON.stringify(user));
       } else {
-        localStorage.removeItem(USER_KEY);
+        localStorage.setItem(USER_KEY, 'null');
       }
     } catch (e) {
       console.warn('localStorage error', e);
@@ -62,6 +63,44 @@ export const storage = {
       localStorage.setItem(TREES_KEY, JSON.stringify(trees));
     } catch (e) {
       console.warn('localStorage error', e);
+    }
+  },
+
+  deleteTree(treeId) {
+    try {
+      const raw = localStorage.getItem(TREES_KEY);
+      let trees = raw ? JSON.parse(raw) : [];
+      trees = trees.filter((t) => t.id !== treeId);
+      localStorage.setItem(TREES_KEY, JSON.stringify(trees));
+
+      const rawCards = localStorage.getItem(CARDS_KEY);
+      if (rawCards) {
+        const cards = JSON.parse(rawCards).filter((c) => c.treeId !== treeId);
+        localStorage.setItem(CARDS_KEY, JSON.stringify(cards));
+      }
+    } catch (e) {
+      console.warn('localStorage deleteTree error', e);
+    }
+  },
+
+  restoreTree(tree, cards = []) {
+    try {
+      const raw = localStorage.getItem(TREES_KEY);
+      let trees = raw ? JSON.parse(raw) : [];
+      if (!trees.some((t) => t.id === tree.id)) {
+        trees.push(tree);
+        localStorage.setItem(TREES_KEY, JSON.stringify(trees));
+      }
+
+      if (cards && cards.length > 0) {
+        const rawCards = localStorage.getItem(CARDS_KEY);
+        let existingCards = rawCards ? JSON.parse(rawCards) : [];
+        const existingIds = new Set(existingCards.map((c) => c.id));
+        const newCards = cards.filter((c) => !existingIds.has(c.id));
+        localStorage.setItem(CARDS_KEY, JSON.stringify([...existingCards, ...newCards]));
+      }
+    } catch (e) {
+      console.warn('localStorage restoreTree error', e);
     }
   },
 

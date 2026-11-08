@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Search, Plus, ChevronRight, ChevronDown } from 'lucide-react';
+import { Search, Plus, ChevronRight, ChevronDown, Trash2 } from 'lucide-react';
 
 export function TreeSwitcher({
   trees = [],
   currentTree,
   onSelectTree,
   onOpenCreateModal,
+  onDeleteTree,
   initialOpen = false,
 }) {
   const [isOpen, setIsOpen] = useState(initialOpen);
@@ -96,14 +97,26 @@ export function TreeSwitcher({
                       <span className="text-[10px] font-semibold text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full bg-white">
                         Free
                       </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteTree?.(tree);
+                          setIsOpen(false);
+                        }}
+                        className="p-1 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                        title={`Delete @${tree.slug}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </button>
                 );
               })}
             </div>
 
-            {/* + New Linktree Action Button */}
-            <div className="border-t border-gray-100 mt-2 pt-2">
+            {/* Tree Actions: New Linktree & Delete Current Linktree */}
+            <div className="border-t border-gray-100 mt-2 pt-2 space-y-1">
               <button
                 onClick={() => {
                   setIsOpen(false);
@@ -116,6 +129,22 @@ export function TreeSwitcher({
                 </div>
                 <span>New Linktree</span>
               </button>
+
+              {currentTree && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    onDeleteTree?.(currentTree);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-red-50 text-xs font-bold text-red-600 transition-colors cursor-pointer"
+                >
+                  <div className="w-5 h-5 rounded-full border border-red-200 flex items-center justify-center shrink-0 bg-red-50">
+                    <Trash2 className="w-3 h-3 text-red-600" />
+                  </div>
+                  <span className="truncate">Delete @{currentTree.slug}</span>
+                </button>
+              )}
             </div>
 
             {/* Workspaces Notice Box from Image 0 */}

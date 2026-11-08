@@ -14,9 +14,6 @@ import {
   Link2,
   Menu,
   Bell,
-  Instagram,
-  Mail,
-  MessageCircle,
   Users,
   Wrench,
   Search,
@@ -39,6 +36,12 @@ import {
   LayoutGrid,
   Pencil,
   EyeOff,
+  GripVertical,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  Camera,
+  User,
 } from 'lucide-react';
 import { TreeSwitcher } from './components/TreeSwitcher.jsx';
 import { CreateTreeModal } from './components/CreateTreeModal.jsx';
@@ -48,6 +51,7 @@ import { CardDetailEditor } from './components/CardDetailEditor.jsx';
 import { FaviconIcon } from './components/FaviconIcon.jsx';
 import { CardRenderer } from './cards/CardRenderer.jsx';
 import { AuthModal } from './components/AuthModal.jsx';
+import { HeaderEditor } from './components/HeaderEditor.jsx';
 import { PRESET_THEMES } from './constants/themes.js';
 import { storage } from './services/storage.js';
 
@@ -72,12 +76,21 @@ export function App() {
   const [footerEnabled, setFooterEnabled] = useState(initialSettings.footerEnabled);
   const [previewPhoneView, setPreviewPhoneView] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
-  const [lastDeletedCard, setLastDeletedCard] = useState(null);
+  const [lastDeletedCards, setLastDeletedCards] = useState(null);
   const [undoToast, setUndoToast] = useState(false);
   const [cardPendingDelete, setCardPendingDelete] = useState(null);
   const [undoSecondsLeft, setUndoSecondsLeft] = useState(15);
   const undoIntervalRef = useRef(null);
+  const [filterHiddenOnly, setFilterHiddenOnly] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
+  const [treePendingDelete, setTreePendingDelete] = useState(null);
+  const [lastDeletedTreeData, setLastDeletedTreeData] = useState(null);
+  const [treeUndoToast, setTreeUndoToast] = useState(false);
+  const [treeUndoSecondsLeft, setTreeUndoSecondsLeft] = useState(15);
+  const treeUndoIntervalRef = useRef(null);
   const [cardMenuId, setCardMenuId] = useState(null);
+  const [draggedCardIndex, setDraggedCardIndex] = useState(null);
+  const avatarInputRef = useRef(null);
   const [isBioBannerVisible, setIsBioBannerVisible] = useState(initialSettings.bioBannerVisible);
 
   // Load current user and trees on mount or user change using localStorage first
@@ -95,7 +108,7 @@ export function App() {
       setCurrentTree({ ...matched, cards });
     }
 
-    // Optional background sync with server
+    // Sync user, trees, and cards with Supabase backend
     fetch('/api/auth/me')
       .then((res) => (res.ok ? res.json() : null))
       .then((serverUser) => {
@@ -105,10 +118,75 @@ export function App() {
         }
       })
       .catch(() => {});
+
+    fetch('/api/admin/trees')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((serverTrees) => {
+        if (serverTrees && serverTrees.length > 0) {
+          setTrees(serverTrees);
+          storage.saveTrees(serverTrees);
+          const activeTreeId = Number(storage.getActiveTreeId());
+          const target = serverTrees.find((t) => t.id === activeTreeId) || serverTrees[0];
+          if (target) {
+            fetch(`/api/admin/trees/${target.id}`)
+              .then((r) => (r.ok ? r.json() : null))
+              .then((fullTree) => {
+                if (fullTree) {
+                  setCurrentTree(fullTree);
+                  if (fullTree.cards) {
+                    const allLocal = storage.getCards();
+                    const otherCards = allLocal.filter((c) => Number(c.treeId) !== Number(target.id));
+                    storage.saveCards([...otherCards, ...fullTree.cards]);
+                  }
+                }
+              })
+              .catch(() => {});
+          }
+        }
+      })
+      .catch(() => {});
   };
 
   useEffect(() => {
     fetchUserData();
+
+    // Check for Supabase Google OAuth callback hash
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+      try {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        if (accessToken) {
+          const payloadBase64 = accessToken.split('.')[1];
+          const payload = JSON.parse(atob(payloadBase64));
+          const email = payload.email || payload.user_metadata?.email;
+          const name = payload.user_metadata?.full_name || payload.user_metadata?.name || email?.split('@')[0];
+          if (email) {
+            fetch('/api/auth/oauth-callback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, username: name }),
+            })
+              .then((r) => r.json())
+              .then((data) => {
+                if (data.user) {
+                  setCurrentUser(data.user);
+                  storage.setUser(data.user);
+                  setTopToast({
+                    title: 'Signed in with Google',
+                    subtitle: `Welcome, @${data.user.username}`,
+                  });
+                  setTimeout(() => setTopToast(null), 3000);
+                  window.history.replaceState(null, '', window.location.pathname);
+                  fetchUserData(data.user.id);
+                }
+              })
+              .catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.warn('OAuth token parse error', e);
+      }
+    }
   }, []);
 
   const loadTreeDetails = (id) => {
@@ -166,6 +244,34 @@ export function App() {
     }).catch(() => {});
   };
 
+  const handleAvatarUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentTree) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const rawDataUrl = event.target?.result;
+      if (typeof rawDataUrl === 'string') {
+        handleUpdateTree({ avatarUrl: rawDataUrl });
+
+        fetch('/api/admin/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file: rawDataUrl, filename: file.name, folder: 'avatars' }),
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res?.url) {
+              handleUpdateTree({ avatarUrl: res.url });
+            }
+          })
+          .catch(() => {});
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
   const handleAddCard = async (type, title, defaultSettings = {}) => {
     if (!currentTree) return;
 
@@ -195,12 +301,21 @@ export function App() {
       cards: updatedCards,
     });
 
-    // Optional background sync
+    // Background sync to Supabase
     fetch(`/api/admin/trees/${currentTree.id}/cards`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newCardData),
-    }).catch(() => {});
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((dbCard) => {
+        if (dbCard && dbCard.id && dbCard.id !== savedCard.id) {
+          const remapped = updatedCards.map((c) => (c.id === savedCard.id ? { ...c, id: dbCard.id } : c));
+          setCurrentTree((prev) => (prev ? { ...prev, cards: remapped } : prev));
+          storage.updateCard(savedCard.id, { id: dbCard.id });
+        }
+      })
+      .catch(() => {});
 
     if (type === 'maps' || defaultSettings.isSettingUp) {
       setActiveCardDetail(savedCard);
@@ -245,28 +360,33 @@ export function App() {
   const promptDeleteCard = (cardId) => {
     const target = currentTree?.cards?.find((c) => c.id === cardId) || activeCardDetail;
     if (target) {
-      setCardPendingDelete(target);
+      setCardPendingDelete({
+        title: target.title,
+        isBulk: false,
+        count: 1,
+        cards: [target],
+      });
     }
   };
 
-  const confirmDeleteCard = async (cardId) => {
-    if (!currentTree || !currentTree.cards) return;
-    const toDelete = currentTree.cards.find((c) => c.id === cardId) || activeCardDetail;
-    if (!toDelete) return;
+  const executeDeleteCards = async (cardsToDelete) => {
+    if (!currentTree || !cardsToDelete || cardsToDelete.length === 0) return;
 
     if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
 
-    setLastDeletedCard(toDelete);
+    setLastDeletedCards(cardsToDelete);
     setUndoToast(true);
     setUndoSecondsLeft(15);
 
-    // Remove from localStorage
-    storage.deleteCard(cardId);
+    const idsToDelete = new Set(cardsToDelete.map((c) => c.id));
 
-    const updatedCards = currentTree.cards.filter((c) => c.id !== cardId);
+    // Remove from localStorage
+    cardsToDelete.forEach((c) => storage.deleteCard(c.id));
+
+    const updatedCards = currentTree.cards.filter((c) => !idsToDelete.has(c.id));
     setCurrentTree({ ...currentTree, cards: updatedCards });
 
-    if (activeCardDetail && activeCardDetail.id === cardId) {
+    if (activeCardDetail && idsToDelete.has(activeCardDetail.id)) {
       setActiveCardDetail(null);
     }
 
@@ -283,7 +403,16 @@ export function App() {
     }, 1000);
 
     // Optional background sync
-    fetch(`/api/admin/cards/${cardId}`, { method: 'DELETE' }).catch(() => {});
+    cardsToDelete.forEach((c) => {
+      fetch(`/api/admin/cards/${c.id}`, { method: 'DELETE' }).catch(() => {});
+    });
+  };
+
+  const confirmDeleteCard = async (cardId) => {
+    const toDelete = currentTree?.cards?.find((c) => c.id === cardId) || activeCardDetail;
+    if (toDelete) {
+      executeDeleteCards([toDelete]);
+    }
   };
 
   const handleDeleteCard = (cardId) => {
@@ -291,24 +420,168 @@ export function App() {
   };
 
   const handleUndoDelete = async () => {
-    if (!currentTree || !lastDeletedCard) return;
+    if (!currentTree || !lastDeletedCards || lastDeletedCards.length === 0) return;
     if (undoIntervalRef.current) clearInterval(undoIntervalRef.current);
     setUndoToast(false);
 
     // Restore to localStorage
-    const restored = storage.addCard(lastDeletedCard);
+    const restoredCards = lastDeletedCards.map((c) => storage.addCard(c));
     setCurrentTree({
       ...currentTree,
-      cards: [...(currentTree.cards || []), restored],
+      cards: [...(currentTree.cards || []), ...restoredCards],
     });
-    setLastDeletedCard(null);
+    setLastDeletedCards(null);
 
     // Optional background sync
-    fetch(`/api/admin/trees/${currentTree.id}/cards`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(lastDeletedCard),
-    }).catch(() => {});
+    lastDeletedCards.forEach((c) => {
+      fetch(`/api/admin/trees/${currentTree.id}/cards`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(c),
+      }).catch(() => {});
+    });
+  };
+
+  const promptDeleteTree = (tree) => {
+    if (!tree) return;
+    setTreePendingDelete(tree);
+  };
+
+  const confirmDeleteTree = async (treeToDelete) => {
+    if (!treeToDelete) return;
+
+    if (treeUndoIntervalRef.current) clearInterval(treeUndoIntervalRef.current);
+
+    const associatedCards = storage.getCards(treeToDelete.id);
+    setLastDeletedTreeData({
+      tree: treeToDelete,
+      cards: associatedCards,
+    });
+    setTreeUndoToast(true);
+    setTreeUndoSecondsLeft(15);
+
+    storage.deleteTree(treeToDelete.id);
+
+    const updatedTrees = trees.filter((t) => t.id !== treeToDelete.id);
+    setTrees(updatedTrees);
+
+    if (currentTree?.id === treeToDelete.id) {
+      if (updatedTrees.length > 0) {
+        loadTreeDetails(updatedTrees[0].id);
+      } else {
+        const defaultTree = {
+          id: Date.now(),
+          adminId: currentUser?.id || 1,
+          name: 'My Linktree',
+          slug: 'riyast',
+          status: 'live',
+          title: 'riyast',
+          bio: '',
+          themeId: 'classic-light',
+          cards: [],
+        };
+        storage.saveTrees([defaultTree]);
+        setTrees([defaultTree]);
+        setCurrentTree(defaultTree);
+      }
+    }
+
+    let count = 15;
+    treeUndoIntervalRef.current = setInterval(() => {
+      count -= 1;
+      if (count <= 0) {
+        clearInterval(treeUndoIntervalRef.current);
+        setTreeUndoToast(false);
+      } else {
+        setTreeUndoSecondsLeft(count);
+      }
+    }, 1000);
+
+    fetch(`/api/admin/trees/${treeToDelete.id}`, { method: 'DELETE' }).catch(() => {});
+  };
+
+  const handleUndoDeleteTree = async () => {
+    if (!lastDeletedTreeData) return;
+    if (treeUndoIntervalRef.current) clearInterval(treeUndoIntervalRef.current);
+    setTreeUndoToast(false);
+
+    const { tree, cards } = lastDeletedTreeData;
+    storage.restoreTree(tree, cards);
+
+    const restoredTrees = storage.getTrees(currentUser?.id || 1);
+    setTrees(restoredTrees);
+    loadTreeDetails(tree.id);
+    setLastDeletedTreeData(null);
+
+    setTopToast({
+      title: 'Linktree restored',
+      subtitle: `@${tree.slug} is back`,
+    });
+    setTimeout(() => setTopToast(null), 3000);
+  };
+
+  const handleMoveCard = (fromIndex, delta) => {
+    if (!currentTree?.cards) return;
+    const toIndex = fromIndex + delta;
+    if (toIndex < 0 || toIndex >= currentTree.cards.length) return;
+
+    const newCards = [...currentTree.cards];
+    const [moved] = newCards.splice(fromIndex, 1);
+    newCards.splice(toIndex, 0, moved);
+
+    const reindexed = newCards.map((c, i) => ({ ...c, position: i }));
+    setCurrentTree({ ...currentTree, cards: reindexed });
+    reindexed.forEach((c) => {
+      storage.updateCard(c.id, { position: c.position });
+      fetch(`/api/admin/cards/${c.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ position: c.position }),
+      }).catch(() => {});
+    });
+
+    setTopToast({
+      title: 'Order updated',
+      subtitle: `Moved "${moved.title}"`,
+    });
+    setTimeout(() => setTopToast(null), 2000);
+  };
+
+  const handleDragStart = (e, index) => {
+    setDraggedCardIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, targetIndex) => {
+    e.preventDefault();
+    if (draggedCardIndex === null || draggedCardIndex === targetIndex || !currentTree?.cards) return;
+
+    const newCards = [...currentTree.cards];
+    const [moved] = newCards.splice(draggedCardIndex, 1);
+    newCards.splice(targetIndex, 0, moved);
+
+    const reindexed = newCards.map((c, i) => ({ ...c, position: i }));
+    setCurrentTree({ ...currentTree, cards: reindexed });
+    reindexed.forEach((c) => {
+      storage.updateCard(c.id, { position: c.position });
+      fetch(`/api/admin/cards/${c.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ position: c.position }),
+      }).catch(() => {});
+    });
+    setDraggedCardIndex(null);
+
+    setTopToast({
+      title: 'Order updated',
+      subtitle: `Moved "${moved.title}"`,
+    });
+    setTimeout(() => setTopToast(null), 2000);
   };
 
   const handleCopyLiveUrl = () => {
@@ -326,6 +599,128 @@ export function App() {
     PRESET_THEMES[0].theme;
 
   const currentSlug = currentTree?.slug || currentUser?.username || 'riyast';
+
+  const renderPhoneHeader = () => {
+    const layout = currentTree?.headerLayout || currentTree?.customTheme?.headerLayout || 'classic';
+    const isLogo = (currentTree?.titleStyle || currentTree?.customTheme?.titleStyle) === 'logo';
+    const logoUrl = currentTree?.logoUrl || currentTree?.customTheme?.logoUrl;
+    const titleText = currentTree?.title || `@${currentSlug}`;
+    const bioText = currentTree?.bio || '';
+    const titleColor = currentTree?.titleColor || currentTree?.customTheme?.titleColor || '#111111';
+    const altFontEnabled = currentTree?.altFontEnabled || currentTree?.customTheme?.altFontEnabled || false;
+    const titleFont = altFontEnabled ? (currentTree?.titleFont || currentTree?.customTheme?.titleFont || 'inherit') : 'inherit';
+
+    const renderTitleBlock = (isHero = false) => (
+      <div className="flex flex-col items-center text-center space-y-0.5 mt-1">
+        {isLogo && logoUrl ? (
+          <img src={logoUrl} alt="Logo" className="max-h-7 max-w-[150px] object-contain my-0.5" />
+        ) : (
+          <h2
+            className={`font-extrabold text-sm ${isHero ? 'text-white drop-shadow-xs' : ''}`}
+            style={{ color: isHero ? '#ffffff' : titleColor, fontFamily: titleFont }}
+          >
+            {titleText}
+          </h2>
+        )}
+        {bioText && (
+          <p className={`text-[11px] leading-tight max-w-[220px] ${isHero ? 'text-white/90 drop-shadow-2xs' : 'text-gray-500'}`}>
+            {bioText}
+          </p>
+        )}
+      </div>
+    );
+
+    const defaultAvatarSvg = (
+      <svg className="w-12 h-12 text-white" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+      </svg>
+    );
+
+    if (layout === 'hero') {
+      const heroImage = currentTree?.heroUrl || currentTree?.avatarUrl;
+      return (
+        <div className="w-full flex flex-col items-center text-center -mx-4 -mt-4 mb-2">
+          <div className="w-full h-36 relative overflow-hidden bg-gradient-to-t from-gray-900 via-rose-950 to-rose-600 rounded-t-[28px]">
+            {heroImage ? (
+              <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-white/50 text-xs font-semibold">Hero cover</div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent flex flex-col justify-end p-3 text-white">
+              {renderTitleBlock(true)}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (layout === 'banner') {
+      const bannerImage = currentTree?.bannerUrl;
+      return (
+        <div className="w-full flex flex-col items-center text-center -mx-4 -mt-4 mb-2">
+          <div className="w-full h-20 relative overflow-hidden bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 rounded-t-[28px]">
+            {bannerImage && (
+              <img src={bannerImage} alt="Banner" className="w-full h-full object-cover" />
+            )}
+          </div>
+          <div className="-mt-8 mb-2 relative">
+            <div className="w-16 h-16 rounded-full bg-white p-1 shadow-md">
+              <div className="w-full h-full rounded-full bg-[#D1D5DB] flex items-center justify-center overflow-hidden">
+                {currentTree?.avatarUrl ? (
+                  <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : defaultAvatarSvg}
+              </div>
+            </div>
+          </div>
+          {renderTitleBlock()}
+        </div>
+      );
+    }
+
+    if (layout === 'cutout') {
+      return (
+        <div className="flex flex-col items-center text-center mb-2">
+          <div className="w-20 h-24 relative flex items-center justify-center mb-1">
+            {currentTree?.avatarUrl ? (
+              <img src={currentTree.avatarUrl} alt="Cutout" className="w-full h-full object-contain filter drop-shadow-md" />
+            ) : (
+              <div className="w-18 h-18 rounded-full bg-gradient-to-tr from-gray-200 to-gray-300 flex items-center justify-center">
+                {defaultAvatarSvg}
+              </div>
+            )}
+          </div>
+          {renderTitleBlock()}
+        </div>
+      );
+    }
+
+    if (layout === 'shape') {
+      return (
+        <div className="flex flex-col items-center text-center mb-2">
+          <div className="w-20 h-20 rounded-[38%_62%_63%_37%_/_41%_44%_56%_59%] bg-gradient-to-tr from-purple-500 to-pink-500 p-0.5 shadow-md mb-2">
+            <div className="w-full h-full rounded-[38%_62%_63%_37%_/_41%_44%_56%_59%] bg-[#D1D5DB] flex items-center justify-center overflow-hidden">
+              {currentTree?.avatarUrl ? (
+                <img src={currentTree.avatarUrl} alt="Shape" className="w-full h-full object-cover" />
+              ) : defaultAvatarSvg}
+            </div>
+          </div>
+          {renderTitleBlock()}
+        </div>
+      );
+    }
+
+    // Default: 'classic'
+    return (
+      <div className="flex flex-col items-center text-center mb-2">
+        <div className="w-20 h-20 rounded-full bg-[#D1D5DB] flex items-center justify-center shadow-inner overflow-hidden mb-3">
+          {currentTree?.avatarUrl ? (
+            <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+          ) : defaultAvatarSvg}
+        </div>
+        {renderTitleBlock()}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#FAFBFB] text-[#111111] flex flex-col font-sans select-none antialiased">
@@ -354,12 +749,49 @@ export function App() {
             currentTree={currentTree}
             onSelectTree={(tree) => loadTreeDetails(tree.id)}
             onOpenCreateModal={() => setIsCreateModalOpen(true)}
+            onDeleteTree={(tree) => promptDeleteTree(tree)}
             initialOpen={false}
           />
         </div>
 
-        {/* Right: Copy link pill button */}
-        <div className="flex items-center gap-3 justify-end">
+        {/* Right: User account pill & Copy link pill button */}
+        <div className="flex items-center gap-2.5 justify-end">
+          {/* User Account / Login Status Pill */}
+          {currentUser ? (
+            <button
+              onClick={() => {
+                setAuthModalMode('dashboard');
+                setIsAuthModalOpen(true);
+              }}
+              className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full border border-gray-200/90 hover:border-gray-300 bg-white hover:bg-gray-50 text-xs font-bold text-[#111111] shadow-2xs transition-all cursor-pointer group"
+              title={`Logged in as @${currentUser.username} (${currentUser.email})`}
+            >
+              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center text-[10px] font-black relative">
+                {(currentUser.username || 'U')[0].toUpperCase()}
+                <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#00E575] border border-white ring-1 ring-[#00E575]/20 animate-pulse" />
+              </div>
+              <div className="flex flex-col items-start text-left leading-none">
+                <span className="text-[11px] font-extrabold text-gray-900 group-hover:text-purple-600 transition-colors">
+                  @{currentUser.username}
+                </span>
+                <span className="text-[9px] text-gray-400 font-mono">
+                  {currentUser.email ? (currentUser.email.length > 16 ? currentUser.email.substring(0, 14) + '...' : currentUser.email) : 'account'}
+                </span>
+              </div>
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setAuthModalMode('login');
+                setIsAuthModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black hover:bg-neutral-800 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Sign in</span>
+            </button>
+          )}
+
           <button
             onClick={() => setPreviewPhoneView(!previewPhoneView)}
             className="lg:hidden p-2 rounded-full border border-gray-200 hover:bg-gray-50 cursor-pointer"
@@ -751,10 +1183,10 @@ export function App() {
         )}
 
         {/* 3. Center Main Editor Column matching Reference */}
-        <main className="flex-1 px-4 sm:px-6 pt-2 pb-4 flex justify-center lg:justify-end items-start h-[calc(100vh-88px)] overflow-hidden">
-          <div className="w-full max-w-[580px] xl:max-w-[620px] h-full flex flex-col">
+        <main className="flex-1 px-1.5 sm:px-2.5 pt-2 pb-4 flex justify-center lg:justify-end items-start h-[calc(100vh-88px)] overflow-hidden">
+          <div className="w-full max-w-[740px] xl:max-w-[820px] h-full flex flex-col">
             {activeCardDetail ? (
-              <div className="bg-white rounded-[28px] xl:rounded-[32px] p-5 sm:p-6 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar">
+              <div className="bg-white rounded-[28px] xl:rounded-[32px] px-2.5 sm:px-3 py-4 sm:py-5 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar">
                 <CardDetailEditor
                   card={activeCardDetail}
                   onBack={() => {
@@ -773,101 +1205,108 @@ export function App() {
                   activeTheme={activeTheme}
                 />
               </div>
+            ) : activeRail === 'header' ? (
+              <div className="bg-white rounded-[28px] xl:rounded-[32px] px-4 sm:px-8 py-5 sm:py-7 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar">
+                <HeaderEditor currentTree={currentTree} onUpdateTree={handleUpdateTree} />
+              </div>
             ) : (
-              <div className="bg-white rounded-[28px] xl:rounded-[32px] p-5 sm:p-6 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar space-y-4">
+              <div className="bg-white rounded-[28px] xl:rounded-[32px] px-2.5 sm:px-3 py-4 sm:py-5 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar space-y-3.5">
                 {/* Header Title & Top Right Icons matching Image 0, 1 & 2 */}
                 <div className="flex items-center justify-between">
                   <h1 className="text-xl font-bold tracking-tight text-[#111111]">
                     Content
                   </h1>
                   <div className="flex items-center gap-1 text-gray-500">
+                    {/* Drag / Reorder mode toggle button */}
                     <button
-                      className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-600 hover:text-black transition-colors cursor-pointer"
-                      title="View options"
+                      onClick={() => setIsReordering(!isReordering)}
+                      className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+                        isReordering
+                          ? 'bg-black text-white hover:bg-neutral-800'
+                          : 'hover:bg-gray-100 text-gray-600 hover:text-black'
+                      }`}
+                      title={isReordering ? 'Done reordering (click to lock)' : 'Reorder / Drag links'}
                     >
-                      <ListFilter className="w-4 h-4" />
+                      <ArrowUpDown className="w-4 h-4" />
                     </button>
+
+                    {/* View only hidden subsection option */}
                     <button
-                      className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-600 hover:text-black transition-colors cursor-pointer"
-                      title="Archive"
+                      onClick={() => setFilterHiddenOnly(!filterHiddenOnly)}
+                      className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+                        filterHiddenOnly
+                          ? 'bg-black text-white hover:bg-neutral-800'
+                          : 'hover:bg-gray-100 text-gray-600 hover:text-black'
+                      }`}
+                      title={filterHiddenOnly ? 'Showing hidden links only (click to view all)' : 'View only hidden links'}
+                    >
+                      <EyeOff className="w-4 h-4" />
+                    </button>
+
+                    {/* Delete option with confirmation modal + 15s undo timer */}
+                    <button
+                      onClick={() => {
+                        const targetCards = filterHiddenOnly
+                          ? (currentTree?.cards || []).filter((c) => c.visible === false)
+                          : currentTree?.cards || [];
+
+                        if (targetCards.length === 0) {
+                          setTopToast({
+                            title: 'Nothing to delete',
+                            subtitle: filterHiddenOnly ? 'No hidden links found' : 'Tree has no links',
+                          });
+                          setTimeout(() => setTopToast(null), 3000);
+                          return;
+                        }
+
+                        setCardPendingDelete({
+                          title: filterHiddenOnly ? 'all hidden links' : 'all links',
+                          isBulk: true,
+                          count: targetCards.length,
+                          cards: targetCards,
+                        });
+                      }}
+                      className="p-1.5 rounded-xl hover:bg-gray-100 text-gray-600 hover:text-red-600 transition-colors cursor-pointer"
+                      title={filterHiddenOnly ? 'Delete hidden links' : 'Delete all links'}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
 
-                {/* Profile Block matching Reference */}
-                <div className="flex items-center gap-3.5">
-                  {/* Avatar Placeholder */}
-                  <div className="w-14 h-14 rounded-full bg-[#D1D5DB] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
-                    <svg className="w-9 h-9 text-white" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-                    </svg>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="font-bold text-xs text-[#111111]">@{currentSlug}</div>
-
-                    {/* Social icons row with mini + badges matching Reference */}
-                    <div className="flex items-center gap-1.5">
-                      {/* Instagram */}
-                      <div className="relative">
-                        <div className="w-6 h-6 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-700">
-                          <Instagram className="w-3 h-3" />
-                        </div>
-                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[8px] font-bold text-gray-600">
-                          +
-                        </span>
-                      </div>
-
-                      {/* TikTok */}
-                      <div className="relative">
-                        <div className="w-6 h-6 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-700 font-bold text-[9px]">
-                          TT
-                        </div>
-                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[8px] font-bold text-gray-600">
-                          +
-                        </span>
-                      </div>
-
-                      {/* WhatsApp */}
-                      <div className="relative">
-                        <div className="w-6 h-6 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-700">
-                          <MessageCircle className="w-3 h-3" />
-                        </div>
-                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[8px] font-bold text-gray-600">
-                          +
-                        </span>
-                      </div>
-
-                      {/* Mail */}
-                      <div className="relative">
-                        <div className="w-6 h-6 rounded-full border border-gray-200 bg-white flex items-center justify-center text-gray-700">
-                          <Mail className="w-3 h-3" />
-                        </div>
-                        <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[8px] font-bold text-gray-600">
-                          +
-                        </span>
-                      </div>
-
-                      {/* Plus Button */}
-                      <button
-                        onClick={() => handleAddCard('social', 'Instagram Feed')}
-                        className="w-6 h-6 rounded-full border border-gray-300 hover:border-black text-gray-400 hover:text-black flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
-                        title="Add social icon"
-                      >
-                        +
-                      </button>
+                {/* Profile Block: Centered Avatar & Username */}
+                <div className="flex flex-col items-center justify-center text-center py-2 space-y-2">
+                  <input
+                    type="file"
+                    ref={avatarInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="relative group w-16 h-16 rounded-full bg-[#D1D5DB] flex items-center justify-center overflow-hidden shrink-0 shadow-inner cursor-pointer hover:ring-2 hover:ring-purple-500 transition-all"
+                    title="Click to upload profile photo"
+                  >
+                    {currentTree?.avatarUrl ? (
+                      <img
+                        src={currentTree.avatarUrl}
+                        alt="Profile avatar"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <svg className="w-10 h-10 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+                      </svg>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                      <Camera className="w-4 h-4" />
                     </div>
-
-                    {/* Show total followers button matching Reference */}
-                    <div>
-                      <button className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-gray-200 bg-white hover:bg-gray-50 text-[10px] font-semibold text-gray-700 transition-colors shadow-2xs cursor-pointer">
-                        <Users className="w-2.5 h-2.5 text-gray-500" />
-                        <span>Show total followers</span>
-                      </button>
-                    </div>
-                  </div>
+                  </button>
+                  <div className="font-bold text-sm text-[#111111]">@{currentSlug}</div>
                 </div>
 
                 {/* Add to your bios banner matching Reference */}
@@ -957,11 +1396,73 @@ export function App() {
                 {/* Cards List with Internal Scroll Matching Reference */}
                 {activeTab === 'links' && (
                   <div className="space-y-2 pt-1">
+                    {/* Reordering Active Banner */}
+                    {isReordering && (
+                      <div className="flex items-center justify-between px-3.5 py-2 rounded-2xl bg-[#111111] text-white text-xs shadow-xs animate-in fade-in">
+                        <div className="flex items-center gap-2 font-bold text-[11px]">
+                          <ArrowUpDown className="w-3.5 h-3.5 text-purple-400" />
+                          <span>Drag cards to reorder</span>
+                        </div>
+                        <button
+                          onClick={() => setIsReordering(false)}
+                          className="text-[11px] font-bold px-3 py-1 rounded-full bg-white text-black hover:bg-gray-100 transition-colors cursor-pointer"
+                        >
+                          Done
+                        </button>
+                      </div>
+                    )}
+
+                    {filterHiddenOnly && (
+                      <div className="flex items-center justify-between px-3.5 py-2 rounded-2xl bg-[#EAEAEA] border border-gray-300/80 text-xs">
+                        <div className="flex items-center gap-1.5 font-bold text-[11px] text-gray-800">
+                          <EyeOff className="w-3.5 h-3.5 text-gray-600" />
+                          <span>
+                            Viewing hidden links only (
+                            {
+                              (currentTree?.cards || []).filter(
+                                (c) => c.visible === false
+                              ).length
+                            }
+                            )
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setFilterHiddenOnly(false)}
+                          className="text-[10px] font-bold text-gray-600 hover:text-black underline cursor-pointer"
+                        >
+                          Show all
+                        </button>
+                      </div>
+                    )}
+
                     {/* Render current tree cards */}
-                    {currentTree?.cards && currentTree.cards.length > 0 ? (
-                      currentTree.cards.map((card) => {
+                    {(() => {
+                      const displayedCards = (currentTree?.cards || []).filter((c) =>
+                        filterHiddenOnly ? c.visible === false : true
+                      );
+
+                      if (displayedCards.length === 0) {
+                        return (
+                          <div className="text-center py-12 text-gray-400 text-xs space-y-1.5">
+                            {filterHiddenOnly ? (
+                              <>
+                                <EyeOff className="w-6 h-6 mx-auto text-gray-400" />
+                                <div className="font-bold text-gray-600 text-xs">No hidden links</div>
+                                <div className="text-[11px] text-gray-400">
+                                  Use the 3-dots menu on any link and select "Hide"
+                                </div>
+                              </>
+                            ) : (
+                              'No links in this tree yet. Click "+ Add" to add your first link!'
+                            )}
+                          </div>
+                        );
+                      }
+
+                      return displayedCards.map((card, index) => {
                         const isSetupNeeded = Boolean(card.settings?.needsSetup && (!card.url || card.url.trim() === ''));
                         const isHidden = card.visible === false;
+                        const isDragging = draggedCardIndex === index;
                         const displaySubtitle = card.url
                           ? card.url.replace(/^https?:\/\//, '').split('/')[0]
                           : (card.subtitle || 'link');
@@ -969,14 +1470,46 @@ export function App() {
                         return (
                           <div
                             key={card.id}
-                            onClick={() => setActiveCardDetail(card)}
-                            className={`group rounded-2xl py-2.5 px-3.5 shadow-2xs transition-all flex items-center justify-between gap-3 cursor-pointer ${
+                            draggable={isReordering && !filterHiddenOnly}
+                            onDragStart={(e) => {
+                              if (!isReordering) return;
+                              handleDragStart(e, index);
+                            }}
+                            onDragOver={(e) => {
+                              if (!isReordering) return;
+                              handleDragOver(e, index);
+                            }}
+                            onDrop={(e) => {
+                              if (!isReordering) return;
+                              handleDrop(e, index);
+                            }}
+                            onClick={() => {
+                              if (!isReordering) setActiveCardDetail(card);
+                            }}
+                            className={`group rounded-xl sm:rounded-2xl py-2 px-2.5 sm:px-3 shadow-2xs transition-all flex items-center justify-between gap-2.5 ${
+                              isReordering
+                                ? 'cursor-grab active:cursor-grabbing border-purple-300 ring-2 ring-purple-100 hover:border-purple-400'
+                                : 'cursor-pointer'
+                            } ${
+                              isDragging ? 'opacity-40 border-dashed border-2 border-black scale-98' : ''
+                            } ${
                               isHidden
                                 ? 'bg-[#EAEAEA] border border-gray-300/80 text-gray-500 hover:bg-[#E2E2E2]'
                                 : 'bg-white border border-gray-200/80 hover:border-gray-300 hover:shadow-xs'
                             }`}
                           >
-                            <div className="flex items-center gap-3 min-w-0">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {/* Drag Handle: shown only when Reorder mode is enabled */}
+                              {isReordering && !filterHiddenOnly && (
+                                <div
+                                  className="cursor-grab active:cursor-grabbing text-purple-600 hover:text-purple-800 -ml-1 transition-colors shrink-0"
+                                  title="Drag to reorder"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <GripVertical className="w-4 h-4" />
+                                </div>
+                              )}
+
                               <div className={isHidden ? 'opacity-60' : ''}>
                                 <FaviconIcon card={card} className="w-4 h-4" containerClassName="w-8 h-8 rounded-xl shrink-0" />
                               </div>
@@ -1067,6 +1600,34 @@ export function App() {
                                         <span>{card.visible === false ? 'Unhide' : 'Hide'}</span>
                                       </button>
 
+                                      {index > 0 && !filterHiddenOnly && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setCardMenuId(null);
+                                            handleMoveCard(index, -1);
+                                          }}
+                                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:text-black hover:bg-[#F6F6F7] text-left transition-colors cursor-pointer"
+                                        >
+                                          <ArrowUp className="w-3.5 h-3.5 text-gray-500" />
+                                          <span>Move up</span>
+                                        </button>
+                                      )}
+
+                                      {index < displayedCards.length - 1 && !filterHiddenOnly && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setCardMenuId(null);
+                                            handleMoveCard(index, 1);
+                                          }}
+                                          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:text-black hover:bg-[#F6F6F7] text-left transition-colors cursor-pointer"
+                                        >
+                                          <ArrowDown className="w-3.5 h-3.5 text-gray-500" />
+                                          <span>Move down</span>
+                                        </button>
+                                      )}
+
                                       <button
                                         onClick={() => {
                                           setCardMenuId(null);
@@ -1084,12 +1645,8 @@ export function App() {
                             </div>
                           </div>
                         );
-                      })
-                    ) : (
-                      <div className="text-center py-12 text-gray-400 text-xs">
-                        No links in this tree yet. Click "+ Add" to add your first link!
-                      </div>
-                    )}
+                      });
+                    })()}
 
                     {/* Linktree footer toggle container matching Image 0 & 2 */}
                     <div className="bg-white border border-gray-200/80 rounded-2xl p-3 shadow-2xs mt-3">
@@ -1171,7 +1728,7 @@ export function App() {
           <div className="relative">
             {/* Phone Screen Mockup Container matching Reference */}
             <div
-              className="w-[325px] xl:w-[335px] h-[650px] xl:h-[670px] max-h-[calc(100vh-110px)] rounded-[42px] shadow-xl p-5 xl:p-6 flex flex-col justify-between text-center overflow-y-auto relative border border-gray-200/80"
+              className="w-[325px] xl:w-[335px] h-[650px] xl:h-[670px] max-h-[calc(100vh-110px)] rounded-[42px] shadow-xl px-2.5 xl:px-3 py-5 xl:py-6 flex flex-col justify-between text-center overflow-y-auto relative border border-gray-200/80"
               style={{
                 background: '#EEF1F6',
                 color: '#111111',
@@ -1186,15 +1743,8 @@ export function App() {
                 </span>
               </div>
 
-              {/* Profile Avatar & Username matching Reference */}
-              <div className="flex flex-col items-center">
-                <div className="w-20 h-20 rounded-full bg-[#D1D5DB] flex items-center justify-center shadow-inner overflow-hidden mb-3">
-                  <svg className="w-12 h-12 text-white" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-                  </svg>
-                </div>
-                <h2 className="font-extrabold text-sm text-[#111111]">@{currentSlug}</h2>
-              </div>
+              {/* Profile Header matching selected layout (Classic, Hero, Banner, Cutout, Shape) */}
+              {renderPhoneHeader()}
 
               {/* Cards Stack inside Phone matching Reference */}
               <div className="w-full space-y-2.5 flex-1 mt-6">
@@ -1242,10 +1792,28 @@ export function App() {
 
             <div className="space-y-1.5">
               <h3 className="font-extrabold text-base text-[#111111]">
-                Delete this link?
+                {cardPendingDelete.isBulk
+                  ? `Delete ${cardPendingDelete.title}?`
+                  : 'Delete this link?'}
               </h3>
               <p className="text-xs text-gray-500 leading-relaxed px-2">
-                Are you sure you want to delete <span className="font-bold text-black">"{cardPendingDelete.title}"</span>? You can undo this for 15 seconds.
+                {cardPendingDelete.isBulk ? (
+                  <>
+                    Are you sure you want to delete{' '}
+                    <span className="font-bold text-black">
+                      {cardPendingDelete.count} {cardPendingDelete.title}
+                    </span>
+                    ? You can undo this for 15 seconds.
+                  </>
+                ) : (
+                  <>
+                    Are you sure you want to delete{' '}
+                    <span className="font-bold text-black">
+                      "{cardPendingDelete.title}"
+                    </span>
+                    ? You can undo this for 15 seconds.
+                  </>
+                )}
               </p>
             </div>
 
@@ -1260,9 +1828,9 @@ export function App() {
               <button
                 type="button"
                 onClick={() => {
-                  const id = cardPendingDelete.id;
+                  const cards = cardPendingDelete.cards;
                   setCardPendingDelete(null);
-                  confirmDeleteCard(id);
+                  executeDeleteCards(cards);
                 }}
                 className="flex-1 py-2.5 px-4 rounded-full bg-red-600 hover:bg-red-700 text-xs font-bold text-white transition-colors shadow-xs cursor-pointer"
               >
@@ -1274,13 +1842,15 @@ export function App() {
       )}
 
       {/* Undo Toast with live 15s timer */}
-      {undoToast && lastDeletedCard && (
+      {undoToast && lastDeletedCards && lastDeletedCards.length > 0 && (
         <div className="fixed bottom-6 left-24 z-50 bg-[#111111] text-white pl-4 pr-2.5 py-2.5 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 text-xs animate-in slide-in-from-bottom-5">
           <div className="w-5 h-5 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
             <Trash2 className="w-3 h-3" />
           </div>
           <span className="truncate max-w-[200px] text-gray-200 font-medium">
-            "{lastDeletedCard.title}" deleted
+            {lastDeletedCards.length === 1
+              ? `"${lastDeletedCards[0].title}" deleted`
+              : `${lastDeletedCards.length} links deleted`}
           </span>
           <button
             onClick={handleUndoDelete}
@@ -1288,6 +1858,66 @@ export function App() {
           >
             <Undo2 className="w-3.5 h-3.5" />
             <span>Undo ({undoSecondsLeft}s)</span>
+          </button>
+        </div>
+      )}
+
+      {/* Tree Delete Confirmation Modal */}
+      {treePendingDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-[28px] shadow-2xl border border-gray-100 max-w-sm w-full p-6 text-center space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-5 h-5 stroke-[2.2]" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="font-extrabold text-base text-[#111111]">
+                Delete @{treePendingDelete.slug}?
+              </h3>
+              <p className="text-xs text-gray-500 leading-relaxed px-2">
+                Are you sure you want to delete <span className="font-bold text-black">"@{treePendingDelete.slug}"</span> and all its links? You can undo this for 15 seconds.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setTreePendingDelete(null)}
+                className="flex-1 py-2.5 px-4 rounded-full border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-700 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const target = treePendingDelete;
+                  setTreePendingDelete(null);
+                  confirmDeleteTree(target);
+                }}
+                className="flex-1 py-2.5 px-4 rounded-full bg-red-600 hover:bg-red-700 text-xs font-bold text-white transition-colors shadow-xs cursor-pointer"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tree Undo Toast with live 15s timer */}
+      {treeUndoToast && lastDeletedTreeData && (
+        <div className="fixed bottom-6 left-24 z-50 bg-[#111111] text-white pl-4 pr-2.5 py-2.5 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 text-xs animate-in slide-in-from-bottom-5">
+          <div className="w-5 h-5 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
+            <Trash2 className="w-3 h-3" />
+          </div>
+          <span className="truncate max-w-[200px] text-gray-200 font-medium">
+            "@{lastDeletedTreeData.tree.slug}" deleted
+          </span>
+          <button
+            onClick={handleUndoDeleteTree}
+            className="ml-1 px-3.5 py-1 rounded-full bg-white hover:bg-gray-100 text-black font-extrabold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+            <span>Undo ({treeUndoSecondsLeft}s)</span>
           </button>
         </div>
       )}
@@ -1333,6 +1963,7 @@ export function App() {
         onAuthSuccess={handleAuthSuccess}
         onLogout={handleLogout}
         initialMode={authModalMode}
+        treesCount={trees.length}
       />
     </div>
   );

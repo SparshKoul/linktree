@@ -18,6 +18,7 @@ import {
   ExternalLink,
   Upload,
   X,
+  Utensils,
 } from 'lucide-react';
 import { FaviconIcon } from './FaviconIcon.jsx';
 
@@ -33,6 +34,12 @@ export function CardDetailEditor({
     Boolean(card?.settings?.address) ||
     Boolean(card?.url && /maps\.google|maps\.app\.goo\.gl/i.test(card.url));
 
+  const isMenu =
+    card?.type === 'menu' ||
+    card?.settings?.platform === 'menu' ||
+    Boolean(card?.settings?.isPdf) ||
+    Boolean(card?.url && /\.pdf($|\?)/i.test(card.url));
+
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'powerups' | 'insights'
   const [title, setTitle] = useState(card?.title ?? '');
   const [subtitle, setSubtitle] = useState(card?.subtitle ?? card?.settings?.address ?? '');
@@ -41,6 +48,7 @@ export function CardDetailEditor({
   const [layout, setLayout] = useState(card?.settings?.layout || 'classic');
   const [showMenu, setShowMenu] = useState(false);
   const fileInputRef = useRef(null);
+  const pdfInputRef = useRef(null);
 
   useEffect(() => {
     if (card) {
@@ -100,9 +108,97 @@ export function CardDetailEditor({
 
     const reader = new FileReader();
     reader.onload = (event) => {
+      const rawDataUrl = event.target?.result;
+      if (typeof rawDataUrl === 'string') {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 320;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          handleThumbnailChange(compressed);
+
+          // Upload directly to Supabase Storage CDN for faster asset loading
+          fetch('/api/admin/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ file: compressed, filename: file.name, folder: 'thumbnails' }),
+          })
+            .then((res) => res.json())
+            .then((res) => {
+              if (res?.url) {
+                handleThumbnailChange(res.url);
+              }
+            })
+            .catch(() => {});
+        };
+        img.onerror = () => {
+          handleThumbnailChange(rawDataUrl);
+        };
+        img.src = rawDataUrl;
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handlePdfSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
       const dataUrl = event.target?.result;
       if (typeof dataUrl === 'string') {
-        handleThumbnailChange(dataUrl);
+        setUrl(dataUrl);
+        setSubtitle(`Menu (${file.name})`);
+        onUpdateCard(card.id, {
+          url: dataUrl,
+          subtitle: `Menu (${file.name})`,
+          settings: {
+            ...(card.settings || {}),
+            isPdf: true,
+            pdfName: file.name,
+            needsSetup: false,
+          },
+        });
+
+        // Upload PDF to Supabase Storage CDN for faster streaming & smaller payloads
+        fetch('/api/admin/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file: dataUrl, filename: file.name, folder: 'menus' }),
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res?.url) {
+              setUrl(res.url);
+              onUpdateCard(card.id, {
+                url: res.url,
+                settings: {
+                  ...(card.settings || {}),
+                  isPdf: true,
+                  pdfName: file.name,
+                  needsSetup: false,
+                },
+              });
+            }
+          })
+          .catch(() => {});
       }
     };
     reader.readAsDataURL(file);
@@ -238,6 +334,23 @@ export function CardDetailEditor({
             </div>
           )}
 
+          {/* Info Banner for Menu */}
+          {isMenu && (
+            <div className="bg-[#FFF7ED] border border-orange-200 rounded-2xl p-3.5 flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center shrink-0 mt-0.5">
+                <Utensils className="w-3.5 h-3.5 text-[#EA580C]" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="font-extrabold text-xs text-[#9A3412]">
+                  Restaurant Menu & Catalog
+                </div>
+                <div className="text-[11px] text-[#C2410C]">
+                  Upload a PDF menu or link to your online food & drinks catalog.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Section: Title & Content */}
           <div className="space-y-3">
             <h3 className="font-extrabold text-sm text-[#111111]">
@@ -287,6 +400,90 @@ export function CardDetailEditor({
                 </div>
               </div>
             </div>
+
+            {/* Dedicated PDF Menu Upload for Restaurant Menu & Catalogs */}
+            {isMenu && (
+              <div className="space-y-2">
+                <label className="block text-[11px] font-semibold text-gray-500">
+                  Menu / Catalog PDF
+                </label>
+                <input
+                  type="file"
+                  ref={pdfInputRef}
+                  accept="application/pdf"
+                  onChange={handlePdfSelect}
+                  className="hidden"
+                />
+
+                {card.settings?.pdfName ? (
+                  <div className="p-3.5 rounded-2xl bg-orange-50/70 border border-orange-200 flex items-center justify-between gap-3 shadow-2xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-xl bg-[#EF4444] text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-2xs">
+                        PDF
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-xs text-[#111111] truncate">
+                          {card.settings.pdfName}
+                        </div>
+                        <div className="text-[10px] text-gray-500">
+                          Uploaded PDF Document
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1 rounded-full bg-white border border-gray-200 hover:bg-gray-50 text-[10px] font-bold text-gray-700 transition-colors shadow-2xs"
+                      >
+                        Preview
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => pdfInputRef.current?.click()}
+                        className="px-2.5 py-1 rounded-full bg-white border border-gray-200 hover:bg-gray-50 text-[10px] font-bold text-gray-700 transition-colors shadow-2xs cursor-pointer"
+                      >
+                        Replace
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onUpdateCard(card.id, {
+                            settings: {
+                              ...(card.settings || {}),
+                              isPdf: false,
+                              pdfName: null,
+                            },
+                          });
+                        }}
+                        className="p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                        title="Remove PDF"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => pdfInputRef.current?.click()}
+                    className="w-full p-4 rounded-2xl border-2 border-dashed border-gray-300 hover:border-[#EA580C] bg-gray-50/60 hover:bg-orange-50/30 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer group"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 group-hover:text-[#EA580C] shadow-2xs transition-colors">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <div className="font-bold text-xs text-gray-700 group-hover:text-black">
+                      Upload Menu PDF
+                    </div>
+                    <div className="text-[10px] text-gray-400">
+                      Select a .pdf file from your computer or phone
+                    </div>
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* URL Field */}
             <div className="p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-gray-300 transition-colors">
@@ -420,6 +617,26 @@ export function CardDetailEditor({
                 <Upload className="w-3.5 h-3.5" />
                 <span>{thumbnailUrl ? 'Change' : 'Select'}</span>
               </button>
+            </div>
+
+            {/* Direct Image URL input option */}
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="text"
+                value={thumbnailUrl.startsWith('data:') ? '' : thumbnailUrl}
+                onChange={(e) => handleThumbnailChange(e.target.value)}
+                placeholder="Or paste an image URL (https://...)"
+                className="flex-1 px-3 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs text-black font-medium focus:outline-none focus:border-black placeholder:text-gray-400 font-mono"
+              />
+              {thumbnailUrl && !thumbnailUrl.startsWith('data:') && (
+                <button
+                  type="button"
+                  onClick={() => handleThumbnailChange('')}
+                  className="px-2.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 transition-colors cursor-pointer"
+                >
+                  Clear
+                </button>
+              )}
             </div>
           </div>
         </div>
