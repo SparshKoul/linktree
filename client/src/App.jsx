@@ -8,7 +8,6 @@ import {
   Settings,
   MoreVertical,
   Check,
-  Zap,
   Undo2,
   Sparkles,
   Link2,
@@ -55,6 +54,7 @@ import { CardRenderer } from './cards/CardRenderer.jsx';
 import { AuthModal } from './components/AuthModal.jsx';
 import { HeaderEditor } from './components/HeaderEditor.jsx';
 import { DesignEditor } from './components/DesignEditor.jsx';
+import { getPatternSvg, getContrastingPatternColor } from './components/WallpaperEditor.jsx';
 import { PRESET_THEMES } from './constants/themes.js';
 import { storage } from './services/storage.js';
 
@@ -676,9 +676,13 @@ export function App() {
     const logoUrl = currentTree?.logoUrl || currentTree?.customTheme?.logoUrl;
     const titleText = currentTree?.title || `@${currentSlug}`;
     const bioText = currentTree?.bio || '';
-    const titleColor = currentTree?.titleColor || currentTree?.customTheme?.titleColor || '#111111';
-    const altFontEnabled = currentTree?.altFontEnabled || currentTree?.customTheme?.altFontEnabled || false;
-    const titleFont = altFontEnabled ? (currentTree?.titleFont || currentTree?.customTheme?.titleFont || 'inherit') : 'inherit';
+    const altFontEnabled = currentTree?.altFontEnabled ?? currentTree?.customTheme?.altFontEnabled ?? false;
+    const titleFont = altFontEnabled
+      ? (currentTree?.titleFont || currentTree?.customTheme?.titleFont || 'Manrope')
+      : 'inherit';
+    const titleColor = altFontEnabled
+      ? (currentTree?.titleColor || currentTree?.customTheme?.titleColor || currentTree?.textColor || currentTree?.customTheme?.textColor || '#111111')
+      : (currentTree?.textColor || currentTree?.customTheme?.textColor || '#111111');
 
     const renderTitleBlock = (isHero = false) => (
       <div className="flex flex-col items-center text-center space-y-0.5 mt-1">
@@ -687,27 +691,21 @@ export function App() {
         ) : (
           <h2
             className={`font-extrabold text-sm ${isHero ? 'text-white drop-shadow-xs' : ''}`}
-            style={{ color: isHero ? '#ffffff' : titleColor, fontFamily: titleFont }}
+            style={{
+              color: isHero ? '#ffffff' : titleColor,
+              fontFamily: titleFont !== 'inherit' ? `'${titleFont}', sans-serif` : 'inherit',
+            }}
           >
             {titleText}
           </h2>
         )}
         {bioText && (
-          <p className={`text-[11px] leading-tight max-w-[220px] ${isHero ? 'text-white/90 drop-shadow-2xs' : 'text-gray-500'}`}>
+          <p
+            className={`text-[11px] leading-tight max-w-[220px] ${isHero ? 'text-white/90 drop-shadow-2xs' : 'text-gray-400'}`}
+            style={{ color: isHero ? '#ffffffcc' : (currentTree?.textColor || currentTree?.customTheme?.textColor || '#9CA3AF') }}
+          >
             {bioText}
           </p>
-        )}
-        {activeTheme?.stickers && activeTheme.stickers.length > 0 && (
-          <div className="flex flex-wrap justify-center gap-1 mt-1 max-w-[220px]">
-            {activeTheme.stickers.map((s) => (
-              <span
-                key={s}
-                className="py-0.5 px-2 rounded-full text-[9px] font-bold bg-white/80 backdrop-blur-xs text-gray-800 shadow-2xs border border-black/5"
-              >
-                {s}
-              </span>
-            ))}
-          </div>
         )}
       </div>
     );
@@ -792,7 +790,7 @@ export function App() {
     // Default: 'classic'
     return (
       <div className="flex flex-col items-center text-center mb-3">
-        <div className="w-20 h-20 rounded-full bg-[#9CA3AF]/60 flex items-center justify-center shadow-inner overflow-hidden mb-3 ring-2 ring-white/80">
+        <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3 shadow-inner">
           {currentTree?.avatarUrl ? (
             <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
           ) : defaultAvatarSvg}
@@ -1711,9 +1709,6 @@ export function App() {
                           <span className="text-xs font-bold text-[#111111]">IndiaTaps footer</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center">
-                            <Zap className="w-2.5 h-2.5 fill-gray-500 text-gray-500" />
-                          </span>
                           <button
                             type="button"
                             onClick={() => {
@@ -1786,65 +1781,187 @@ export function App() {
           <div className="relative">
             {/* Phone Screen Mockup Container matching Reference */}
             <div
-              className={`w-[325px] xl:w-[335px] h-[650px] xl:h-[670px] max-h-[calc(100vh-110px)] rounded-[42px] shadow-xl px-2.5 xl:px-3 pb-5 xl:pb-6 flex flex-col justify-between text-center overflow-y-auto relative border border-gray-200/80 no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-                currentHeaderLayout === 'banner' || currentHeaderLayout === 'hero'
-                  ? 'pt-2.5 xl:pt-3'
-                  : 'pt-5 xl:pt-6'
-              }`}
+              className="w-[325px] xl:w-[335px] h-[650px] xl:h-[670px] max-h-[calc(100vh-110px)] rounded-[42px] shadow-xl relative border border-gray-200/80 overflow-hidden"
               style={{
-                background: activeTheme?.backgroundValue || '#EEF1F6',
                 color: activeTheme?.textColor || '#111111',
-                fontFamily: `${activeTheme?.fontFamily || 'Inter'}, sans-serif`,
+                fontFamily:
+                  activeTheme?.fontFamily && activeTheme.fontFamily !== 'Link Sans'
+                    ? `'${activeTheme.fontFamily}', sans-serif`
+                    : "'Inter', system-ui, -apple-system, sans-serif",
               }}
             >
-              {/* Top Icons Inside Phone matching Reference */}
-              {currentHeaderLayout === 'banner' || currentHeaderLayout === 'hero' ? (
-                <div className="absolute top-4.5 xl:top-5 left-4.5 xl:left-5 right-4.5 xl:right-5 z-20 flex items-center justify-between pointer-events-none">
-                  <span className="w-6 h-6 rounded-full bg-black/25 backdrop-blur-xs flex items-center justify-center text-white drop-shadow-xs font-bold text-xs pointer-events-auto">
-                    ✱
-                  </span>
-                  <span className="w-6 h-6 rounded-full bg-black/25 backdrop-blur-xs flex items-center justify-center text-white drop-shadow-xs pointer-events-auto">
-                    <Share2 className="w-3.5 h-3.5 text-white" />
-                  </span>
-                </div>
-              ) : (
-                <div className="w-full flex items-center justify-between text-xs mb-6 text-gray-700">
-                  <span className="font-extrabold text-sm leading-none">✱</span>
-                  <span>
-                    <Share2 className="w-3.5 h-3.5 text-gray-700" />
-                  </span>
-                </div>
-              )}
+              {/* Wallpaper Background Base + Effects + Tint + Noise - STICKY FULL BLEED */}
+              <div className="absolute inset-0 z-0 overflow-hidden rounded-[42px] pointer-events-none">
+                {/* 1. Base Layer (Image, Gradient, or Solid) */}
+                <div
+                  className="w-full h-full absolute inset-0"
+                  style={{
+                    backgroundColor:
+                      activeTheme?.backgroundColor ||
+                      (activeTheme?.backgroundValue?.startsWith('#') ? activeTheme.backgroundValue : '#702121'),
+                    backgroundImage:
+                      activeTheme?.backgroundType === 'solid' ||
+                      activeTheme?.wallpaperStyle === 'fill' ||
+                      activeTheme?.wallpaperStyle === 'video'
+                        ? 'none'
+                        : activeTheme?.backgroundImageUrl
+                        ? `url("${activeTheme.backgroundImageUrl}")`
+                        : activeTheme?.backgroundValue?.includes('url(') || activeTheme?.backgroundValue?.includes('gradient')
+                        ? activeTheme.backgroundValue
+                        : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    filter:
+                      activeTheme?.wallpaperStyle === 'blur'
+                        ? 'blur(20px)'
+                        : activeTheme?.effect === 'mono'
+                        ? 'grayscale(100%)'
+                        : activeTheme?.effect === 'blur'
+                        ? 'blur(8px)'
+                        : activeTheme?.effect === 'halftone'
+                        ? 'contrast(200%) grayscale(100%)'
+                        : 'none',
+                    transform:
+                      activeTheme?.wallpaperStyle === 'blur' || activeTheme?.effect === 'blur'
+                        ? 'scale(1.12)'
+                        : 'none',
+                  }}
+                />
 
-              {/* Profile Header matching selected layout (Classic, Hero, Banner, Cutout, Shape) */}
-              {renderPhoneHeader()}
+                {/* 1.1 Video Base Layer (if video style) */}
+                {activeTheme?.wallpaperStyle === 'video' &&
+                  (activeTheme?.wallpaperVideoUrl || activeTheme?.backgroundImageUrl) && (
+                    <video
+                      src={activeTheme.wallpaperVideoUrl || activeTheme.backgroundImageUrl}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover absolute inset-0"
+                    />
+                  )}
 
-              {/* Cards Stack inside Phone matching Reference */}
-              <div className="w-full space-y-2.5 flex-1 mt-6">
-                {currentTree?.cards &&
-                  currentTree.cards
-                    .filter((c) => c.visible !== false)
-                    .map((card) => (
-                      <CardRenderer key={card.id} card={card} theme={activeTheme} isPreview />
-                    ))}
+                {/* 2. Gradient Overlay (if gradient style) */}
+                {activeTheme?.wallpaperStyle === 'gradient' && (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: `linear-gradient(180deg, ${activeTheme?.backgroundColor || '#638873'} 0%, rgba(0,0,0,0.85) 100%)`,
+                      mixBlendMode: activeTheme?.backgroundImageUrl ? 'multiply' : 'normal',
+                    }}
+                  />
+                )}
+
+                {/* 3. Pattern Overlay (if pattern style) - dynamically textures the wallpaper behind! */}
+                {activeTheme?.wallpaperStyle === 'pattern' && (
+                  <div
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    style={{
+                      backgroundColor: activeTheme?.backgroundImageUrl
+                        ? 'transparent'
+                        : activeTheme?.backgroundColor || '#050F15',
+                      backgroundImage: `url("${getPatternSvg(
+                        activeTheme?.patternType || 'organic',
+                        activeTheme?.backgroundImageUrl
+                          ? (activeTheme?.backgroundColor || '#050F15')
+                          : getContrastingPatternColor(activeTheme?.backgroundColor || '#050F15'),
+                        activeTheme?.backgroundImageUrl ? 0.45 : 0.3
+                      )}")`,
+                      backgroundRepeat: 'repeat',
+                      mixBlendMode: activeTheme?.backgroundImageUrl ? 'multiply' : 'normal',
+                    }}
+                  />
+                )}
+
+                {/* 4. Tint Overlay */}
+                {typeof activeTheme?.tint === 'number' && activeTheme.tint !== 0 && (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backgroundColor:
+                        activeTheme.tint < 0
+                          ? `rgba(0, 0, 0, ${(Math.abs(activeTheme.tint) / 100) * 0.75})`
+                          : `rgba(255, 255, 255, ${(activeTheme.tint / 100) * 0.75})`,
+                    }}
+                  />
+                )}
+
+                {/* 5. Noise Texture Overlay */}
+                {activeTheme?.noise && (
+                  <div
+                    className="absolute inset-0 opacity-25 mix-blend-overlay"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.6'/%3E%3C/svg%3E")`,
+                    }}
+                  />
+                )}
               </div>
 
-              {/* Bottom Footer Section inside Phone matching Reference */}
-              {(activeTheme?.footerEnabled ?? footerEnabled) && (
-                <div className="mt-auto pt-6 space-y-2.5 w-full">
-                  <button
-                    type="button"
-                    className="w-full max-w-[210px] py-2 px-4 rounded-full bg-white text-black text-xs font-bold shadow-md hover:scale-[1.02] transition-transform mx-auto block cursor-pointer border border-gray-100"
-                  >
-                    {activeTheme?.footerText || 'Get your own Linktree'}
-                  </button>
-                  <div className="text-[9px] text-gray-400 leading-tight">
-                    Cookie Preferences · Report · Privacy
-                    <div className="mt-0.5">More from Linktree</div>
+              {/* Scrollable Content Container Over Sticky Wallpaper */}
+              <div
+                className={`absolute inset-0 z-10 overflow-y-auto px-2.5 xl:px-3 pb-5 xl:pb-6 flex flex-col justify-between text-center no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+                  currentHeaderLayout === 'banner' || currentHeaderLayout === 'hero'
+                    ? 'pt-2.5 xl:pt-3'
+                    : 'pt-5 xl:pt-6'
+                }`}
+              >
+                <div className="flex flex-col justify-between flex-1 min-h-full">
+                {/* Top Icons Inside Phone matching Reference */}
+                {currentHeaderLayout === 'banner' || currentHeaderLayout === 'hero' ? (
+                  <div className="absolute top-4.5 xl:top-5 left-4.5 xl:left-5 right-4.5 xl:right-5 z-20 flex items-center justify-between pointer-events-none">
+                    <span className="w-6 h-6 rounded-full bg-black/25 backdrop-blur-xs flex items-center justify-center text-white drop-shadow-xs font-bold text-xs pointer-events-auto">
+                      ✱
+                    </span>
+                    <span className="w-6 h-6 rounded-full bg-black/25 backdrop-blur-xs flex items-center justify-center text-white drop-shadow-xs pointer-events-auto">
+                      <Share2 className="w-3.5 h-3.5 text-white" />
+                    </span>
                   </div>
+                ) : (
+                  <div className="w-full flex items-center justify-between text-xs mb-6" style={{ color: activeTheme?.textColor || '#FFFFFF' }}>
+                    <span className="font-extrabold text-sm leading-none">✱</span>
+                    <button type="button" className="cursor-pointer hover:opacity-80 transition-opacity" title="Share">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                        <polyline points="16 6 12 2 8 6" />
+                        <line x1="12" y1="2" x2="12" y2="15" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+
+                {/* Profile Header matching selected layout (Classic, Hero, Banner, Cutout, Shape) */}
+                {renderPhoneHeader()}
+
+                {/* Cards Stack inside Phone matching Reference */}
+                <div className="w-full space-y-2.5 flex-1 mt-6">
+                  {currentTree?.cards &&
+                    currentTree.cards
+                      .filter((c) => c.visible !== false)
+                      .map((card) => (
+                        <CardRenderer key={card.id} card={card} theme={activeTheme} isPreview />
+                      ))}
                 </div>
-              )}
+
+                {/* Bottom Footer Section inside Phone matching Reference */}
+                {(activeTheme?.footerEnabled ?? footerEnabled) && (
+                  <div className="mt-auto pt-6 space-y-2.5 w-full">
+                    {activeTheme?.footerButton && (
+                      <button
+                        type="button"
+                        className="w-full max-w-[210px] py-2 px-4 rounded-full bg-white text-black text-xs font-bold shadow-md hover:scale-[1.02] transition-transform mx-auto block cursor-pointer border border-gray-100"
+                      >
+                        {activeTheme?.footerText || 'Get your own Linktree'}
+                      </button>
+                    )}
+                    <div className="text-[9px] text-gray-400 leading-tight">
+                      Cookie Preferences · Report · Privacy
+                      <div className="mt-0.5">More from Linktree</div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+          </div>
 
             {/* Floating Side Action Pill on Phone Frame matching Reference */}
             <div className="absolute -right-10 top-1/2 -translate-y-1/2 bg-white rounded-full p-2.5 shadow-md border border-gray-200/90 flex flex-col gap-3 text-gray-600">

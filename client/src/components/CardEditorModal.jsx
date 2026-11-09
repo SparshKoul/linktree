@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Trash2, Zap, Lock, DollarSign, Calendar, ExternalLink } from 'lucide-react';
+import { X, Trash2, Sparkles, Lock, DollarSign, Calendar, ExternalLink } from 'lucide-react';
 
 export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
   if (!isOpen || !card) return null;
@@ -154,7 +154,7 @@ export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
           {/* Priority Animation */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1 flex items-center gap-1.5">
-              <Zap className="w-3.5 h-3.5 text-[#7033FF]" />
+              <Sparkles className="w-3.5 h-3.5 text-[#7033FF]" />
               Priority Animation
             </label>
             <div className="grid grid-cols-4 gap-2 text-xs font-semibold">

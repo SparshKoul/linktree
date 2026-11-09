@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
   RotateCcw,
   RotateCw,
+  Undo2,
+  Redo2,
   Check,
   ChevronRight,
   ChevronLeft,
@@ -17,6 +19,10 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { PRESET_THEMES } from '../constants/themes.js';
+import { WallpaperEditor } from './WallpaperEditor.jsx';
+import { ButtonEditor } from './ButtonEditor.jsx';
+import { TextEditor } from './TextEditor.jsx';
+import { ColorsEditor } from './ColorsEditor.jsx';
 
 export function DesignEditor({ currentTree, onUpdateTree }) {
   const [activeSubview, setActiveSubview] = useState(null); // null | 'theme' | 'wallpaper' | 'buttons' | 'text' | 'colors' | 'stickers' | 'footer'
@@ -35,8 +41,11 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
       buttonColor: custom.buttonColor || '#FFFFFF',
       buttonTextColor: custom.buttonTextColor || '#111111',
       buttonRadius: custom.buttonRadius ?? 9999,
-      fontFamily: custom.fontFamily || 'Inter',
-      textColor: custom.textColor || '#111111',
+      fontFamily: custom.fontFamily || tree?.fontFamily || 'Inter',
+      textColor: custom.textColor || tree?.textColor || '#111111',
+      altFontEnabled: custom.altFontEnabled ?? tree?.altFontEnabled ?? false,
+      titleFont: custom.titleFont || tree?.titleFont || 'Manrope',
+      titleColor: custom.titleColor || tree?.titleColor || '#111111',
       footerEnabled: custom.footerEnabled !== false,
       footerText: custom.footerText || 'Get your own Linktree',
       stickers: custom.stickers || [],
@@ -76,6 +85,11 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
     onUpdateTree({
       ...(patch.themeId ? { themeId: patch.themeId } : {}),
       customTheme: customThemeUpdate,
+      ...(patch.fontFamily ? { fontFamily: patch.fontFamily } : {}),
+      ...(patch.textColor ? { textColor: patch.textColor } : {}),
+      ...(patch.altFontEnabled !== undefined ? { altFontEnabled: patch.altFontEnabled } : {}),
+      ...(patch.titleFont ? { titleFont: patch.titleFont } : {}),
+      ...(patch.titleColor ? { titleColor: patch.titleColor } : {}),
     });
   };
 
@@ -190,8 +204,8 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
   const buttonStyleLabel =
     current.buttonStyle === 'outline'
       ? 'Outline'
-      : current.buttonStyle === 'soft-shadow'
-      ? 'Soft shadow'
+      : current.buttonStyle === 'glass'
+      ? 'Glass'
       : 'Solid';
 
   const textFontLabel =
@@ -228,23 +242,16 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
     { label: 'JetBrains Mono', value: 'monospace', sample: 'Aa' },
   ];
 
-  const stickerOptions = [
-    '✨ Verified',
-    '🔥 Trending',
-    '⚡️ Founder',
-    '🚀 New Project',
-    '☕️ Coffee Addict',
-    '🎧 On Repeat',
-    '💡 Design Lead',
-    '🌱 Creator',
-  ];
-
   return (
     <div className="w-full space-y-6 animate-in fade-in duration-200">
       {/* Top Header Row with Undo, Redo, Cancel, Save matching Reference Image */}
-      <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+      <div className="flex items-center justify-between pb-1">
         <div className="flex items-center">
-          {activeSubview && activeSubview !== 'theme' ? (
+          {activeSubview &&
+          activeSubview !== 'theme' &&
+          activeSubview !== 'buttons' &&
+          activeSubview !== 'text' &&
+          activeSubview !== 'colors' ? (
             <button
               onClick={() => setActiveSubview(null)}
               className="flex items-center gap-2 hover:text-gray-600 transition-colors cursor-pointer text-xl font-bold text-[#111111]"
@@ -265,12 +272,12 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
             type="button"
             onClick={handleUndo}
             disabled={historyIndex <= 0}
-            className={`p-2 rounded-full transition-colors cursor-pointer ${
+            className={`p-1.5 rounded-full transition-colors cursor-pointer ${
               historyIndex > 0 ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'
             }`}
             title="Undo"
           >
-            <RotateCcw className="w-4 h-4 stroke-[2.5]" />
+            <Undo2 className="w-4 h-4 stroke-[2.2]" />
           </button>
 
           {/* Redo */}
@@ -278,14 +285,14 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
             type="button"
             onClick={handleRedo}
             disabled={historyIndex >= history.length - 1}
-            className={`p-2 rounded-full transition-colors cursor-pointer ${
+            className={`p-1.5 rounded-full transition-colors cursor-pointer ${
               historyIndex < history.length - 1
                 ? 'text-gray-700 hover:bg-gray-100'
                 : 'text-gray-300 cursor-not-allowed'
             }`}
             title="Redo"
           >
-            <RotateCw className="w-4 h-4 stroke-[2.5]" />
+            <Redo2 className="w-4 h-4 stroke-[2.2]" />
           </button>
 
           {/* Cancel */}
@@ -301,7 +308,7 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
           <button
             type="button"
             onClick={handleSave}
-            className="py-1.5 px-5 rounded-full bg-[#7033FF] hover:bg-[#6025e6] text-white text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
+            className="py-1.5 px-4 sm:px-5 rounded-full bg-[#7033FF] hover:bg-[#6025e6] text-white text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
           >
             {savedToast ? (
               <>
@@ -351,7 +358,11 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
                 <div className="flex items-center gap-3.5">
                   <div
                     className="w-9 h-9 rounded-xl border border-gray-200/90 flex items-center justify-center shadow-2xs overflow-hidden"
-                    style={{ background: current.backgroundValue || '#F3F3F1' }}
+                    style={{
+                      background: current.backgroundValue || '#F3F3F1',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
                   />
                   <span className="text-[13px] font-semibold text-gray-900">Wallpaper</span>
                 </div>
@@ -419,26 +430,6 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
-                </div>
-              </div>
-
-              {/* Stickers */}
-              <div
-                onClick={() => setActiveSubview('stickers')}
-                className="border border-gray-200/90 rounded-[20px] p-3.5 sm:p-4 flex items-center justify-between hover:border-gray-300 transition-all cursor-pointer bg-white group shadow-2xs"
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-xl bg-gray-50 border border-gray-200/90 flex items-center justify-center shadow-2xs text-gray-700">
-                    <Sparkles className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <span className="text-[13px] font-semibold text-gray-900">Stickers</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 font-medium">
-                    {current.stickers?.length > 0 ? `${current.stickers.length} added` : 'Decorate your page'}
-                  </span>
                   <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
                 </div>
               </div>
@@ -575,7 +566,11 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
                         ? 'border-2 border-black ring-1 ring-black/10'
                         : 'border border-gray-200/90 hover:border-gray-300'
                     }`}
-                    style={{ background: pt.theme.backgroundValue }}
+                    style={{
+                      background: pt.theme.backgroundValue,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
                   >
                     {/* Top row: Typography sample & Pro badge */}
                     <div className="w-full flex items-center justify-between">
@@ -588,11 +583,6 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
                       >
                         Aa
                       </span>
-                      {pt.isPro && (
-                        <span className="w-4 h-4 rounded-full bg-black/50 backdrop-blur-xs flex items-center justify-center text-[9px] text-white">
-                          ⚡
-                        </span>
-                      )}
                     </div>
 
                     {/* Bottom row: Pill button preview */}
@@ -617,373 +607,36 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
         </div>
       )}
 
-      {/* VIEW 3: WALLPAPER SUBVIEW */}
+      {/* VIEW 3: WALLPAPER SUBVIEW (Matching Linktree Screenshots) */}
       {activeSubview === 'wallpaper' && (
-        <div className="space-y-5 animate-in fade-in duration-150">
-          {/* Wallpaper Type selector */}
-          <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-xl">
-            {['solid', 'gradient', 'image'].map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => {
-                  if (type === 'solid') {
-                    commitChange({ backgroundType: 'solid', backgroundValue: '#F3F3F1' });
-                  } else if (type === 'gradient') {
-                    commitChange({
-                      backgroundType: 'gradient',
-                      backgroundValue: 'linear-gradient(135deg, #7033FF 0%, #9F7AEA 100%)',
-                    });
-                  } else if (type === 'image') {
-                    wallpaperInputRef.current?.click();
-                  }
-                }}
-                className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all capitalize cursor-pointer ${
-                  current.backgroundType === type ? 'bg-white text-black shadow-xs' : 'text-gray-500 hover:text-black'
-                }`}
-              >
-                {type === 'solid' ? 'Fill (Solid)' : type}
-              </button>
-            ))}
-          </div>
-
-          {/* Solid Color Palette */}
-          {current.backgroundType === 'solid' && (
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-gray-900 block">Preset Fill Colors</label>
-              <div className="grid grid-cols-5 gap-2.5">
-                {solidColorPresets.map((preset) => {
-                  const isSel = current.backgroundValue?.toLowerCase() === preset.value.toLowerCase();
-                  return (
-                    <button
-                      key={preset.value}
-                      type="button"
-                      onClick={() => commitChange({ backgroundValue: preset.value })}
-                      className={`h-11 rounded-xl border flex items-center justify-center transition-all cursor-pointer shadow-2xs relative ${
-                        isSel ? 'border-black ring-2 ring-black' : 'border-gray-200 hover:scale-105'
-                      }`}
-                      style={{ backgroundColor: preset.value }}
-                      title={preset.label}
-                    >
-                      {isSel && (
-                        <span className={`text-xs font-bold ${preset.value === '#0B0B0D' ? 'text-white' : 'text-black'}`}>
-                          ✓
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Custom Color Picker */}
-              <div className="pt-2 flex items-center gap-3">
-                <input
-                  type="color"
-                  value={current.backgroundValue?.startsWith('#') ? current.backgroundValue : '#F3F3F1'}
-                  onChange={(e) => commitChange({ backgroundValue: e.target.value })}
-                  className="w-10 h-10 rounded-xl cursor-pointer border border-gray-200"
-                />
-                <input
-                  type="text"
-                  value={current.backgroundValue || ''}
-                  onChange={(e) => commitChange({ backgroundValue: e.target.value })}
-                  placeholder="#F3F3F1"
-                  className="py-1.5 px-3 border border-gray-200 rounded-xl text-xs font-mono font-medium text-gray-800 flex-1"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Gradient Palette */}
-          {current.backgroundType === 'gradient' && (
-            <div className="space-y-3">
-              <label className="text-xs font-bold text-gray-900 block">Gradient Presets</label>
-              <div className="grid grid-cols-2 gap-2.5">
-                {gradientPresets.map((grad) => {
-                  const isSel = current.backgroundValue === grad.value;
-                  return (
-                    <button
-                      key={grad.label}
-                      type="button"
-                      onClick={() => commitChange({ backgroundValue: grad.value })}
-                      className={`h-16 rounded-xl border flex items-center justify-center text-white text-xs font-bold p-2 text-center transition-all cursor-pointer shadow-xs relative ${
-                        isSel ? 'border-black ring-2 ring-black' : 'border-gray-200 hover:scale-[1.02]'
-                      }`}
-                      style={{ background: grad.value }}
-                    >
-                      <span>{grad.label}</span>
-                      {isSel && <div className="absolute top-1.5 right-1.5 text-xs">✓</div>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Image Upload */}
-          <div className="pt-2 border-t border-gray-100 space-y-3">
-            <input
-              type="file"
-              ref={wallpaperInputRef}
-              accept="image/*"
-              className="hidden"
-              onChange={handleWallpaperUpload}
-            />
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => wallpaperInputRef.current?.click()}
-                className="py-2 px-4 rounded-xl border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-800 transition-colors cursor-pointer flex items-center gap-2"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                Upload Background Image
-              </button>
-              {current.backgroundType === 'image' && (
-                <button
-                  type="button"
-                  onClick={() => commitChange({ backgroundType: 'solid', backgroundValue: '#F3F3F1' })}
-                  className="p-2 rounded-xl text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
-                  title="Remove Image"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+        <WallpaperEditor current={current} commitChange={commitChange} />
       )}
 
-      {/* VIEW 4: BUTTONS SUBVIEW */}
+      {/* VIEW 4: BUTTONS SUBVIEW (Matching Reference Images 0, 1 & 2) */}
       {activeSubview === 'buttons' && (
-        <div className="space-y-5 animate-in fade-in duration-150">
-          {/* Button Style */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-900 block">Style</label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { id: 'fill', label: 'Solid' },
-                { id: 'outline', label: 'Outline' },
-                { id: 'soft-shadow', label: 'Soft Shadow' },
-              ].map((style) => (
-                <button
-                  key={style.id}
-                  type="button"
-                  onClick={() => commitChange({ buttonStyle: style.id })}
-                  className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
-                    current.buttonStyle === style.id
-                      ? 'border-black bg-black text-white shadow-xs'
-                      : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300'
-                  }`}
-                >
-                  {style.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Button Radius */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-900 block">Corner Radius</label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { radius: 9999, label: 'Pill' },
-                { radius: 14, label: 'Rounded' },
-                { radius: 4, label: 'Square' },
-              ].map((r) => (
-                <button
-                  key={r.label}
-                  type="button"
-                  onClick={() => commitChange({ buttonRadius: r.radius })}
-                  className={`py-2 px-3 border text-xs font-bold transition-all cursor-pointer ${
-                    current.buttonRadius === r.radius
-                      ? 'border-black bg-black text-white shadow-xs'
-                      : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300'
-                  }`}
-                  style={{ borderRadius: `${Math.min(r.radius, 14)}px` }}
-                >
-                  {r.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Button Colors */}
-          <div className="grid grid-cols-2 gap-4 pt-2">
-            <div>
-              <label className="text-xs font-bold text-gray-900 block mb-1.5">Button Color</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={current.buttonColor || '#FFFFFF'}
-                  onChange={(e) => commitChange({ buttonColor: e.target.value })}
-                  className="w-9 h-9 rounded-xl cursor-pointer border border-gray-200"
-                />
-                <input
-                  type="text"
-                  value={current.buttonColor || '#FFFFFF'}
-                  onChange={(e) => commitChange({ buttonColor: e.target.value })}
-                  className="py-1.5 px-2.5 border border-gray-200 rounded-xl text-xs font-mono w-24"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-bold text-gray-900 block mb-1.5">Text & Icon Color</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={current.buttonTextColor || '#111111'}
-                  onChange={(e) => commitChange({ buttonTextColor: e.target.value })}
-                  className="w-9 h-9 rounded-xl cursor-pointer border border-gray-200"
-                />
-                <input
-                  type="text"
-                  value={current.buttonTextColor || '#111111'}
-                  onChange={(e) => commitChange({ buttonTextColor: e.target.value })}
-                  className="py-1.5 px-2.5 border border-gray-200 rounded-xl text-xs font-mono w-24"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <ButtonEditor
+          current={current}
+          commitChange={commitChange}
+          onBack={() => setActiveSubview(null)}
+        />
       )}
 
-      {/* VIEW 5: TEXT & FONTS SUBVIEW */}
+      {/* VIEW 5: TEXT & FONTS SUBVIEW (Matching Reference Images 0, 1 & 2) */}
       {activeSubview === 'text' && (
-        <div className="space-y-5 animate-in fade-in duration-150">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-900 block">Font Family</label>
-            <div className="space-y-2">
-              {fontPresets.map((font) => {
-                const isSel = current.fontFamily === font.value;
-                return (
-                  <button
-                    key={font.label}
-                    type="button"
-                    onClick={() => commitChange({ fontFamily: font.value })}
-                    className={`w-full p-3 rounded-2xl border flex items-center justify-between transition-all cursor-pointer ${
-                      isSel ? 'border-black bg-white shadow-xs' : 'border-gray-200/90 bg-white hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center font-bold text-sm">
-                        {font.sample}
-                      </div>
-                      <span className="text-xs font-bold text-gray-900" style={{ fontFamily: font.value }}>
-                        {font.label}
-                      </span>
-                    </div>
-                    {isSel && <div className="text-xs font-bold text-black">✓</div>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="pt-2">
-            <label className="text-xs font-bold text-gray-900 block mb-1.5">Profile Text Color</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={current.textColor || '#111111'}
-                onChange={(e) => commitChange({ textColor: e.target.value })}
-                className="w-9 h-9 rounded-xl cursor-pointer border border-gray-200"
-              />
-              <input
-                type="text"
-                value={current.textColor || '#111111'}
-                onChange={(e) => commitChange({ textColor: e.target.value })}
-                className="py-1.5 px-2.5 border border-gray-200 rounded-xl text-xs font-mono w-28"
-              />
-            </div>
-          </div>
-        </div>
+        <TextEditor
+          current={current}
+          commitChange={commitChange}
+          onBack={() => setActiveSubview(null)}
+        />
       )}
 
-      {/* VIEW 6: COLORS SUBVIEW */}
+      {/* VIEW 6: COLORS SUBVIEW (Matching Reference Image) */}
       {activeSubview === 'colors' && (
-        <div className="space-y-5 animate-in fade-in duration-150">
-          <p className="text-xs text-gray-500 font-medium">
-            Fine-tune palette colors across the entire profile page.
-          </p>
-
-          <div className="space-y-3.5">
-            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-2xl bg-white">
-              <div>
-                <span className="text-xs font-bold text-gray-900 block">Page Background</span>
-                <span className="text-[11px] text-gray-400 font-mono">{current.backgroundValue}</span>
-              </div>
-              <input
-                type="color"
-                value={current.backgroundValue?.startsWith('#') ? current.backgroundValue : '#F3F3F1'}
-                onChange={(e) => commitChange({ backgroundType: 'solid', backgroundValue: e.target.value })}
-                className="w-9 h-9 rounded-xl cursor-pointer border border-gray-200"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-2xl bg-white">
-              <div>
-                <span className="text-xs font-bold text-gray-900 block">Button Fill</span>
-                <span className="text-[11px] text-gray-400 font-mono">{current.buttonColor || '#FFFFFF'}</span>
-              </div>
-              <input
-                type="color"
-                value={current.buttonColor || '#FFFFFF'}
-                onChange={(e) => commitChange({ buttonColor: e.target.value })}
-                className="w-9 h-9 rounded-xl cursor-pointer border border-gray-200"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-2xl bg-white">
-              <div>
-                <span className="text-xs font-bold text-gray-900 block">Card Text & Icons</span>
-                <span className="text-[11px] text-gray-400 font-mono">{current.buttonTextColor || '#111111'}</span>
-              </div>
-              <input
-                type="color"
-                value={current.buttonTextColor || '#111111'}
-                onChange={(e) => commitChange({ buttonTextColor: e.target.value })}
-                className="w-9 h-9 rounded-xl cursor-pointer border border-gray-200"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW 7: STICKERS SUBVIEW */}
-      {activeSubview === 'stickers' && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          <p className="text-xs text-gray-500 font-medium">
-            Add decorative profile tags or badge stickers to personalize your card.
-          </p>
-
-          <div className="flex flex-wrap gap-2">
-            {stickerOptions.map((stk) => {
-              const activeList = current.stickers || [];
-              const isAdded = activeList.includes(stk);
-              return (
-                <button
-                  key={stk}
-                  type="button"
-                  onClick={() => {
-                    const nextStickers = isAdded
-                      ? activeList.filter((s) => s !== stk)
-                      : [...activeList, stk];
-                    commitChange({ stickers: nextStickers });
-                  }}
-                  className={`py-1.5 px-3 rounded-full text-xs font-bold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                    isAdded
-                      ? 'border-purple-600 bg-purple-50 text-purple-700 shadow-2xs'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <span>{stk}</span>
-                  {isAdded && <span className="text-xs">✓</span>}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <ColorsEditor
+          current={current}
+          commitChange={commitChange}
+          onBack={() => setActiveSubview(null)}
+        />
       )}
 
       {/* VIEW 8: FOOTER SUBVIEW */}

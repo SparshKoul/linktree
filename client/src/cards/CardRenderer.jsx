@@ -42,14 +42,37 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   const [isPageOpen, setIsPageOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
-  const btnRadius = `${Math.min(theme?.buttonRadius ?? 9999, 40)}px`;
+  const btnRadius =
+    theme?.buttonRadius == null || theme?.buttonRadius >= 24
+      ? '9999px'
+      : `${theme.buttonRadius}px`;
   const isOutline = theme?.buttonStyle === 'outline';
-  const buttonStyleObj = {
-    background: isOutline ? 'transparent' : (theme?.buttonColor || '#FFFFFF'),
-    color: theme?.buttonTextColor || '#111111',
-    borderRadius: btnRadius,
-    border: isOutline ? `2px solid ${theme?.buttonTextColor || '#111111'}` : '1px solid rgba(0,0,0,0.06)',
-  };
+  const isGlass = theme?.buttonStyle === 'glass';
+  const outlineColor = theme?.buttonTextColor || theme?.buttonColor || '#FFFFFF';
+
+  const buttonStyleObj = isGlass
+    ? {
+        background: 'rgba(255, 255, 255, 0.16)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        color: theme?.buttonTextColor || '#FFFFFF',
+        borderRadius: btnRadius,
+        border: '1px solid rgba(255, 255, 255, 0.22)',
+        boxShadow: '0 4px 20px 0 rgba(0, 0, 0, 0.15)',
+      }
+    : isOutline
+    ? {
+        background: 'transparent',
+        color: outlineColor,
+        borderRadius: btnRadius,
+        border: `1.5px solid ${outlineColor}`,
+      }
+    : {
+        background: theme?.buttonColor || '#FFFFFF',
+        color: theme?.buttonTextColor || '#111111',
+        borderRadius: btnRadius,
+        border: '1px solid rgba(0,0,0,0.06)',
+      };
 
   const animClass =
     card.animation === 'pulse'
@@ -167,15 +190,20 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   if (card.type === 'video') {
     return (
       <div
-        className="w-full rounded-2xl overflow-hidden p-3 text-left space-y-2 shadow-2xs"
-        style={{ ...buttonStyleObj, borderRadius: '16px' }}
+        className={`w-full overflow-hidden p-2 sm:p-2.5 text-left shadow-2xs hover:scale-[1.01] transition-transform ${animClass}`}
+        style={{ ...buttonStyleObj, borderRadius: '22px' }}
       >
-        <div className="relative aspect-video rounded-xl overflow-hidden bg-black flex items-center justify-center">
-          <div className="w-10 h-10 rounded-full bg-white/30 backdrop-blur-md text-white flex items-center justify-center hover:scale-105 cursor-pointer transition-transform">
-            <Play className="w-5 h-5 ml-0.5" />
+        <div className="relative aspect-[16/10] sm:aspect-video rounded-[18px] sm:rounded-2xl overflow-hidden bg-black flex items-center justify-center">
+          {card.thumbnailUrl ? (
+            <img src={card.thumbnailUrl} alt={card.title} className="w-full h-full object-cover" />
+          ) : null}
+          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:scale-105 cursor-pointer transition-transform shadow-md">
+            <Play className="w-5 h-5 ml-0.5 fill-white text-white" />
           </div>
         </div>
-        <div className="font-semibold text-xs truncate px-1">{card.title}</div>
+        <div className="font-semibold text-xs truncate px-1.5 pt-1.5 pb-0.5 opacity-80">
+          {card.title || 'YouTube'}
+        </div>
       </div>
     );
   }
@@ -423,70 +451,69 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   const subtitle = card.subtitle || card.settings?.address || card.settings?.subtitle || (isPdf ? 'PDF Menu' : '');
   const hasThumbnail = Boolean(card.thumbnailUrl || isMap || card.type === 'reviews' || card.url);
 
-  // 12. Featured Layout Card (Hero Preview)
+  // 12. Featured Layout Card (Hero Media Layout)
   if (layout === 'featured') {
+    const isVideo = card.type === 'video' || (card.url && /youtube\.com|youtu\.be|vimeo\.com/i.test(card.url));
     return (
       <>
         <div
-          className={`w-full rounded-2xl overflow-hidden shadow-2xs text-left transition-all hover:scale-[1.01] ${animClass}`}
-          style={{ ...buttonStyleObj, borderRadius: '20px' }}
+          className={`w-full overflow-hidden p-2 sm:p-2.5 text-left shadow-2xs transition-all hover:scale-[1.01] ${animClass}`}
+          style={{ ...buttonStyleObj, borderRadius: '22px' }}
         >
-          {/* Top Banner / Media */}
-          {isMap ? (
-            <div className="w-full h-32 bg-[#E5E3DF] relative flex items-center justify-center overflow-hidden">
-              <svg className="w-full h-full" viewBox="0 0 200 120" fill="none" preserveAspectRatio="none">
-                <rect width="200" height="120" fill="#E8ECEF" />
-                <path d="M0 30h200M0 70h200M0 100h200M40 0v120M100 0v120M160 0v120" stroke="#FFFFFF" strokeWidth="4" />
-                <path d="M0 60l200 -30M60 0l40 120" stroke="#FDE68A" strokeWidth="3" />
-                <rect x="70" y="20" width="40" height="25" rx="3" fill="#BBF7D0" />
-                <rect x="15" y="70" width="35" height="20" rx="3" fill="#BBF7D0" />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/10">
-                <div className="w-7 h-7 rounded-full bg-[#EF4444] text-white flex items-center justify-center shadow-lg">
-                  <MapPin className="w-4 h-4 fill-white" />
-                </div>
+          {/* Top Media covering most of the card */}
+          <div className="relative w-full aspect-[16/10] sm:aspect-video rounded-[18px] sm:rounded-2xl overflow-hidden bg-black flex items-center justify-center">
+            {isMap ? (
+              <div className="w-full h-full bg-[#E5E3DF] relative flex items-center justify-center">
+                <svg className="w-full h-full" viewBox="0 0 200 120" fill="none" preserveAspectRatio="none">
+                  <rect width="200" height="120" fill="#E8ECEF" />
+                  <path d="M0 30h200M0 70h200M0 100h200M40 0v120M100 0v120M160 0v120" stroke="#FFFFFF" strokeWidth="4" />
+                  <path d="M0 60l200 -30M60 0l40 120" stroke="#FDE68A" strokeWidth="3" />
+                  <rect x="70" y="20" width="40" height="25" rx="3" fill="#BBF7D0" />
+                  <rect x="15" y="70" width="35" height="20" rx="3" fill="#BBF7D0" />
+                  <circle cx="100" cy="55" r="12" fill="#EF4444" />
+                  <circle cx="100" cy="55" r="4" fill="#FFFFFF" />
+                </svg>
               </div>
-            </div>
-          ) : card.thumbnailUrl ? (
-            <img
-              src={card.thumbnailUrl}
-              alt={card.title}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-32 object-cover"
-            />
-          ) : (
-            <div className="w-full h-20 bg-black/5 flex items-center justify-center">
-              <FaviconIcon card={card} className="w-8 h-8" containerClassName="w-12 h-12" />
-            </div>
-          )}
+            ) : card.thumbnailUrl ? (
+              <img
+                src={card.thumbnailUrl}
+                alt={card.title}
+                loading="lazy"
+                decoding="async"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-black/40 flex items-center justify-center">
+                <FaviconIcon card={card} className="w-8 h-8" containerClassName="w-14 h-14" />
+              </div>
+            )}
 
-          {/* Body */}
-          <div className="p-3.5 bg-white flex items-center justify-between gap-3 border-t border-gray-100">
+            {isVideo && (
+              <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:scale-105 cursor-pointer transition-transform shadow-md absolute">
+                <Play className="w-5 h-5 ml-0.5 fill-white text-white" />
+              </div>
+            )}
+          </div>
+
+          {/* Compact text & details footer below media */}
+          <div className="pt-1.5 pb-0.5 px-1.5 flex items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <div className="font-bold text-xs truncate leading-snug text-gray-900">{card.title}</div>
+              <div className="font-semibold text-xs truncate leading-snug">
+                {card.title || (isVideo ? 'YouTube' : '')}
+              </div>
               {subtitle && (
-                <div className="text-[10px] text-gray-500 truncate flex items-center gap-1 mt-0.5 font-normal">
-                  {isMap && <span className="text-gray-400">📍</span>}
+                <div className="text-[10px] truncate flex items-center gap-1 mt-0.5 font-normal opacity-70">
+                  {isMap && <span>📍</span>}
                   <span className="truncate">{subtitle}</span>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-1.5 shrink-0">
-              <a
-                href={isLocked ? '#' : card.url || '#'}
-                onClick={handleLinkClick}
-                target={isLocked ? '_self' : '_blank'}
-                rel="noopener noreferrer"
-                className="px-3.5 py-1.5 rounded-full bg-[#111111] hover:bg-black text-white text-[10px] font-bold transition-colors shadow-2xs"
-              >
-                {isMap ? 'Directions' : isPdf ? 'View PDF' : 'Visit'}
-              </a>
+            <div className="flex items-center gap-1 shrink-0 opacity-80 hover:opacity-100">
               <button
                 type="button"
                 onClick={handleOpenPage}
-                className="p-1.5 rounded-full hover:bg-black/5 text-gray-400 hover:text-black transition-colors"
+                className="p-1 rounded-full hover:bg-black/5 transition-colors"
                 title="Open details"
               >
                 <MoreVertical className="w-3.5 h-3.5" />
@@ -509,32 +536,35 @@ export function CardRenderer({ card, theme, isPreview = false }) {
         onClick={handleLinkClick}
         target={isLocked ? '_self' : '_blank'}
         rel="noopener noreferrer"
-        className={`w-full py-2.5 px-3 text-xs font-semibold transition-all hover:scale-[1.01] active:scale-[0.99] shadow-2xs flex items-center justify-between relative group rounded-2xl border border-black/5 ${animClass}`}
+        className={`w-full p-1.5 sm:p-2 text-xs font-semibold transition-all hover:scale-[1.01] active:scale-[0.99] shadow-2xs flex items-center justify-between relative group ${animClass}`}
         style={buttonStyleObj}
       >
         {/* Left Side: Thumbnail / Icon + Title & Subtitle */}
         {hasThumbnail || subtitle ? (
           <div className="flex items-center gap-2.5 min-w-0 pr-2">
-            <FaviconIcon card={card} className="w-4 h-4" containerClassName="w-8 h-8" />
+            <FaviconIcon card={card} className="w-5 h-5" containerClassName="w-11 h-11 sm:w-12 sm:h-12 rounded-xl" />
 
-            <div className="min-w-0 text-left">
-              <div className="font-bold text-xs truncate leading-snug">{card.title}</div>
+            <div className="min-w-0 text-left py-0.5">
+              <div className="font-bold text-xs truncate leading-tight">{card.title}</div>
               {subtitle && (
-                <div className="text-[9.5px] text-gray-500 truncate flex items-center gap-1 mt-0.5 font-normal">
-                  {isMap && <span className="text-gray-400">📍</span>}
+                <div
+                  className="text-[10px] truncate flex items-center gap-1 mt-0.5 font-normal opacity-70"
+                  style={{ color: 'currentColor' }}
+                >
+                  {isMap && <span className="opacity-80">📍</span>}
                   <span className="truncate">{subtitle}</span>
                 </div>
               )}
             </div>
           </div>
         ) : (
-          <div className="flex-1 text-center font-bold text-xs truncate leading-snug pl-4">
+          <div className="flex-1 text-center font-bold text-xs truncate leading-snug py-2 px-3">
             {card.title}
           </div>
         )}
 
         {/* Right Side: Three Dots Action Menu that opens the Standalone Card Page */}
-        <div className="shrink-0 flex items-center gap-1.5 text-gray-400 group-hover:text-black transition-colors">
+        <div className="shrink-0 flex items-center gap-1.5 pr-1 opacity-60 group-hover:opacity-100 transition-opacity">
           {isPdf && (
             <span className="text-[9px] font-black px-1.5 py-0.5 rounded-[3px] bg-red-100 text-red-600 uppercase tracking-tight">
               PDF

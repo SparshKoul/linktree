@@ -24,7 +24,72 @@ import {
   Utensils,
   Phone,
   Mail,
+  ShoppingBag,
+  Type,
 } from 'lucide-react';
+
+export const getUrlMetadata = (rawQuery) => {
+  const clean = (rawQuery || '').trim().replace(/^https?:\/\//i, '').replace(/\/$/, '');
+  const lower = clean.toLowerCase();
+
+  if (lower.includes('github.com')) {
+    return {
+      title: 'GitHub · Change is constant. GitHub keeps you ahead. · GitHub · GitHub',
+      subtitle: 'github.com',
+      url: 'https://github.com',
+    };
+  }
+  if (lower.includes('instagram.com')) {
+    return {
+      title: 'Instagram · Capture and Share the World\'s Moments',
+      subtitle: 'instagram.com',
+      url: 'https://instagram.com',
+    };
+  }
+  if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
+    return {
+      title: 'YouTube · Enjoy the videos and music you love',
+      subtitle: 'youtube.com',
+      url: 'https://youtube.com',
+    };
+  }
+  if (lower.includes('tiktok.com')) {
+    return {
+      title: 'TikTok · Make Your Day',
+      subtitle: 'tiktok.com',
+      url: 'https://tiktok.com',
+    };
+  }
+  if (lower.includes('twitter.com') || lower.includes('x.com')) {
+    return {
+      title: 'X · It\'s what\'s happening / X',
+      subtitle: clean.split('/')[0] || 'x.com',
+      url: `https://${clean}`,
+    };
+  }
+  if (lower.includes('linkedin.com')) {
+    return {
+      title: 'LinkedIn: Log In or Sign Up',
+      subtitle: 'linkedin.com',
+      url: 'https://linkedin.com',
+    };
+  }
+  if (lower.includes('spotify.com')) {
+    return {
+      title: 'Spotify · Web Player: Music for everyone',
+      subtitle: 'spotify.com',
+      url: 'https://spotify.com',
+    };
+  }
+
+  const domain = clean.split('/')[0] || clean;
+  const capitalized = domain.charAt(0).toUpperCase() + domain.slice(1);
+  return {
+    title: `${capitalized} · Official Link`,
+    subtitle: domain,
+    url: /^https?:\/\//i.test((rawQuery || '').trim()) ? (rawQuery || '').trim() : `https://${clean}`,
+  };
+};
 
 export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard }) {
   const [query, setQuery] = useState('');
@@ -84,17 +149,12 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
     if (!urlStr.trim()) return;
     setLoadingResultId('generic');
 
-    const clean = urlStr.trim();
-    let url = clean;
-    if (!/^https?:\/\//i.test(clean)) {
-      url = `https://${clean}`;
-    }
+    const meta = getUrlMetadata(urlStr);
 
-    const title = clean.replace(/^https?:\/\//i, '').replace(/\/$/, '');
-
-    await onAddCard('link', title, {
-      url,
-      subtitle: clean.split('/')[0],
+    await onAddCard('link', meta.title, {
+      url: meta.url,
+      subtitle: meta.subtitle,
+      layout: 'classic',
     });
 
     setLoadingResultId(null);
@@ -131,60 +191,25 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
 
   const categories = [
     { id: 'suggested', label: 'Suggested', icon: Lightbulb },
+    { id: 'commerce', label: 'Commerce', icon: ShoppingBag },
     { id: 'social', label: 'Social', icon: Heart },
     { id: 'media', label: 'Media', icon: Play },
     { id: 'contact', label: 'Contact', icon: Contact },
+    { id: 'events', label: 'Events', icon: CalendarClock },
+    { id: 'text', label: 'Text', icon: Type },
     { id: 'view_all', label: 'View all', icon: MoreHorizontal },
   ];
 
   const categoryItems = {
     suggested: [
       {
-        id: 'maps',
-        title: 'Google Maps',
-        desc: 'Share directions and place location',
-        type: 'maps',
+        id: 'messaging',
+        title: 'Messaging',
+        desc: 'Let visitors message you directly from your Linktree',
+        type: 'contact',
         renderIcon: () => (
-          <div className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-2xs flex items-center justify-center shrink-0 p-1">
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#4285F4" />
-              <path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 5.31 3.06 8.52L12 11.5V2z" fill="#34A853" />
-              <path d="M12 2v9.5l3.94 6.02C17.81 14.31 19 11.38 19 9c0-3.87-3.13-7-7-7z" fill="#EA4335" />
-              <path d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" fill="#FBBC05" />
-            </svg>
-          </div>
-        ),
-      },
-      {
-        id: 'reviews',
-        title: 'Google Reviews',
-        desc: 'Show ratings and collect customer reviews',
-        type: 'reviews',
-        renderIcon: () => (
-          <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-            <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
-          </div>
-        ),
-      },
-      {
-        id: 'whatsapp',
-        title: 'WhatsApp',
-        desc: 'Chat directly with visitors via WhatsApp',
-        type: 'whatsapp',
-        renderIcon: () => (
-          <div className="w-9 h-9 rounded-full bg-[#25D366] text-white flex items-center justify-center shrink-0">
-            <MessageSquare className="w-4 h-4" />
-          </div>
-        ),
-      },
-      {
-        id: 'restaurant_menu',
-        title: 'Restaurant Menu',
-        desc: 'Display food and drinks menu for visitors',
-        type: 'menu',
-        renderIcon: () => (
-          <div className="w-9 h-9 rounded-full bg-[#EA580C] text-white flex items-center justify-center shrink-0">
-            <Utensils className="w-4 h-4" />
+          <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center shrink-0">
+            <Send className="w-4 h-4 ml-0.5" />
           </div>
         ),
       },
@@ -200,13 +225,87 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
         ),
       },
       {
+        id: 'tiktok',
+        title: 'TikTok',
+        desc: 'Share your TikToks on your Linktree',
+        type: 'video',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center shrink-0">
+            <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
+              <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743 2.9 2.9 0 0 1 2.314-4.644c.314 0 .619.05.904.143V9.32a6.326 6.326 0 0 0-.904-.065c-3.504 0-6.347 2.842-6.347 6.347 0 3.503 2.843 6.345 6.347 6.345 3.42 0 6.21-2.709 6.34-6.104l.007-.243V8.895a8.163 8.163 0 0 0 4.76 1.524V6.986a4.832 4.832 0 0 1-1.001-.3z" />
+            </svg>
+          </div>
+        ),
+      },
+      {
+        id: 'gallery',
+        title: 'Image gallery',
+        desc: 'Share a gallery of images',
+        type: 'gallery',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#60A5FA] text-white flex items-center justify-center shrink-0">
+            <ImageIcon className="w-4 h-4" />
+          </div>
+        ),
+      },
+      {
         id: 'youtube',
         title: 'YouTube',
-        desc: 'Share YouTube videos on your IndiaTaps',
+        desc: 'Share YouTube videos on your Linktree',
         type: 'video',
         renderIcon: () => (
           <div className="w-9 h-9 rounded-full bg-[#EF4444] text-white flex items-center justify-center shrink-0">
             <Play className="w-4 h-4 fill-white ml-0.5" />
+          </div>
+        ),
+      },
+    ],
+    commerce: [
+      {
+        id: 'product',
+        title: 'Product',
+        desc: 'Sell products and physical merchandise',
+        type: 'product',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#8B5CF6] text-white flex items-center justify-center shrink-0">
+            <Tag className="w-4 h-4" />
+          </div>
+        ),
+      },
+      {
+        id: 'store',
+        title: 'Store',
+        desc: 'Display products directly on your profile',
+        type: 'store',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#10B981] text-white flex items-center justify-center shrink-0">
+            <ShoppingBag className="w-4 h-4" />
+          </div>
+        ),
+      },
+    ],
+    events: [
+      {
+        id: 'events',
+        title: 'Events',
+        desc: 'Show upcoming dates and sell tickets',
+        type: 'events',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#F59E0B] text-white flex items-center justify-center shrink-0">
+            <CalendarClock className="w-4 h-4" />
+          </div>
+        ),
+      },
+    ],
+    text: [
+      {
+        id: 'header',
+        title: 'Header',
+        desc: 'Add a title to group and organize your links',
+        type: 'header',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-gray-800 text-white flex items-center justify-center shrink-0">
+            <Type className="w-4 h-4" />
           </div>
         ),
       },
@@ -439,30 +538,33 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                   1 result
                 </div>
 
-                <div
-                  onClick={() => handleSelectUrl(query)}
-                  className="p-3.5 rounded-2xl hover:bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all flex items-center justify-between cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-purple-50 text-[#7033FF] flex items-center justify-center shrink-0 border border-purple-100 group-hover:scale-105 transition-transform">
-                      <Link2 className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 space-y-0.5">
-                      <div className="font-bold text-xs text-[#111111]">Link</div>
-                      <div className="text-[11px] text-gray-500 truncate">{query}</div>
-                    </div>
-                  </div>
+                {(() => {
+                  const meta = getUrlMetadata(query);
+                  return (
+                    <div
+                      onClick={() => handleSelectUrl(query)}
+                      className="p-3.5 rounded-2xl hover:bg-gray-50 border border-gray-100 hover:border-gray-200 transition-all flex items-center justify-between cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-full bg-purple-50 text-[#7033FF] flex items-center justify-center shrink-0 border border-purple-200 group-hover:scale-105 transition-transform">
+                          <Link2 className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="font-bold text-xs text-[#111111]">Link</div>
+                          <div className="text-[11px] text-gray-500 truncate">{meta.title}</div>
+                        </div>
+                      </div>
 
-                  <div className="shrink-0 text-gray-400">
-                    {loadingResultId === 'generic' ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-[#7033FF]" />
-                    ) : (
-                      <span className="w-6 h-6 rounded-full border border-gray-300 flex items-center justify-center text-gray-400 group-hover:border-black group-hover:text-black">
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </span>
-                    )}
-                  </div>
-                </div>
+                      <div className="shrink-0 text-gray-400">
+                        {loadingResultId === 'generic' ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-[#7033FF]" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-black transition-colors" />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )
           ) : (
@@ -511,8 +613,10 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
 
                 <button
                   onClick={() => {
-                    setQuery('https://maps.app.goo.gl/41pK4HQY5RHNe7qQA');
                     setIsFocused(true);
+                    if (inputRef.current) {
+                      inputRef.current.focus();
+                    }
                   }}
                   className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
                 >

@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { getUrlMetadata } from './components/AddCardModal.jsx';
 
 describe('Card Reflection Logic', () => {
   it('detects unconfigured card state for empty urls in phone preview', () => {
@@ -31,12 +32,14 @@ describe('Card Reflection Logic', () => {
   });
 
   it('correctly maps URL patterns to metadata titles', () => {
-    const testUrl = 'github.com';
-    const isUrlLike = /^(https?:\/\/|[a-zA-Z0-9-]+\.[a-zA-Z]{2,})/i.test(testUrl);
-    expect(isUrlLike).toBe(true);
+    const meta = getUrlMetadata('github.com');
+    expect(meta.title).toBe('GitHub · Change is constant. GitHub keeps you ahead. · GitHub · GitHub');
+    expect(meta.url).toBe('https://github.com');
+    expect(meta.subtitle).toBe('github.com');
 
-    const normalizedUrl = testUrl.startsWith('http') ? testUrl : `https://${testUrl}`;
-    expect(normalizedUrl).toBe('https://github.com');
+    const igMeta = getUrlMetadata('https://instagram.com');
+    expect(igMeta.title).toContain('Instagram');
+    expect(igMeta.url).toBe('https://instagram.com');
   });
 
   it('correctly formats Maps link card with place title and address', () => {

@@ -1,3 +1,9 @@
+import agateBg from '../Design/theme/agite.avif';
+import astridBg from '../Design/theme/astrid.avif';
+import blissBg from '../Design/theme/blis.avif';
+import encoreBg from '../Design/theme/encore.avif';
+import grooveBg from '../Design/theme/groove.avif';
+
 export const PRESET_THEMES = [
   {
     id: 'air',
@@ -40,8 +46,8 @@ export const PRESET_THEMES = [
     isPro: true,
     theme: {
       name: 'Agate',
-      backgroundType: 'gradient',
-      backgroundValue: 'radial-gradient(circle at 30% 30%, #34D399 0%, #065F46 60%, #022C22 100%)',
+      backgroundType: 'image',
+      backgroundValue: `url("${agateBg}") center / cover no-repeat`,
       buttonStyle: 'fill',
       buttonColor: '#A3E635',
       buttonTextColor: '#022C22',
@@ -57,8 +63,8 @@ export const PRESET_THEMES = [
     isPro: true,
     theme: {
       name: 'Astrid',
-      backgroundType: 'gradient',
-      backgroundValue: 'radial-gradient(circle at 50% 40%, #1E1E24 0%, #111111 80%, #000000 100%)',
+      backgroundType: 'image',
+      backgroundValue: `url("${astridBg}") center / cover no-repeat`,
       buttonStyle: 'fill',
       buttonColor: 'rgba(255, 255, 255, 0.15)',
       buttonTextColor: '#FFFFFF',
@@ -91,10 +97,10 @@ export const PRESET_THEMES = [
     isPro: true,
     theme: {
       name: 'Bliss',
-      backgroundType: 'solid',
-      backgroundValue: '#D1D5DB',
+      backgroundType: 'image',
+      backgroundValue: `url("${blissBg}") center / cover no-repeat`,
       buttonStyle: 'fill',
-      buttonColor: 'rgba(255, 255, 255, 0.75)',
+      buttonColor: 'rgba(255, 255, 255, 0.85)',
       buttonTextColor: '#111111',
       buttonRadius: 9999,
       fontFamily: 'Playfair Display',
@@ -159,11 +165,11 @@ export const PRESET_THEMES = [
     isPro: true,
     theme: {
       name: 'Encore',
-      backgroundType: 'solid',
-      backgroundValue: '#1A1817',
+      backgroundType: 'image',
+      backgroundValue: `url("${encoreBg}") center / cover no-repeat`,
       buttonStyle: 'outline',
-      buttonColor: '#1A1817',
-      buttonTextColor: '#D97706',
+      buttonColor: 'rgba(26, 24, 23, 0.5)',
+      buttonTextColor: '#F59E0B',
       buttonRadius: 9999,
       fontFamily: 'Playfair Display',
       textColor: '#F59E0B',
@@ -193,8 +199,8 @@ export const PRESET_THEMES = [
     isPro: true,
     theme: {
       name: 'Groove',
-      backgroundType: 'gradient',
-      backgroundValue: 'linear-gradient(135deg, #F97316 0%, #8B5CF6 50%, #06B6D4 100%)',
+      backgroundType: 'image',
+      backgroundValue: `url("${grooveBg}") center / cover no-repeat`,
       buttonStyle: 'fill',
       buttonColor: 'rgba(255, 255, 255, 0.25)',
       buttonTextColor: '#FFFFFF',

@@ -98,4 +98,16 @@ describe('DesignEditor Logic & State Flow', () => {
     expect(themeNames).toContain('Luke John Matthew Arnold');
     expect(themeNames).toContain('Starry Night');
   });
+
+  it('matches design folder assets to Agate, Astrid, Bliss, Encore, and Groove themes', async () => {
+    const { PRESET_THEMES } = await import('./constants/themes.js');
+    const imageThemes = ['agate', 'astrid', 'bliss', 'encore', 'groove'];
+
+    for (const themeId of imageThemes) {
+      const themeConfig = PRESET_THEMES.find((t) => t.id === themeId);
+      expect(themeConfig).toBeDefined();
+      expect(themeConfig.theme.backgroundType).toBe('image');
+      expect(themeConfig.theme.backgroundValue).toMatch(/^url\(/);
+    }
+  });
 });

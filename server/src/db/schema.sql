@@ -77,6 +77,7 @@ CREATE POLICY "Service role full access on trees" ON public.trees
 CREATE POLICY "Service role full access on cards" ON public.cards
   FOR ALL USING (TRUE) WITH CHECK (TRUE);
 
+
 -- Seed initial default user and tree if not existing
 INSERT INTO public.users (email, username, password)
 VALUES ('sparshkoul6@gmail.com', 'riyast', 'password123')
