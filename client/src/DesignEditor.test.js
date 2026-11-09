@@ -66,4 +66,30 @@ describe('DesignEditor Logic & State Flow', () => {
     if (index < history.length - 1) index += 1;
     expect(history[index].backgroundType).toBe('gradient');
   });
+
+  it('contains the complete set of customizable and curated themes matching reference', async () => {
+    const { PRESET_THEMES } = await import('./constants/themes.js');
+    const themeNames = PRESET_THEMES.map((t) => t.name);
+
+    expect(themeNames).toContain('Air');
+    expect(themeNames).toContain('Agate');
+    expect(themeNames).toContain('Astrid');
+    expect(themeNames).toContain('Aura');
+    expect(themeNames).toContain('Bliss');
+    expect(themeNames).toContain('Blocks');
+    expect(themeNames).toContain('Bloom');
+    expect(themeNames).toContain('Breeze');
+    expect(themeNames).toContain('Encore');
+    expect(themeNames).toContain('Grid');
+    expect(themeNames).toContain('Groove');
+    expect(themeNames).toContain('Haven');
+    expect(themeNames).toContain('Lake');
+    expect(themeNames).toContain('Mineral');
+    expect(themeNames).toContain('Nourish');
+    expect(themeNames).toContain('Rise');
+    expect(themeNames).toContain('Sweat');
+    expect(themeNames).toContain('Tress');
+    expect(themeNames).toContain('Twilight');
+    expect(themeNames).toContain('Vox');
+  });
 });

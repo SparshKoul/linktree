@@ -4,10 +4,12 @@ import {
   RotateCw,
   Check,
   ChevronRight,
+  ChevronLeft,
   ArrowLeft,
   Trash2,
   Upload,
   Sparkles,
+  Shuffle,
   Smile,
   Type,
   Square,
@@ -18,6 +20,7 @@ import { PRESET_THEMES } from '../constants/themes.js';
 
 export function DesignEditor({ currentTree, onUpdateTree }) {
   const [activeSubview, setActiveSubview] = useState(null); // null | 'theme' | 'wallpaper' | 'buttons' | 'text' | 'colors' | 'stickers' | 'footer'
+  const [themeTab, setThemeTab] = useState('customizable'); // 'customizable' | 'curated'
   const [savedToast, setSavedToast] = useState(false);
   const wallpaperInputRef = useRef(null);
 
@@ -118,6 +121,24 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
     });
     setSavedToast(true);
     setTimeout(() => setSavedToast(false), 2500);
+  };
+
+  const handleShuffleTheme = () => {
+    const list = PRESET_THEMES.filter((p) => p.id !== 'classic-light');
+    const randomTheme = list[Math.floor(Math.random() * list.length)];
+    if (randomTheme) {
+      commitChange({
+        themeId: randomTheme.id,
+        backgroundType: randomTheme.theme.backgroundType,
+        backgroundValue: randomTheme.theme.backgroundValue,
+        buttonStyle: randomTheme.theme.buttonStyle,
+        buttonColor: randomTheme.theme.buttonColor,
+        buttonTextColor: randomTheme.theme.buttonTextColor,
+        buttonRadius: randomTheme.theme.buttonRadius,
+        fontFamily: randomTheme.theme.fontFamily,
+        textColor: randomTheme.theme.textColor,
+      });
+    }
   };
 
   const handleWallpaperUpload = (e) => {
@@ -222,19 +243,21 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
     <div className="w-full space-y-6 animate-in fade-in duration-200">
       {/* Top Header Row with Undo, Redo, Cancel, Save matching Reference Image */}
       <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-        <h1 className="text-xl sm:text-2xl font-black tracking-tight text-[#111111]">
-          {activeSubview ? (
+        <div className="flex items-center">
+          {activeSubview && activeSubview !== 'theme' ? (
             <button
               onClick={() => setActiveSubview(null)}
-              className="flex items-center gap-2 hover:text-gray-600 transition-colors cursor-pointer text-xl sm:text-2xl font-black"
+              className="flex items-center gap-2 hover:text-gray-600 transition-colors cursor-pointer text-xl font-bold text-[#111111]"
             >
-              <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
+              <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
               <span className="capitalize">{activeSubview}</span>
             </button>
+          ) : !activeSubview ? (
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-[#111111]">Design</h1>
           ) : (
-            'Design'
+            <div />
           )}
-        </h1>
+        </div>
 
         <div className="flex items-center gap-2">
           {/* Undo */}
@@ -441,67 +464,140 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
         </div>
       )}
 
-      {/* VIEW 2: THEMES SUBVIEW */}
+      {/* VIEW 2: THEMES SUBVIEW (Matching Reference Images 0 & 1) */}
       {activeSubview === 'theme' && (
         <div className="space-y-4 animate-in fade-in duration-150">
-          <p className="text-xs text-gray-500 font-medium">
-            Choose a pre-styled theme designed to match your brand style instantly.
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {PRESET_THEMES.map((pt) => {
-              const isSelected = current.themeId === pt.id;
-              const displayName = pt.id === 'classic-light' ? 'Air' : pt.name;
-              return (
+          {/* Subview Header with Round Back Arrow and Shuffle Button */}
+          <div className="flex items-center justify-between pb-1">
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => setActiveSubview(null)}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer"
+                title="Back to Design"
+              >
+                <ChevronLeft className="w-4 h-4 text-gray-700 stroke-[2.5]" />
+              </button>
+              <h2 className="text-base sm:text-lg font-bold text-[#111111]">Theme</h2>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleShuffleTheme}
+              className="py-1 px-3.5 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 text-xs font-semibold text-gray-800 transition-colors cursor-pointer shadow-2xs"
+            >
+              <Shuffle className="w-3.5 h-3.5 text-gray-600" />
+              <span>Shuffle</span>
+            </button>
+          </div>
+
+          {/* Customizable vs Curated Tabs */}
+          <div className="flex items-center gap-6 border-b border-gray-100 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setThemeTab('customizable')}
+              className={`pb-2.5 transition-colors cursor-pointer relative ${
+                themeTab === 'customizable'
+                  ? 'text-black border-b-2 border-black'
+                  : 'text-gray-500 hover:text-black'
+              }`}
+            >
+              Customizable
+            </button>
+            <button
+              type="button"
+              onClick={() => setThemeTab('curated')}
+              className={`pb-2.5 transition-colors cursor-pointer relative ${
+                themeTab === 'curated'
+                  ? 'text-black border-b-2 border-black'
+                  : 'text-gray-500 hover:text-black'
+              }`}
+            >
+              Curated
+            </button>
+          </div>
+
+          {/* 5-Column Theme Grid Matching Linktree Screenshot */}
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 pt-1">
+            {themeTab === 'customizable' && (
+              /* Custom theme card */
+              <div className="flex flex-col items-center">
                 <button
-                  key={pt.id}
                   type="button"
-                  onClick={() => {
-                    commitChange({
-                      themeId: pt.id,
-                      backgroundType: pt.theme.backgroundType,
-                      backgroundValue: pt.theme.backgroundValue,
-                      buttonStyle: pt.theme.buttonStyle,
-                      buttonColor: pt.theme.buttonColor,
-                      buttonTextColor: pt.theme.buttonTextColor,
-                      buttonRadius: pt.theme.buttonRadius,
-                      fontFamily: pt.theme.fontFamily,
-                      textColor: pt.theme.textColor,
-                    });
-                  }}
-                  className={`rounded-2xl p-3 flex flex-col items-center gap-2 border-2 text-left transition-all cursor-pointer relative ${
-                    isSelected ? 'border-black bg-white shadow-md' : 'border-gray-200/90 bg-white hover:border-gray-300'
-                  }`}
+                  onClick={() => setActiveSubview('wallpaper')}
+                  className="w-full h-[106px] sm:h-[112px] rounded-[18px] sm:rounded-[20px] bg-[#EEEEEE] border border-gray-200/80 flex items-center justify-center cursor-pointer hover:border-gray-300 transition-all shadow-2xs group"
                 >
-                  {/* Miniature Phone Card Preview */}
-                  <div
-                    className="w-full h-28 rounded-xl p-2 flex flex-col justify-between items-center overflow-hidden border border-gray-100 shadow-inner"
+                  <Paintbrush className="w-5 h-5 text-gray-600 stroke-[1.5] group-hover:scale-110 transition-transform" />
+                </button>
+                <span className="text-[11px] font-medium text-gray-700 text-center mt-1.5">Custom</span>
+              </div>
+            )}
+
+            {PRESET_THEMES.filter(
+              (pt) =>
+                pt.id !== 'classic-light' &&
+                (pt.category === themeTab || (themeTab === 'customizable' && !pt.category))
+            ).map((pt) => {
+              const isSelected =
+                current.themeId === pt.id || (pt.id === 'air' && current.themeId === 'classic-light');
+              return (
+                <div key={pt.id} className="flex flex-col items-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      commitChange({
+                        themeId: pt.id,
+                        backgroundType: pt.theme.backgroundType,
+                        backgroundValue: pt.theme.backgroundValue,
+                        buttonStyle: pt.theme.buttonStyle,
+                        buttonColor: pt.theme.buttonColor,
+                        buttonTextColor: pt.theme.buttonTextColor,
+                        buttonRadius: pt.theme.buttonRadius,
+                        fontFamily: pt.theme.fontFamily,
+                        textColor: pt.theme.textColor,
+                      });
+                    }}
+                    className={`w-full h-[106px] sm:h-[112px] rounded-[18px] sm:rounded-[20px] p-2.5 flex flex-col justify-between overflow-hidden relative transition-all cursor-pointer shadow-2xs ${
+                      isSelected
+                        ? 'border-2 border-black ring-1 ring-black/10'
+                        : 'border border-gray-200/90 hover:border-gray-300'
+                    }`}
                     style={{ background: pt.theme.backgroundValue }}
                   >
-                    <div className="w-6 h-6 rounded-full bg-black/10 border border-white/40 flex items-center justify-center text-[8px] font-bold">
-                      ✱
+                    {/* Top row: Typography sample & Pro badge */}
+                    <div className="w-full flex items-center justify-between">
+                      <span
+                        className="font-bold text-xs sm:text-sm tracking-tight leading-none"
+                        style={{
+                          color: pt.theme.textColor || '#111111',
+                          fontFamily: pt.theme.fontFamily || 'Inter',
+                        }}
+                      >
+                        Aa
+                      </span>
+                      {pt.isPro && (
+                        <span className="w-4 h-4 rounded-full bg-black/50 backdrop-blur-xs flex items-center justify-center text-[9px] text-white">
+                          ⚡
+                        </span>
+                      )}
                     </div>
+
+                    {/* Bottom row: Pill button preview */}
                     <div
-                      className="w-4/5 py-1 px-2 text-[8px] font-bold text-center truncate shadow-2xs"
+                      className="w-full h-4 sm:h-5 rounded-full flex items-center justify-center shadow-2xs"
                       style={{
-                        background: pt.theme.buttonColor,
+                        backgroundColor: pt.theme.buttonColor,
                         color: pt.theme.buttonTextColor,
-                        borderRadius: `${Math.min(pt.theme.buttonRadius || 9999, 10)}px`,
+                        borderRadius: `${Math.min(pt.theme.buttonRadius || 9999, 12)}px`,
                         border:
                           pt.theme.buttonStyle === 'outline'
                             ? `1px solid ${pt.theme.buttonTextColor}`
                             : 'none',
                       }}
-                    >
-                      Link
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-gray-900 text-center">{displayName}</span>
-                  {isSelected && (
-                    <div className="absolute top-2 right-2 w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[10px]">
-                      ✓
-                    </div>
-                  )}
-                </button>
+                    />
+                  </button>
+                  <span className="text-[11px] font-medium text-gray-700 text-center mt-1.5">{pt.name}</span>
+                </div>
               );
             })}
           </div>
