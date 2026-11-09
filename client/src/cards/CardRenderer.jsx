@@ -462,9 +462,9 @@ export function CardRenderer({ card, theme, isPreview = false }) {
           )}
 
           {/* Body */}
-          <div className="p-3.5 flex items-center justify-between gap-3">
+          <div className="p-3.5 bg-white flex items-center justify-between gap-3 border-t border-gray-100">
             <div className="min-w-0 flex-1">
-              <div className="font-bold text-xs truncate leading-snug">{card.title}</div>
+              <div className="font-bold text-xs truncate leading-snug text-gray-900">{card.title}</div>
               {subtitle && (
                 <div className="text-[10px] text-gray-500 truncate flex items-center gap-1 mt-0.5 font-normal">
                   {isMap && <span className="text-gray-400">📍</span>}
@@ -479,7 +479,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                 onClick={handleLinkClick}
                 target={isLocked ? '_self' : '_blank'}
                 rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-full bg-black text-white text-[10px] font-bold hover:bg-gray-800 transition-colors"
+                className="px-3.5 py-1.5 rounded-full bg-[#111111] hover:bg-black text-white text-[10px] font-bold transition-colors shadow-2xs"
               >
                 {isMap ? 'Directions' : isPdf ? 'View PDF' : 'Visit'}
               </a>
@@ -509,7 +509,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
         onClick={handleLinkClick}
         target={isLocked ? '_self' : '_blank'}
         rel="noopener noreferrer"
-        className={`w-full py-2 px-2 sm:px-2.5 text-xs font-semibold transition-all hover:scale-[1.01] active:scale-[0.99] shadow-2xs flex items-center justify-between relative group rounded-2xl ${animClass}`}
+        className={`w-full py-2.5 px-3 text-xs font-semibold transition-all hover:scale-[1.01] active:scale-[0.99] shadow-2xs flex items-center justify-between relative group rounded-2xl border border-black/5 ${animClass}`}
         style={buttonStyleObj}
       >
         {/* Left Side: Thumbnail / Icon + Title & Subtitle */}

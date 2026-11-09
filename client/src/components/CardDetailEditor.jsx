@@ -521,16 +521,24 @@ export function CardDetailEditor({
               <button
                 type="button"
                 onClick={() => handleLayoutChange('classic')}
-                className={`p-4 rounded-2xl border-2 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer ${
+                className={`p-3.5 rounded-2xl border-2 flex flex-col items-center justify-between gap-3 transition-all cursor-pointer ${
                   layout === 'classic'
-                    ? 'border-black bg-[#FBFBFA]'
+                    ? 'border-black bg-[#FBFBFA] shadow-xs'
                     : 'border-gray-200 hover:border-gray-300 bg-white'
                 }`}
               >
-                {/* Horizontal pill button illustration */}
-                <div className="w-28 h-8 rounded-lg bg-[#EAEAE8] flex items-center px-2 gap-2 shadow-2xs">
-                  <div className="w-4 h-4 rounded-xs bg-[#B8B8B6] shrink-0" />
-                  <div className="w-14 h-1.5 rounded-full bg-[#B8B8B6]" />
+                {/* Clean Blinkit-style compact horizontal card illustration */}
+                <div className="w-full max-w-[136px] h-10 rounded-xl bg-white border border-gray-200/90 shadow-2xs flex items-center justify-between px-2.5 gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-5.5 h-5.5 rounded-lg bg-[#F3F4F6] border border-gray-200 flex items-center justify-center shrink-0">
+                      <div className="w-2.5 h-2.5 rounded-xs bg-emerald-500" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="w-12 h-1.5 rounded-full bg-gray-800" />
+                      <div className="w-7 h-1 rounded-full bg-gray-300" />
+                    </div>
+                  </div>
+                  <div className="w-1 h-2 rounded-full bg-gray-300 shrink-0" />
                 </div>
                 <span className="font-bold text-xs text-[#111111]">Classic</span>
               </button>
@@ -539,15 +547,30 @@ export function CardDetailEditor({
               <button
                 type="button"
                 onClick={() => handleLayoutChange('featured')}
-                className={`p-4 rounded-2xl border-2 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer ${
+                className={`p-3.5 rounded-2xl border-2 flex flex-col items-center justify-between gap-3 transition-all cursor-pointer ${
                   layout === 'featured'
-                    ? 'border-black bg-[#FBFBFA]'
+                    ? 'border-black bg-[#FBFBFA] shadow-xs'
                     : 'border-gray-200 hover:border-gray-300 bg-white'
                 }`}
               >
-                <div className="w-28 h-12 rounded-lg bg-[#EAEAE8] flex flex-col items-center justify-center gap-1 shadow-2xs">
-                  <ImageIcon className="w-5 h-5 text-[#A0A09E]" />
-                  <div className="w-12 h-1 rounded-full bg-[#B8B8B6]" />
+                {/* Clean Blinkit-style hero banner card illustration */}
+                <div className="w-full max-w-[136px] h-14 rounded-xl bg-white border border-gray-200/90 shadow-2xs overflow-hidden flex flex-col">
+                  {/* Top image banner with clean soft gradient */}
+                  <div className="w-full h-8 bg-gradient-to-r from-emerald-100 via-teal-50 to-amber-50 flex items-center justify-center relative">
+                    <div className="w-5 h-5 rounded-md bg-white/90 shadow-2xs border border-emerald-200/60 flex items-center justify-center">
+                      <ImageIcon className="w-3 h-3 text-emerald-600" />
+                    </div>
+                  </div>
+                  {/* Bottom details bar */}
+                  <div className="flex-1 px-2 flex items-center justify-between bg-white border-t border-gray-100">
+                    <div className="space-y-0.5">
+                      <div className="w-10 h-1.5 rounded-full bg-gray-800" />
+                      <div className="w-6 h-1 rounded-full bg-gray-300" />
+                    </div>
+                    <span className="px-1.5 py-0.5 rounded-[4px] bg-[#0C831F] text-white text-[7px] font-black uppercase leading-none">
+                      ADD
+                    </span>
+                  </div>
                 </div>
                 <span className="font-bold text-xs text-[#111111]">Featured</span>
               </button>
