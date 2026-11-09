@@ -359,8 +359,8 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
           );
         })()}
 
-        {/* Cards Stack */}
-        <div className="w-full space-y-3 pt-4">
+        {/* Cards Stack with generous bottom spacing */}
+        <div className="w-full space-y-3 pt-4 mb-8 sm:mb-10">
           {cards && cards.length > 0 ? (
             cards.map((card) => (
               <CardRenderer
@@ -375,8 +375,8 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
         </div>
       </main>
 
-      {/* Footer Branding (Linktree Pro allows removing badge) */}
-      <footer className="relative z-10 w-full max-w-[580px] text-center pt-12 pb-4 space-y-2">
+      {/* Footer Branding */}
+      <footer className="relative z-10 w-full max-w-[580px] text-center pt-6 pb-6 space-y-2">
         <div className="text-[10px] opacity-40 font-semibold tracking-wider uppercase">
           {tree.name}
         </div>

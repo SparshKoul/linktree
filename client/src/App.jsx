@@ -1899,7 +1899,7 @@ export function App() {
 
               {/* Scrollable Content Container Over Sticky Wallpaper */}
               <div
-                className={`absolute inset-0 z-10 overflow-y-auto px-2.5 xl:px-3 pb-5 xl:pb-6 flex flex-col justify-between text-center no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+                className={`absolute inset-0 z-10 overflow-y-auto px-2.5 xl:px-3 pb-8 xl:pb-10 flex flex-col justify-between text-center no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
                   currentHeaderLayout === 'banner' || currentHeaderLayout === 'hero'
                     ? 'pt-2.5 xl:pt-3'
                     : 'pt-5 xl:pt-6'
@@ -1932,8 +1932,8 @@ export function App() {
                 {/* Profile Header matching selected layout (Classic, Hero, Banner, Cutout, Shape) */}
                 {renderPhoneHeader()}
 
-                {/* Cards Stack inside Phone matching Reference */}
-                <div className="w-full space-y-2.5 flex-1 mt-6">
+                {/* Cards Stack inside Phone matching Reference with generous bottom spacing */}
+                <div className="w-full space-y-2.5 flex-1 mt-6 mb-8 sm:mb-10">
                   {currentTree?.cards &&
                     currentTree.cards
                       .filter((c) => c.visible !== false)
@@ -1944,7 +1944,7 @@ export function App() {
 
                 {/* Bottom Footer Section inside Phone matching Reference */}
                 {(activeTheme?.footerEnabled ?? footerEnabled) && (
-                  <div className="mt-auto pt-6 space-y-2.5 w-full">
+                  <div className="mt-auto pt-4 pb-4 space-y-2.5 w-full shrink-0">
                     {activeTheme?.footerButton && (
                       <button
                         type="button"
