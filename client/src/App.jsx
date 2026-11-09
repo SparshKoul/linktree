@@ -54,6 +54,7 @@ import { FaviconIcon } from './components/FaviconIcon.jsx';
 import { CardRenderer } from './cards/CardRenderer.jsx';
 import { AuthModal } from './components/AuthModal.jsx';
 import { HeaderEditor } from './components/HeaderEditor.jsx';
+import { DesignEditor } from './components/DesignEditor.jsx';
 import { PRESET_THEMES } from './constants/themes.js';
 import { storage } from './services/storage.js';
 
@@ -696,6 +697,18 @@ export function App() {
             {bioText}
           </p>
         )}
+        {activeTheme?.stickers && activeTheme.stickers.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-1 mt-1 max-w-[220px]">
+            {activeTheme.stickers.map((s) => (
+              <span
+                key={s}
+                className="py-0.5 px-2 rounded-full text-[9px] font-bold bg-white/80 backdrop-blur-xs text-gray-800 shadow-2xs border border-black/5"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
     );
 
@@ -1248,6 +1261,10 @@ export function App() {
               <div className="bg-white rounded-[28px] xl:rounded-[32px] px-6 sm:px-10 py-6 sm:py-8 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar">
                 <HeaderEditor currentTree={currentTree} onUpdateTree={handleUpdateTree} />
               </div>
+            ) : activeRail === 'design' ? (
+              <div className="bg-white rounded-[28px] xl:rounded-[32px] px-6 sm:px-10 py-6 sm:py-8 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar">
+                <DesignEditor currentTree={currentTree} onUpdateTree={handleUpdateTree} />
+              </div>
             ) : (
               <div className="bg-white rounded-[28px] xl:rounded-[32px] px-2.5 sm:px-3 py-4 sm:py-5 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar space-y-3.5">
                 {/* Header Title & Top Right Icons matching Image 0, 1 & 2 */}
@@ -1775,9 +1792,9 @@ export function App() {
                   : 'pt-5 xl:pt-6'
               }`}
               style={{
-                background: '#EEF1F6',
-                color: '#111111',
-                fontFamily: 'Inter, sans-serif',
+                background: activeTheme?.backgroundValue || '#EEF1F6',
+                color: activeTheme?.textColor || '#111111',
+                fontFamily: `${activeTheme?.fontFamily || 'Inter'}, sans-serif`,
               }}
             >
               {/* Top Icons Inside Phone matching Reference */}
@@ -1813,17 +1830,17 @@ export function App() {
               </div>
 
               {/* Bottom Footer Section inside Phone matching Reference */}
-              {footerEnabled && (
+              {(activeTheme?.footerEnabled ?? footerEnabled) && (
                 <div className="mt-auto pt-6 space-y-2.5 w-full">
                   <button
                     type="button"
-                    className="w-full max-w-[210px] py-2 px-4 rounded-full bg-white text-black text-xs font-bold shadow-md hover:scale-[1.02] transition-transform mx-auto block cursor-pointer"
+                    className="w-full max-w-[210px] py-2 px-4 rounded-full bg-white text-black text-xs font-bold shadow-md hover:scale-[1.02] transition-transform mx-auto block cursor-pointer border border-gray-100"
                   >
-                    Get your own IndiaTaps
+                    {activeTheme?.footerText || 'Get your own Linktree'}
                   </button>
                   <div className="text-[9px] text-gray-400 leading-tight">
                     Cookie Preferences · Report · Privacy
-                    <div className="mt-0.5">More from IndiaTaps</div>
+                    <div className="mt-0.5">More from Linktree</div>
                   </div>
                 </div>
               )}
