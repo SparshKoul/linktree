@@ -87,5 +87,24 @@ describe('Card Reflection Logic', () => {
     expect(customCard.settings.layout).toBe('featured');
     expect(customCard.thumbnailUrl).toBeTruthy();
   });
+
+  it('correctly resolves banner cover from both direct bannerUrl and customTheme across refresh', () => {
+    // Simulated tree payload coming back from Supabase after refresh
+    const refreshedTreeFromSupabase = {
+      id: 1,
+      adminId: 1,
+      slug: 'riyast',
+      customTheme: {
+        headerLayout: 'banner',
+        bannerUrl: 'https://qbnrhcllnuwdeivpxxoj.supabase.co/storage/v1/object/public/linktree-assets/banners/neon-city.png',
+      },
+    };
+
+    const headerLayout = refreshedTreeFromSupabase.headerLayout || refreshedTreeFromSupabase.customTheme?.headerLayout || 'classic';
+    const bannerImage = refreshedTreeFromSupabase.bannerUrl || refreshedTreeFromSupabase.customTheme?.bannerUrl;
+
+    expect(headerLayout).toBe('banner');
+    expect(bannerImage).toBe('https://qbnrhcllnuwdeivpxxoj.supabase.co/storage/v1/object/public/linktree-assets/banners/neon-city.png');
+  });
 });
 

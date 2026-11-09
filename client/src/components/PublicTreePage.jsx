@@ -155,7 +155,11 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
           );
 
           if (layout === 'hero') {
-            const heroImage = tree.heroUrl || tree.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80';
+            const heroImage =
+              tree.heroUrl ||
+              tree.customTheme?.heroUrl ||
+              tree.avatarUrl ||
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80';
             return (
               <div className="w-full flex flex-col items-center text-center -mt-4 mb-3">
                 <div className="w-full h-52 sm:h-64 relative overflow-hidden rounded-3xl shadow-md bg-rose-600">
@@ -173,11 +177,12 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
           }
 
           if (layout === 'banner') {
+            const bannerImage = tree.bannerUrl || tree.customTheme?.bannerUrl;
             return (
               <div className="w-full flex flex-col items-center text-center -mt-4 mb-3">
                 <div className="w-full h-32 sm:h-40 relative overflow-hidden rounded-3xl bg-gradient-to-r from-pink-300 via-rose-300 to-rose-400 shadow-md">
-                  {tree.bannerUrl ? (
-                    <img src={tree.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                  {bannerImage ? (
+                    <img src={bannerImage} alt="Banner" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full opacity-60 bg-[radial-gradient(#ec4899_1.5px,transparent_1.5px)] [background-size:8px_8px]" />
                   )}

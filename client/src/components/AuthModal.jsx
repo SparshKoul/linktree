@@ -63,6 +63,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ identifier, password }),
       });
       let data = {};
@@ -92,6 +93,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, username, password }),
       });
       let data = {};
@@ -121,6 +123,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ identifier: id, password: pwd }),
       });
       let data = {};

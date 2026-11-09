@@ -14,6 +14,20 @@ app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use(cookieParser());
 
+// Multi-device session & authentication middleware
+app.use((req, res, next) => {
+  const headerId = req.headers['x-user-id'];
+  const cookieId = req.cookies?.userId || req.cookies?.token;
+  if (headerId && !isNaN(parseInt(headerId, 10))) {
+    req.userId = parseInt(headerId, 10);
+  } else if (cookieId && !isNaN(parseInt(cookieId, 10))) {
+    req.userId = parseInt(cookieId, 10);
+  } else {
+    req.userId = store.currentUserId || 1;
+  }
+  next();
+});
+
 // Store (PostgreSQL / In-memory adapter)
 const store = {
   admin: {
@@ -108,11 +122,15 @@ const store = {
 const RESERVED_SLUGS = ['admin', 'api', 'login', 'dashboard', 'settings', 'static', 'auth'];
 
 // Auth Me
-app.get('/api/auth/me', (req, res) => {
-  if (!store.currentUserId) {
+app.get('/api/auth/me', async (req, res) => {
+  const userId = req.userId || store.currentUserId;
+  if (!userId) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
-  const user = store.users.find((u) => u.id === store.currentUserId);
+  let user = await db.getUserById(userId);
+  if (!user) {
+    user = store.users.find((u) => u.id === userId);
+  }
   if (!user) {
     return res.status(401).json({ error: 'User not found' });
   }
@@ -127,10 +145,23 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(400).json({ error: 'Username/Email and password are required' });
   }
 
+  const setAuthCookies = (u) => {
+    res.cookie('userId', String(u.id), {
+      sameSite: 'lax',
+      maxAge: 365 * 24 * 60 * 60 * 1000,
+    });
+    res.cookie('token', String(u.id), {
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 365 * 24 * 60 * 60 * 1000,
+    });
+  };
+
   try {
     const user = await db.signInUser({ identifier, password });
     if (user) {
       store.currentUserId = user.id;
+      setAuthCookies(user);
       const { password: _, ...safeUser } = user;
       return res.json({ user: safeUser, message: 'Logged in successfully via Supabase' });
     }
@@ -150,6 +181,7 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid username/email or password' });
   }
   store.currentUserId = user.id;
+  setAuthCookies(user);
   const { password: _, ...safeUser } = user;
   res.json({ user: safeUser, message: 'Logged in successfully' });
 });
@@ -165,10 +197,23 @@ app.post('/api/auth/register', async (req, res) => {
     return res.status(400).json({ error: 'Username must be at least 3 alphanumeric characters' });
   }
 
+  const setAuthCookies = (u) => {
+    res.cookie('userId', String(u.id), {
+      sameSite: 'lax',
+      maxAge: 365 * 24 * 60 * 60 * 1000,
+    });
+    res.cookie('token', String(u.id), {
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 365 * 24 * 60 * 60 * 1000,
+    });
+  };
+
   try {
     const user = await db.signUpUser({ email, username: cleanUsername, password });
     if (user) {
       store.currentUserId = user.id;
+      setAuthCookies(user);
       const { password: _, ...safeUser } = user;
       return res.status(201).json({ user: safeUser, message: 'Account verified & created in Supabase' });
     }
@@ -196,6 +241,7 @@ app.post('/api/auth/register', async (req, res) => {
   };
   store.users.push(newUser);
   store.currentUserId = newId;
+  setAuthCookies(newUser);
 
   // Automatically create their primary tree
   const newTreeId = newId + 1;
@@ -235,6 +281,8 @@ app.post('/api/auth/oauth-callback', async (req, res) => {
   const user = await db.syncOAuthUser({ email, username });
   if (user) {
     store.currentUserId = user.id;
+    res.cookie('userId', String(user.id), { sameSite: 'lax', maxAge: 365 * 24 * 60 * 60 * 1000 });
+    res.cookie('token', String(user.id), { httpOnly: true, sameSite: 'lax', maxAge: 365 * 24 * 60 * 60 * 1000 });
     const { password: _, ...safeUser } = user;
     return res.json({ user: safeUser, message: 'OAuth account synced' });
   }
@@ -244,12 +292,18 @@ app.post('/api/auth/oauth-callback', async (req, res) => {
 // Auth Logout
 app.post('/api/auth/logout', (req, res) => {
   store.currentUserId = null;
+  res.clearCookie('userId');
+  res.clearCookie('token');
   res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // Admin Me
-app.get('/api/admin/me', (req, res) => {
-  const user = store.users.find((u) => u.id === store.currentUserId);
+app.get('/api/admin/me', async (req, res) => {
+  const userId = req.userId || store.currentUserId;
+  let user = await db.getUserById(userId);
+  if (!user) {
+    user = store.users.find((u) => u.id === userId);
+  }
   res.json(user || store.admin);
 });
 
@@ -268,7 +322,7 @@ app.get('/api/admin/trees/check-slug/:slug', (req, res) => {
 
 // List Trees (filtered by current logged in user)
 app.get('/api/admin/trees', async (req, res) => {
-  const currentId = store.currentUserId;
+  const currentId = req.userId || store.currentUserId;
   const dbTrees = await db.getTrees(currentId);
   if (dbTrees !== null) {
     return res.json(dbTrees);

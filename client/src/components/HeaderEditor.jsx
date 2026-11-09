@@ -129,10 +129,11 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
       if (typeof rawDataUrl === 'string') {
         commitChange({ [fieldKey]: rawDataUrl });
 
-        // Background CDN upload
+        // Background CDN upload to Supabase Storage
         fetch('/api/admin/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ file: rawDataUrl, filename: file.name, folder: folderName }),
         })
           .then((r) => r.json())

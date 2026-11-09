@@ -52,7 +52,14 @@ export const storage = {
         ];
         localStorage.setItem(TREES_KEY, JSON.stringify(trees));
       }
-      return userId ? trees.filter((t) => t.adminId === userId) : trees;
+      const normalized = (trees || []).map((t) => ({
+        ...t,
+        bannerUrl: t.bannerUrl || t.customTheme?.bannerUrl || null,
+        heroUrl: t.heroUrl || t.customTheme?.heroUrl || null,
+        logoUrl: t.logoUrl || t.customTheme?.logoUrl || null,
+        headerLayout: t.headerLayout || t.customTheme?.headerLayout || 'classic',
+      }));
+      return userId ? normalized.filter((t) => t.adminId === userId) : normalized;
     } catch {
       return [];
     }

@@ -42,12 +42,14 @@ import {
   ArrowUpDown,
   Camera,
   User,
+  ShoppingBag,
 } from 'lucide-react';
 import { TreeSwitcher } from './components/TreeSwitcher.jsx';
 import { CreateTreeModal } from './components/CreateTreeModal.jsx';
 import { AddCardModal } from './components/AddCardModal.jsx';
 import { CardEditorModal } from './components/CardEditorModal.jsx';
 import { CardDetailEditor } from './components/CardDetailEditor.jsx';
+import { CardsDashboard } from './components/CardsDashboard.jsx';
 import { FaviconIcon } from './components/FaviconIcon.jsx';
 import { CardRenderer } from './cards/CardRenderer.jsx';
 import { AuthModal } from './components/AuthModal.jsx';
@@ -63,6 +65,7 @@ export function App() {
   const [trees, setTrees] = useState([]);
   const [currentTree, setCurrentTree] = useState(null);
   const [activeTab, setActiveTab] = useState('links'); // 'links' | 'shop'
+  const [currentView, setCurrentView] = useState('workspace'); // 'workspace' | 'dashboard'
   const [activeRail, setActiveRail] = useState('content'); // 'content' | 'header' | 'design' | 'settings'
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [sidebarMenuMode, setSidebarMenuMode] = useState('main'); // 'main' (Image 0) | 'account' (Image 1)
@@ -96,9 +99,10 @@ export function App() {
   // Load current user and trees on mount or user change using localStorage first
   const fetchUserData = (userId) => {
     const user = storage.getUser();
+    const effectiveUserId = userId || user?.id || 1;
     setCurrentUser(user);
 
-    const localTrees = storage.getTrees(user?.id || userId || 1);
+    const localTrees = storage.getTrees(effectiveUserId);
     setTrees(localTrees);
 
     const activeTreeId = Number(storage.getActiveTreeId());
@@ -108,8 +112,12 @@ export function App() {
       setCurrentTree({ ...matched, cards });
     }
 
+    const authHeaders = {
+      'x-user-id': String(effectiveUserId),
+    };
+
     // Sync user, trees, and cards with Supabase backend
-    fetch('/api/auth/me')
+    fetch('/api/auth/me', { headers: authHeaders, credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((serverUser) => {
         if (serverUser) {
@@ -119,7 +127,7 @@ export function App() {
       })
       .catch(() => {});
 
-    fetch('/api/admin/trees')
+    fetch('/api/admin/trees', { headers: authHeaders, credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((serverTrees) => {
         if (serverTrees && serverTrees.length > 0) {
@@ -128,7 +136,7 @@ export function App() {
           const activeTreeId = Number(storage.getActiveTreeId());
           const target = serverTrees.find((t) => t.id === activeTreeId) || serverTrees[0];
           if (target) {
-            fetch(`/api/admin/trees/${target.id}`)
+            fetch(`/api/admin/trees/${target.id}`, { headers: authHeaders, credentials: 'include' })
               .then((r) => (r.ok ? r.json() : null))
               .then((fullTree) => {
                 if (fullTree) {
@@ -198,6 +206,24 @@ export function App() {
     if (targetTree) {
       setCurrentTree({ ...targetTree, cards });
     }
+
+    // Always fetch latest from Supabase so multi-device updates reflect immediately
+    fetch(`/api/admin/trees/${numId}`, {
+      headers: currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {},
+      credentials: 'include',
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((fullTree) => {
+        if (fullTree) {
+          setCurrentTree(fullTree);
+          if (fullTree.cards) {
+            const allLocal = storage.getCards();
+            const otherCards = allLocal.filter((c) => Number(c.treeId) !== Number(numId));
+            storage.saveCards([...otherCards, ...fullTree.cards]);
+          }
+        }
+      })
+      .catch(() => {});
   };
 
   const handleAuthSuccess = (user) => {
@@ -236,12 +262,25 @@ export function App() {
     storage.saveTrees(updatedAll);
     setTrees(updatedAll.filter((t) => t.adminId === currentUser?.id));
 
-    // Optional background sync
+    // Sync to Supabase backend and update CDN URLs if returned
     fetch(`/api/admin/trees/${currentTree.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {}),
+      },
+      credentials: 'include',
       body: JSON.stringify(updates),
-    }).catch(() => {});
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((updatedDb) => {
+        if (updatedDb) {
+          const freshAll = storage.getTrees().map((t) => (t.id === currentTree.id ? { ...t, ...updatedDb } : t));
+          storage.saveTrees(freshAll);
+          setCurrentTree((prev) => (prev ? { ...prev, ...updatedDb } : prev));
+        }
+      })
+      .catch(() => {});
   };
 
   const handleAvatarUpload = (e) => {
@@ -256,7 +295,11 @@ export function App() {
 
         fetch('/api/admin/upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {}),
+          },
+          credentials: 'include',
           body: JSON.stringify({ file: rawDataUrl, filename: file.name, folder: 'avatars' }),
         })
           .then((res) => res.json())
@@ -304,15 +347,21 @@ export function App() {
     // Background sync to Supabase
     fetch(`/api/admin/trees/${currentTree.id}/cards`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {}),
+      },
+      credentials: 'include',
       body: JSON.stringify(newCardData),
     })
       .then((res) => (res.ok ? res.json() : null))
       .then((dbCard) => {
-        if (dbCard && dbCard.id && dbCard.id !== savedCard.id) {
-          const remapped = updatedCards.map((c) => (c.id === savedCard.id ? { ...c, id: dbCard.id } : c));
+        if (dbCard && dbCard.id) {
+          const remapped = updatedCards.map((c) =>
+            c.id === savedCard.id ? { ...c, ...dbCard, id: dbCard.id } : c
+          );
           setCurrentTree((prev) => (prev ? { ...prev, cards: remapped } : prev));
-          storage.updateCard(savedCard.id, { id: dbCard.id });
+          storage.updateCard(savedCard.id, { ...dbCard, id: dbCard.id });
         }
       })
       .catch(() => {});
@@ -349,12 +398,31 @@ export function App() {
       );
     }
 
-    // Optional background sync
+    // Sync to Supabase backend and update CDN URLs if returned
     fetch(`/api/admin/cards/${cardId}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {}),
+      },
+      credentials: 'include',
       body: JSON.stringify(updates),
-    }).catch(() => {});
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((updatedDb) => {
+        if (updatedDb) {
+          storage.updateCard(cardId, updatedDb);
+          setCurrentTree((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  cards: (prev.cards || []).map((c) => (c.id === cardId ? { ...c, ...updatedDb } : c)),
+                }
+              : prev
+          );
+        }
+      })
+      .catch(() => {});
   };
 
   const promptDeleteCard = (cardId) => {
@@ -638,7 +706,11 @@ export function App() {
     );
 
     if (layout === 'hero') {
-      const heroImage = currentTree?.heroUrl || currentTree?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
+      const heroImage =
+        currentTree?.heroUrl ||
+        currentTree?.customTheme?.heroUrl ||
+        currentTree?.avatarUrl ||
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
       return (
         <div className="w-full flex flex-col items-center text-center mb-3">
           <div className="w-full h-52 sm:h-56 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600">
@@ -652,7 +724,7 @@ export function App() {
     }
 
     if (layout === 'banner') {
-      const bannerImage = currentTree?.bannerUrl;
+      const bannerImage = currentTree?.bannerUrl || currentTree?.customTheme?.bannerUrl;
       return (
         <div className="w-full flex flex-col items-center text-center mb-3">
           {/* Top wide banner cover with equal left, right, and top padding */}
@@ -879,77 +951,35 @@ export function App() {
                 </button>
               </div>
 
-              {/* View 1: Main Navigation (matching Image 0) */}
+              {/* View 1: Main Navigation (Minimal: Workspace & Cards Dashboard) */}
               {sidebarMenuMode === 'main' ? (
-                <div className="space-y-4">
-                  {/* Primary Navigation Links matching Image 0 */}
-                  <div className="space-y-0.5 text-xs font-semibold text-gray-700">
-                    <button
-                      onClick={() => setActiveTab('links')}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left bg-[#F3F3F1] text-black font-bold transition-colors cursor-pointer"
-                    >
-                      <LayoutGrid className="w-4 h-4 text-black" />
-                      <span>My IndiaTaps</span>
-                    </button>
+                <div className="space-y-1 text-xs font-semibold text-gray-700">
+                  <button
+                    onClick={() => {
+                      setCurrentView('workspace');
+                      setActiveRail('content');
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${
+                      currentView === 'workspace'
+                        ? 'bg-[#F3F3F1] text-black font-extrabold shadow-2xs'
+                        : 'text-gray-600 hover:text-black hover:bg-gray-50'
+                    }`}
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                    <span>Workspace</span>
+                  </button>
 
-                    <button className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-gray-50 text-gray-600 hover:text-black transition-colors cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <Coins className="w-4 h-4 text-gray-400" />
-                        <span>Earn</span>
-                      </div>
-                      <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
-                    </button>
-
-                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 text-gray-600 hover:text-black transition-colors cursor-pointer">
-                      <Tv className="w-4 h-4 text-gray-400" />
-                      <span>Media kit</span>
-                    </button>
-
-                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 text-gray-600 hover:text-black transition-colors cursor-pointer">
-                      <Users className="w-4 h-4 text-gray-400" />
-                      <span>Audience</span>
-                    </button>
-
-                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 text-gray-600 hover:text-black transition-colors cursor-pointer">
-                      <BarChart3 className="w-4 h-4 text-gray-400" />
-                      <span>Insights</span>
-                    </button>
-
-                    <button className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left hover:bg-gray-50 text-gray-600 hover:text-black transition-colors cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <Send className="w-4 h-4 text-gray-400 -rotate-45" />
-                        <span>Messaging</span>
-                      </div>
-                      <span className="w-2 h-2 rounded-full bg-[#7033FF]" />
-                    </button>
-                  </div>
-
-                  {/* Tools Section matching Image 0 */}
-                  <div className="pt-2 border-t border-gray-100 space-y-0.5">
-                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 mb-1">
-                      Tools
-                    </div>
-                    <button className="w-full px-3 py-1.5 text-xs text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer">
-                      <CreditCard className="w-3.5 h-3.5 text-gray-400" />
-                      <span>Business cards</span>
-                    </button>
-                    <button className="w-full px-3 py-1.5 text-xs text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer">
-                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                      <span>Social planner</span>
-                    </button>
-                    <button className="w-full px-3 py-1.5 text-xs text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer">
-                      <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
-                      <span>Instagram auto-reply</span>
-                    </button>
-                    <button className="w-full px-3 py-1.5 text-xs text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer">
-                      <Link2 className="w-3.5 h-3.5 text-gray-400" />
-                      <span>Link shortener</span>
-                    </button>
-                    <button className="w-full px-3 py-1.5 text-xs text-gray-600 hover:text-black hover:bg-gray-50 rounded-lg flex items-center gap-2.5 transition-colors cursor-pointer">
-                      <Sparkles className="w-3.5 h-3.5 text-gray-400" />
-                      <span>Post ideas</span>
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setCurrentView('dashboard')}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${
+                      currentView === 'dashboard'
+                        ? 'bg-[#F3F3F1] text-black font-extrabold shadow-2xs'
+                        : 'text-gray-600 hover:text-black hover:bg-gray-50'
+                    }`}
+                  >
+                    <ShoppingBag className="w-4 h-4 text-purple-600" />
+                    <span>Dashboard</span>
+                  </button>
                 </div>
               ) : (
                 /* View 2: Account Menu (matching Image 1) */
@@ -1029,36 +1059,19 @@ export function App() {
               )}
             </div>
 
-            {/* Setup checklist widget matching Image 0 & 1 */}
-            <div className="pt-4 border-t border-gray-100 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="relative w-8 h-8 rounded-full border-2 border-purple-500 flex items-center justify-center font-bold text-[10px] text-purple-600">
-                  17%
-                </div>
-                <div className="text-[11px] leading-tight">
-                  <div className="font-bold text-black">Your setup checklist</div>
-                  <div className="text-gray-400">1 of 6 complete</div>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsAddCardOpen(true)}
-                className="w-full py-2.5 rounded-full bg-[#7033FF] hover:bg-[#6025e6] text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
-              >
-                Finish setup
-              </button>
-
-              {/* Bottom Settings Button: opens Login / Sign up / Account modal as requested! */}
+            {/* Bottom Settings Button beneath menu items */}
+            <div className="pt-3 border-t border-gray-100">
               <button
                 onClick={() => {
                   setAuthModalMode(currentUser ? 'switch' : 'login');
                   setIsAuthModalOpen(true);
                 }}
-                className="w-full flex items-center gap-2.5 px-2 py-1 text-xs font-semibold text-gray-700 hover:text-black cursor-pointer transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 hover:text-black hover:bg-gray-50 cursor-pointer transition-colors"
               >
                 <Settings className="w-4 h-4 text-gray-500" />
                 <span>Settings</span>
                 {currentUser ? (
-                  <span className="ml-auto text-[10px] text-green-600 font-bold">@{currentUser.username}</span>
+                  <span className="ml-auto text-[10px] text-green-600 font-bold truncate max-w-[100px]">@{currentUser.username}</span>
                 ) : (
                   <span className="ml-auto text-[10px] text-purple-600 font-bold">Login / Sign up</span>
                 )}
@@ -1076,6 +1089,7 @@ export function App() {
               {/* Content Button (selected state) */}
               <button
                 onClick={() => {
+                  setCurrentView('workspace');
                   setActiveRail('content');
                   setActiveTab('links');
                 }}
@@ -1084,7 +1098,7 @@ export function App() {
               >
                 <div
                   className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
-                    activeRail === 'content'
+                    currentView === 'workspace' && activeRail === 'content'
                       ? 'bg-black text-white shadow-xs'
                       : 'bg-transparent text-gray-500 hover:bg-gray-200/60 hover:text-black'
                   }`}
@@ -1094,20 +1108,23 @@ export function App() {
                     <path d="M4 8v11a2 2 0 0 0 2 2h11" />
                   </svg>
                 </div>
-                <span className={`text-[10px] font-semibold ${activeRail === 'content' ? 'text-black font-bold' : 'text-gray-500'}`}>
+                <span className={`text-[10px] font-semibold ${currentView === 'workspace' && activeRail === 'content' ? 'text-black font-bold' : 'text-gray-500'}`}>
                   Content
                 </span>
               </button>
 
               {/* Header Button */}
               <button
-                onClick={() => setActiveRail('header')}
+                onClick={() => {
+                  setCurrentView('workspace');
+                  setActiveRail('header');
+                }}
                 className="flex flex-col items-center gap-1.5 cursor-pointer group"
                 title="Header"
               >
                 <div
                   className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
-                    activeRail === 'header'
+                    currentView === 'workspace' && activeRail === 'header'
                       ? 'bg-black text-white shadow-xs'
                       : 'bg-transparent text-gray-500 hover:bg-gray-200/60 hover:text-black'
                   }`}
@@ -1120,7 +1137,7 @@ export function App() {
                     <path d="M6 16c0-1.5 1.5-2.5 3-2.5s3 1 3 2.5" />
                   </svg>
                 </div>
-                <span className={`text-[10px] font-semibold ${activeRail === 'header' ? 'text-black font-bold' : 'text-gray-500'}`}>
+                <span className={`text-[10px] font-semibold ${currentView === 'workspace' && activeRail === 'header' ? 'text-black font-bold' : 'text-gray-500'}`}>
                   Header
                 </span>
               </button>
@@ -1128,6 +1145,7 @@ export function App() {
               {/* Design Button */}
               <button
                 onClick={() => {
+                  setCurrentView('workspace');
                   setActiveRail('design');
                   setActiveTab('design');
                 }}
@@ -1136,34 +1154,37 @@ export function App() {
               >
                 <div
                   className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
-                    activeRail === 'design'
+                    currentView === 'workspace' && activeRail === 'design'
                       ? 'bg-black text-white shadow-xs'
                       : 'bg-transparent text-gray-500 hover:bg-gray-200/60 hover:text-black'
                   }`}
                 >
                   <Palette className="w-5 h-5 stroke-[2]" />
                 </div>
-                <span className={`text-[10px] font-semibold ${activeRail === 'design' ? 'text-black font-bold' : 'text-gray-500'}`}>
+                <span className={`text-[10px] font-semibold ${currentView === 'workspace' && activeRail === 'design' ? 'text-black font-bold' : 'text-gray-500'}`}>
                   Design
                 </span>
               </button>
 
               {/* Enhance Button */}
               <button
-                onClick={() => setActiveRail('enhance')}
+                onClick={() => {
+                  setCurrentView('workspace');
+                  setActiveRail('enhance');
+                }}
                 className="flex flex-col items-center gap-1.5 cursor-pointer group"
                 title="Enhance"
               >
                 <div
                   className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
-                    activeRail === 'enhance'
+                    currentView === 'workspace' && activeRail === 'enhance'
                       ? 'bg-black text-white shadow-xs'
                       : 'bg-transparent text-gray-500 hover:bg-gray-200/60 hover:text-black'
                   }`}
                 >
                   <Sparkles className="w-5 h-5 stroke-[2]" />
                 </div>
-                <span className={`text-[10px] font-semibold ${activeRail === 'enhance' ? 'text-black font-bold' : 'text-gray-500'}`}>
+                <span className={`text-[10px] font-semibold ${currentView === 'workspace' && activeRail === 'enhance' ? 'text-black font-bold' : 'text-gray-500'}`}>
                   Enhance
                 </span>
               </button>
@@ -1185,8 +1206,23 @@ export function App() {
           </aside>
         )}
 
-        {/* 3. Center Main Editor Column matching Reference */}
-        <main className="flex-1 px-1.5 sm:px-2.5 pt-2 pb-4 flex justify-center lg:justify-end items-start h-[calc(100vh-88px)] overflow-hidden">
+        {/* 3. Center Main View: Account & Trees Dashboard OR Workspace Editor */}
+        {currentView === 'dashboard' ? (
+          <CardsDashboard
+            currentUser={currentUser}
+            currentTree={currentTree}
+            trees={trees}
+            onSelectTree={(tree) => loadTreeDetails(tree.id)}
+            onOpenCreateTree={() => setIsCreateModalOpen(true)}
+            onGoToWorkspace={(tree) => {
+              if (tree && tree.id !== currentTree?.id) {
+                loadTreeDetails(tree.id);
+              }
+              setCurrentView('workspace');
+            }}
+          />
+        ) : (
+          <main className="flex-1 px-1.5 sm:px-2.5 pt-2 pb-4 flex justify-center lg:justify-end items-start h-[calc(100vh-88px)] overflow-hidden">
           <div className="w-full max-w-[740px] xl:max-w-[820px] h-full flex flex-col">
             {activeCardDetail ? (
               <div className="bg-white rounded-[28px] xl:rounded-[32px] px-2.5 sm:px-3 py-4 sm:py-5 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar">
@@ -1712,13 +1748,15 @@ export function App() {
             )}
           </div>
         </main>
+        )}
 
         {/* 4. Right Side: Centered Phone Preview Mockup matching Reference */}
-        <aside
-          className={`flex-1 bg-[#FAFBFB] flex items-center justify-center p-4 lg:p-6 shrink-0 relative ${
-            previewPhoneView ? 'fixed inset-0 z-50 bg-black/60 p-4' : 'hidden lg:flex'
-          }`}
-        >
+        {(currentView === 'workspace' || previewPhoneView) && (
+          <aside
+            className={`flex-1 bg-[#FAFBFB] flex items-center justify-center p-4 lg:p-6 shrink-0 relative ${
+              previewPhoneView ? 'fixed inset-0 z-50 bg-black/60 p-4' : 'hidden lg:flex'
+            }`}
+          >
           {previewPhoneView && (
             <button
               onClick={() => setPreviewPhoneView(false)}
@@ -1798,6 +1836,7 @@ export function App() {
             </div>
           </div>
         </aside>
+        )}
       </div>
 
       {/* Delete / Archive Confirmation Modal */}

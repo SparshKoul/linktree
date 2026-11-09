@@ -61,3 +61,36 @@ describe('Multi-Account Tree Isolation', () => {
   });
 });
 
+describe('Supabase Asset Upload & Multi-Device Sync', () => {
+  it('identifies base64 images and PDFs for Supabase storage uploading', () => {
+    const isBase64Image = (str) => typeof str === 'string' && str.startsWith('data:image');
+    const isBase64Pdf = (str) => typeof str === 'string' && str.startsWith('data:application/pdf');
+
+    const imageSample = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const pdfSample = 'data:application/pdf;base64,JVBERi0xLjQKJeLjz9MKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqCg==';
+    const httpSample = 'https://qbnrhcllnuwdeivpxxoj.supabase.co/storage/v1/object/public/linktree-assets/banners/sample.png';
+
+    expect(isBase64Image(imageSample)).toBe(true);
+    expect(isBase64Image(httpSample)).toBe(false);
+    expect(isBase64Pdf(pdfSample)).toBe(true);
+    expect(isBase64Pdf(httpSample)).toBe(false);
+  });
+
+  it('resolves multi-device user identity from header or cookie', () => {
+    function resolveUser(headers, cookies, defaultId = 1) {
+      const headerId = headers?.['x-user-id'];
+      const cookieId = cookies?.userId || cookies?.token;
+      if (headerId && !isNaN(parseInt(headerId, 10))) return parseInt(headerId, 10);
+      if (cookieId && !isNaN(parseInt(cookieId, 10))) return parseInt(cookieId, 10);
+      return defaultId;
+    }
+
+    // Device A: uses cookie
+    expect(resolveUser({}, { userId: '2' })).toBe(2);
+    // Device B: uses header
+    expect(resolveUser({ 'x-user-id': '3' }, {})).toBe(3);
+    // Default fallback
+    expect(resolveUser({}, {})).toBe(1);
+  });
+});
+

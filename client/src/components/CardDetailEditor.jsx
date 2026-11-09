@@ -136,6 +136,7 @@ export function CardDetailEditor({
           fetch('/api/admin/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ file: compressed, filename: file.name, folder: 'thumbnails' }),
           })
             .then((res) => res.json())
@@ -181,6 +182,7 @@ export function CardDetailEditor({
         fetch('/api/admin/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({ file: dataUrl, filename: file.name, folder: 'menus' }),
         })
           .then((res) => res.json())

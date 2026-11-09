@@ -21,6 +21,14 @@ export const db = {
         avatarUrl: t.avatar_url,
         themeId: t.theme_id,
         customTheme: t.custom_theme,
+        headerLayout: t.custom_theme?.headerLayout || 'classic',
+        bannerUrl: t.custom_theme?.bannerUrl || null,
+        heroUrl: t.custom_theme?.heroUrl || null,
+        logoUrl: t.custom_theme?.logoUrl || null,
+        titleStyle: t.custom_theme?.titleStyle || 'text',
+        altFontEnabled: t.custom_theme?.altFontEnabled || false,
+        titleFont: t.custom_theme?.titleFont || 'Inter',
+        titleColor: t.custom_theme?.titleColor || '#000000',
         cardCount: t.cards?.[0]?.count || 0,
         createdAt: t.created_at,
         updatedAt: t.updated_at,
@@ -54,6 +62,14 @@ export const db = {
         avatarUrl: data.avatar_url,
         themeId: data.theme_id,
         customTheme: data.custom_theme,
+        headerLayout: data.custom_theme?.headerLayout || 'classic',
+        bannerUrl: data.custom_theme?.bannerUrl || null,
+        heroUrl: data.custom_theme?.heroUrl || null,
+        logoUrl: data.custom_theme?.logoUrl || null,
+        titleStyle: data.custom_theme?.titleStyle || 'text',
+        altFontEnabled: data.custom_theme?.altFontEnabled || false,
+        titleFont: data.custom_theme?.titleFont || 'Inter',
+        titleColor: data.custom_theme?.titleColor || '#000000',
         cards: cards || [],
         createdAt: data.created_at,
         updatedAt: data.updated_at,
@@ -87,6 +103,14 @@ export const db = {
         avatarUrl: data.avatar_url,
         themeId: data.theme_id,
         customTheme: data.custom_theme,
+        headerLayout: data.custom_theme?.headerLayout || 'classic',
+        bannerUrl: data.custom_theme?.bannerUrl || null,
+        heroUrl: data.custom_theme?.heroUrl || null,
+        logoUrl: data.custom_theme?.logoUrl || null,
+        titleStyle: data.custom_theme?.titleStyle || 'text',
+        altFontEnabled: data.custom_theme?.altFontEnabled || false,
+        titleFont: data.custom_theme?.titleFont || 'Inter',
+        titleColor: data.custom_theme?.titleColor || '#000000',
         cards: cards || [],
         createdAt: data.created_at,
         updatedAt: data.updated_at,
@@ -155,6 +179,36 @@ export const db = {
         }
       }
 
+      let banner = updates.bannerUrl ?? updates.customTheme?.bannerUrl;
+      if (typeof banner === 'string' && banner.startsWith('data:image')) {
+        const cdnBanner = await this.uploadAsset({
+          base64Data: banner,
+          filename: 'banner.png',
+          folder: 'banners',
+        });
+        if (cdnBanner) banner = cdnBanner;
+      }
+
+      let hero = updates.heroUrl ?? updates.customTheme?.heroUrl;
+      if (typeof hero === 'string' && hero.startsWith('data:image')) {
+        const cdnHero = await this.uploadAsset({
+          base64Data: hero,
+          filename: 'hero.png',
+          folder: 'heroes',
+        });
+        if (cdnHero) hero = cdnHero;
+      }
+
+      let logo = updates.logoUrl ?? updates.customTheme?.logoUrl;
+      if (typeof logo === 'string' && logo.startsWith('data:image')) {
+        const cdnLogo = await this.uploadAsset({
+          base64Data: logo,
+          filename: 'logo.png',
+          folder: 'logos',
+        });
+        if (cdnLogo) logo = cdnLogo;
+      }
+
       if (updates.themeId !== undefined || updates.theme_id !== undefined) {
         payload.theme_id = updates.themeId || updates.theme_id;
       }
@@ -170,14 +224,21 @@ export const db = {
         updates.titleFont !== undefined ||
         updates.titleColor !== undefined
       ) {
+        let existingTheme = {};
+        try {
+          const { data: curr } = await supabase.from('trees').select('custom_theme').eq('id', id).single();
+          if (curr?.custom_theme) existingTheme = curr.custom_theme;
+        } catch {}
+
         const baseTheme = updates.customTheme || updates.custom_theme || {};
         payload.custom_theme = {
+          ...existingTheme,
           ...baseTheme,
           ...(updates.headerLayout !== undefined ? { headerLayout: updates.headerLayout } : {}),
-          ...(updates.bannerUrl !== undefined ? { bannerUrl: updates.bannerUrl } : {}),
-          ...(updates.heroUrl !== undefined ? { heroUrl: updates.heroUrl } : {}),
+          ...(banner !== undefined ? { bannerUrl: banner } : {}),
+          ...(hero !== undefined ? { heroUrl: hero } : {}),
           ...(updates.titleStyle !== undefined ? { titleStyle: updates.titleStyle } : {}),
-          ...(updates.logoUrl !== undefined ? { logoUrl: updates.logoUrl } : {}),
+          ...(logo !== undefined ? { logoUrl: logo } : {}),
           ...(updates.altFontEnabled !== undefined ? { altFontEnabled: updates.altFontEnabled } : {}),
           ...(updates.titleFont !== undefined ? { titleFont: updates.titleFont } : {}),
           ...(updates.titleColor !== undefined ? { titleColor: updates.titleColor } : {}),
@@ -200,6 +261,14 @@ export const db = {
         avatarUrl: data.avatar_url,
         themeId: data.theme_id,
         customTheme: data.custom_theme,
+        headerLayout: data.custom_theme?.headerLayout || 'classic',
+        bannerUrl: data.custom_theme?.bannerUrl || null,
+        heroUrl: data.custom_theme?.heroUrl || null,
+        logoUrl: data.custom_theme?.logoUrl || null,
+        titleStyle: data.custom_theme?.titleStyle || 'text',
+        altFontEnabled: data.custom_theme?.altFontEnabled || false,
+        titleFont: data.custom_theme?.titleFont || 'Inter',
+        titleColor: data.custom_theme?.titleColor || '#000000',
       };
     } catch (err) {
       console.warn('[DB updateTree fallback]', err.message);
@@ -268,13 +337,40 @@ export const db = {
       }
 
       let finalUrl = cardData.url || '';
-      if (typeof finalUrl === 'string' && finalUrl.startsWith('data:application/pdf')) {
+      if (typeof finalUrl === 'string' && (finalUrl.startsWith('data:application/pdf') || finalUrl.startsWith('data:image'))) {
+        const isPdf = finalUrl.startsWith('data:application/pdf');
         const cdnPdf = await this.uploadAsset({
           base64Data: finalUrl,
-          filename: cardData.settings?.pdfName || 'menu.pdf',
-          folder: 'menus',
+          filename: isPdf ? (cardData.settings?.pdfName || 'menu.pdf') : 'card-asset.jpg',
+          folder: isPdf ? 'menus' : 'cards',
         });
         if (cdnPdf) finalUrl = cdnPdf;
+      }
+
+      const settings = { ...(cardData.settings || {}) };
+      if (typeof settings.image === 'string' && settings.image.startsWith('data:image')) {
+        const cdnImg = await this.uploadAsset({
+          base64Data: settings.image,
+          filename: 'card-image.jpg',
+          folder: 'cards',
+        });
+        if (cdnImg) settings.image = cdnImg;
+      }
+      if (typeof settings.thumbnailUrl === 'string' && settings.thumbnailUrl.startsWith('data:image')) {
+        const cdnThumb = await this.uploadAsset({
+          base64Data: settings.thumbnailUrl,
+          filename: 'thumbnail.jpg',
+          folder: 'thumbnails',
+        });
+        if (cdnThumb) settings.thumbnailUrl = cdnThumb;
+      }
+      if (typeof settings.pdfUrl === 'string' && settings.pdfUrl.startsWith('data:application/pdf')) {
+        const cdnPdf = await this.uploadAsset({
+          base64Data: settings.pdfUrl,
+          filename: settings.pdfName || 'menu.pdf',
+          folder: 'menus',
+        });
+        if (cdnPdf) settings.pdfUrl = cdnPdf;
       }
 
       const { data, error } = await supabase
@@ -292,7 +388,7 @@ export const db = {
           layout: cardData.layout || cardData.settings?.layout || 'classic',
           lock_type: cardData.lockType || cardData.lock_type || 'none',
           lock_value: cardData.lockValue || cardData.lock_value || null,
-          settings: cardData.settings || {},
+          settings: settings,
         })
         .select()
         .single();
@@ -318,11 +414,12 @@ export const db = {
       if (updates.subtitle !== undefined) payload.subtitle = updates.subtitle;
 
       if (updates.url !== undefined) {
-        if (typeof updates.url === 'string' && updates.url.startsWith('data:application/pdf')) {
+        if (typeof updates.url === 'string' && (updates.url.startsWith('data:application/pdf') || updates.url.startsWith('data:image'))) {
+          const isPdf = updates.url.startsWith('data:application/pdf');
           const cdnPdf = await this.uploadAsset({
             base64Data: updates.url,
-            filename: updates.settings?.pdfName || 'menu.pdf',
-            folder: 'menus',
+            filename: isPdf ? (updates.settings?.pdfName || 'menu.pdf') : 'card-asset.jpg',
+            folder: isPdf ? 'menus' : 'cards',
           });
           payload.url = cdnPdf || updates.url;
         } else {
@@ -354,7 +451,34 @@ export const db = {
       if (updates.lockValue !== undefined || updates.lock_value !== undefined) {
         payload.lock_value = updates.lockValue || updates.lock_value;
       }
-      if (updates.settings !== undefined) payload.settings = updates.settings;
+      if (updates.settings !== undefined) {
+        const settings = { ...updates.settings };
+        if (typeof settings.image === 'string' && settings.image.startsWith('data:image')) {
+          const cdnImg = await this.uploadAsset({
+            base64Data: settings.image,
+            filename: 'card-image.jpg',
+            folder: 'cards',
+          });
+          if (cdnImg) settings.image = cdnImg;
+        }
+        if (typeof settings.thumbnailUrl === 'string' && settings.thumbnailUrl.startsWith('data:image')) {
+          const cdnThumb = await this.uploadAsset({
+            base64Data: settings.thumbnailUrl,
+            filename: 'thumbnail.jpg',
+            folder: 'thumbnails',
+          });
+          if (cdnThumb) settings.thumbnailUrl = cdnThumb;
+        }
+        if (typeof settings.pdfUrl === 'string' && settings.pdfUrl.startsWith('data:application/pdf')) {
+          const cdnPdf = await this.uploadAsset({
+            base64Data: settings.pdfUrl,
+            filename: settings.pdfName || 'menu.pdf',
+            folder: 'menus',
+          });
+          if (cdnPdf) settings.pdfUrl = cdnPdf;
+        }
+        payload.settings = settings;
+      }
       if (updates.clicks !== undefined) payload.clicks = updates.clicks;
       payload.updated_at = new Date().toISOString();
 
@@ -405,6 +529,22 @@ export const db = {
   },
 
   // --- Users ---
+  async getUserById(id) {
+    try {
+      const numId = Number(id);
+      if (!numId || isNaN(numId)) return null;
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', numId)
+        .single();
+      if (error) throw error;
+      return data || null;
+    } catch (err) {
+      return null;
+    }
+  },
+
   async getUserByEmailOrUsername(identifier) {
     try {
       const clean = identifier.toLowerCase().trim();

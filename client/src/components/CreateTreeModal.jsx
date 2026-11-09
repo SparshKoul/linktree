@@ -90,6 +90,7 @@ export function CreateTreeModal({
         const res = await fetch('/api/admin/trees', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             name: name.trim() || cleanSlug,
             slug: cleanSlug,
