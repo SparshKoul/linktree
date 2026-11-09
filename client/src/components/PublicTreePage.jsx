@@ -381,6 +381,9 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
           {tree.name}
         </div>
       </footer>
+
+      {/* Guaranteed Bottom Spacer */}
+      <div className="w-full h-12 sm:h-16 shrink-0 pointer-events-none" aria-hidden="true" />
     </div>
   );
 }

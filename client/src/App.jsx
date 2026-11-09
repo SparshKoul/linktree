@@ -1959,6 +1959,9 @@ export function App() {
                     </div>
                   </div>
                 )}
+
+                {/* Bottom buffer spacer: guarantees dedicated space beneath last link / footer so it never touches phone curve */}
+                <div className="w-full h-14 sm:h-16 shrink-0 pointer-events-none" aria-hidden="true" />
               </div>
             </div>
           </div>
