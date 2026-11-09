@@ -90,6 +90,12 @@ describe('DesignEditor Logic & State Flow', () => {
     expect(themeNames).toContain('Sweat');
     expect(themeNames).toContain('Tress');
     expect(themeNames).toContain('Twilight');
-    expect(themeNames).toContain('Vox');
+    expect(themeNames).toContain('Ariana Grande');
+    expect(themeNames).toContain('Olivia Rodrigo');
+    expect(themeNames).toContain('Billie Eilish');
+    expect(themeNames).toContain('Selena + benny');
+    expect(themeNames).toContain('Daniel Triendl');
+    expect(themeNames).toContain('Luke John Matthew Arnold');
+    expect(themeNames).toContain('Starry Night');
   });
 });

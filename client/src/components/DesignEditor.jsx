@@ -517,6 +517,18 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
             </button>
           </div>
 
+          {/* Curated Collaboration Info Banner matching Reference Image */}
+          {themeTab === 'curated' && (
+            <div className="flex items-center gap-2.5 p-3.5 rounded-[18px] bg-[#EEF7FE] border border-[#BFDBFE] text-[#0369A1] text-xs font-medium">
+              <div className="w-4 h-4 rounded-full border border-[#0284C7] flex items-center justify-center text-[10px] font-bold shrink-0 text-[#0284C7]">
+                i
+              </div>
+              <span className="leading-snug">
+                Curated themes are made in collaboration with creators and can't be customized.
+              </span>
+            </div>
+          )}
+
           {/* 5-Column Theme Grid Matching Linktree Screenshot */}
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 pt-1">
             {themeTab === 'customizable' && (
@@ -555,6 +567,7 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
                         buttonRadius: pt.theme.buttonRadius,
                         fontFamily: pt.theme.fontFamily,
                         textColor: pt.theme.textColor,
+                        footerText: pt.theme.footerText || 'Get your own Linktree',
                       });
                     }}
                     className={`w-full h-[106px] sm:h-[112px] rounded-[18px] sm:rounded-[20px] p-2.5 flex flex-col justify-between overflow-hidden relative transition-all cursor-pointer shadow-2xs ${
