@@ -777,7 +777,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
       </div>
 
       {/* 2. MOBILE VIEW (Visible ONLY on mobile screens < lg, matches user screenshots) */}
-      <div className="lg:hidden flex flex-col h-full w-full bg-[#2E3033] select-none relative overflow-hidden">
+      <div className="lg:hidden fixed inset-0 z-40 flex flex-col h-[100dvh] w-full bg-[#2E3033] select-none overflow-hidden">
         {/* Mobile Top Action Bar */}
         <div className="h-13 bg-white px-3 flex items-center justify-between border-b border-gray-200 shrink-0 z-20 shadow-2xs">
           {/* Back button returns to Content rail */}
@@ -840,15 +840,15 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
 
         {/* Center Mobile Phone Preview Area */}
         <div
-          className={`flex-1 flex items-start justify-center pt-3 sm:pt-4 px-3 overflow-hidden relative transition-all duration-200 ${
-            activeSubview ? 'max-h-[50dvh]' : 'pb-18'
-          }`}
+          className={`flex-1 flex ${
+            activeSubview ? 'items-start pt-2 sm:pt-3 max-h-[50dvh]' : 'items-center justify-center p-2.5 sm:p-3.5'
+          } justify-center px-3 overflow-hidden relative transition-all duration-200`}
         >
           <div
-            className={`w-[305px] xs:w-[320px] sm:w-[335px] ${
+            className={`w-[305px] xs:w-[320px] sm:w-[335px] max-w-[calc(100vw-28px)] ${
               activeSubview
                 ? 'h-[520px] xs:h-[560px] sm:h-[600px] origin-top scale-[0.85] xs:scale-[0.9] sm:scale-100'
-                : 'h-[580px] xs:h-[620px] sm:h-[650px] max-h-[calc(100dvh-130px)]'
+                : 'h-full max-h-[calc(100dvh-130px)]'
             } rounded-[38px] shadow-2xl relative border border-white/10 overflow-hidden flex flex-col shrink-0 transition-all duration-200`}
             style={{
               background: current.backgroundValue || '#111111',
@@ -963,7 +963,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
 
         {/* Mobile Bottom Toolbar (Image 1: When drawer is closed) */}
         {!activeSubview && (
-          <div className="absolute bottom-0 inset-x-0 h-16 bg-white border-t border-gray-200 px-2 flex items-center justify-between shrink-0 z-20 shadow-sm animate-in fade-in duration-150">
+          <div className="h-16 bg-white border-t border-gray-200 px-2 flex items-center justify-between shrink-0 z-20 shadow-sm animate-in fade-in duration-150">
             {/* 1. Theme */}
             <button
               type="button"
@@ -1051,7 +1051,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
 
         {/* Mobile Bottom Sheet Drawer (Images 0, 2 & 3: When drawer is open) */}
         {activeSubview && (
-          <div className="absolute bottom-0 inset-x-0 h-[50dvh] sm:h-[52dvh] max-h-[460px] bg-white rounded-t-[32px] border-t border-gray-200/90 shadow-2xl flex flex-col shrink-0 z-30 animate-in slide-in-from-bottom duration-200">
+          <div className="h-[50dvh] sm:h-[52dvh] max-h-[460px] bg-white rounded-t-[32px] border-t border-gray-200/90 shadow-2xl flex flex-col shrink-0 z-30 animate-in slide-in-from-bottom duration-200">
             {/* Top Drag Handle */}
             <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0" />
 
