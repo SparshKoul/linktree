@@ -1285,7 +1285,7 @@ export function App() {
             }}
           />
         ) : (
-          <main className={`flex-1 ${activeRail === 'design' || activeRail === 'header' ? 'p-0 lg:px-1.5 lg:sm:px-2.5 lg:pt-2 lg:pb-4 h-full lg:h-[calc(100vh-88px)]' : 'px-1.5 sm:px-2.5 pt-2 pb-4 h-[calc(100vh-88px)]'} flex justify-center lg:justify-end items-start overflow-hidden`}>
+          <main className="flex-1 p-0 lg:px-1.5 lg:sm:px-2.5 lg:pt-2 lg:pb-4 h-full lg:h-[calc(100vh-88px)] flex justify-center lg:justify-end items-start overflow-hidden">
           <div className={`w-full ${activeRail === 'design' || activeRail === 'header' ? 'max-w-none lg:max-w-[740px] lg:xl:max-w-[820px] h-full' : 'max-w-[740px] xl:max-w-[820px] h-full'} flex flex-col`}>
             {activeCardDetail ? (
               <div className="bg-white rounded-[28px] xl:rounded-[32px] px-2.5 sm:px-3 py-4 sm:py-5 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar">
@@ -1332,7 +1332,7 @@ export function App() {
                 />
               </div>
             ) : (
-              <div className="bg-white rounded-none lg:rounded-[28px] lg:xl:rounded-[32px] px-4 sm:px-5 lg:px-2.5 lg:sm:px-3 py-3 lg:py-4 sm:py-5 border-0 lg:border border-gray-200/80 shadow-none lg:shadow-2xs flex-1 overflow-y-auto card-scrollbar space-y-4 pb-28 lg:pb-5">
+              <div className="bg-white rounded-none lg:rounded-[28px] lg:xl:rounded-[32px] px-4 sm:px-5 lg:px-2.5 lg:sm:px-3 py-3 lg:py-4 sm:py-5 border-0 lg:border border-gray-200/80 shadow-none lg:shadow-2xs flex-1 overflow-y-auto card-scrollbar space-y-3 lg:space-y-4 pb-20 lg:pb-5">
                 {/* Mobile Top Action Bar matching uploaded Image 0 */}
                 <div className="lg:hidden flex items-center justify-between pb-1 -mx-1">
                   <button
@@ -2055,8 +2055,8 @@ export function App() {
                       });
                     })()}
 
-                    {/* IndiaTaps footer toggle container (hidden on mobile, kept on desktop) */}
-                    <div className="hidden lg:block bg-white border border-gray-200/90 rounded-[22px] p-4 shadow-2xs mt-3.5">
+                    {/* IndiaTaps footer toggle container */}
+                    <div className="bg-white border border-gray-200/90 rounded-[22px] p-4 shadow-2xs mt-3.5">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-bold text-[#111111]">IndiaTaps footer</span>
