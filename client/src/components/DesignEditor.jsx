@@ -17,14 +17,19 @@ import {
   Square,
   Paintbrush,
   CheckCircle2,
+  X,
+  User,
+  Zap,
+  Share2,
 } from 'lucide-react';
+import { CardRenderer } from '../cards/CardRenderer.jsx';
 import { PRESET_THEMES } from '../constants/themes.js';
 import { WallpaperEditor } from './WallpaperEditor.jsx';
 import { ButtonEditor } from './ButtonEditor.jsx';
 import { TextEditor } from './TextEditor.jsx';
 import { ColorsEditor } from './ColorsEditor.jsx';
 
-export function DesignEditor({ currentTree, onUpdateTree }) {
+export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }) {
   const [activeSubview, setActiveSubview] = useState(null); // null | 'theme' | 'wallpaper' | 'buttons' | 'text' | 'colors' | 'stickers' | 'footer'
   const [themeTab, setThemeTab] = useState('customizable'); // 'customizable' | 'curated'
   const [savedToast, setSavedToast] = useState(false);
@@ -256,8 +261,31 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
     { label: 'JetBrains Mono', value: 'monospace', sample: 'Aa' },
   ];
 
+  const previewTheme = {
+    backgroundType: current.backgroundType,
+    backgroundValue: current.backgroundValue,
+    buttonStyle: current.buttonStyle,
+    buttonColor: current.buttonColor,
+    buttonTextColor: current.buttonTextColor,
+    buttonRadius: current.buttonRadius,
+    fontFamily: current.fontFamily,
+    textColor: current.textColor,
+    footerEnabled: current.footerEnabled,
+    footerText: current.footerText,
+  };
+
+  const isLogo = (currentTree?.titleStyle || currentTree?.customTheme?.titleStyle) === 'logo';
+  const logoUrl = currentTree?.logoUrl || currentTree?.customTheme?.logoUrl;
+  const titleText = currentTree?.title || `@${currentTree?.slug || 'riyast'}`;
+  const bioText = currentTree?.bio || '';
+  const titleFont = current.altFontEnabled ? (current.titleFont || 'Manrope') : (current.fontFamily || 'inherit');
+  const titleColor = current.altFontEnabled ? (current.titleColor || current.textColor || '#FFFFFF') : (current.textColor || '#FFFFFF');
+  const visibleCards = (currentTree?.cards || []).filter((c) => c.visible !== false);
+
   return (
-    <div className="w-full space-y-6 animate-in fade-in duration-200">
+    <div className="w-full h-full flex flex-col">
+      {/* 1. DESKTOP VIEW (hidden on mobile, 100% UNTOUCHED desktop layout) */}
+      <div className="hidden lg:block w-full space-y-6 animate-in fade-in duration-200">
       {/* Top Header Row with Undo, Redo, Cancel, Save matching Reference Image */}
       <div className="flex items-center justify-between pb-1">
         <div className="flex items-center">
@@ -666,6 +694,411 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
           </div>
         </div>
       )}
+      </div>
+
+      {/* 2. MOBILE VIEW (Visible ONLY on mobile screens < lg, matches user screenshots) */}
+      <div className="lg:hidden flex flex-col h-full w-full bg-[#2E3033] select-none relative overflow-hidden">
+        {/* Mobile Top Action Bar */}
+        <div className="h-13 bg-white px-3 flex items-center justify-between border-b border-gray-200 shrink-0 z-20 shadow-2xs">
+          {/* Back button returns to Content rail */}
+          <button
+            type="button"
+            onClick={onBack}
+            className="p-1.5 -ml-1 text-gray-700 hover:text-black hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+            title="Back to Content"
+          >
+            <ChevronLeft className="w-5 h-5 stroke-[2.2]" />
+          </button>
+
+          <div className="flex items-center gap-1.5">
+            {/* Undo */}
+            <button
+              type="button"
+              onClick={handleUndo}
+              disabled={historyIndex <= 0}
+              className={`p-1.5 rounded-full transition-colors cursor-pointer ${
+                historyIndex > 0 ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'
+              }`}
+              title="Undo"
+            >
+              <Undo2 className="w-4 h-4 stroke-[2.2]" />
+            </button>
+
+            {/* Redo */}
+            <button
+              type="button"
+              onClick={handleRedo}
+              disabled={historyIndex >= history.length - 1}
+              className={`p-1.5 rounded-full transition-colors cursor-pointer ${
+                historyIndex < history.length - 1 ? 'text-gray-700 hover:bg-gray-100' : 'text-gray-300 cursor-not-allowed'
+              }`}
+              title="Redo"
+            >
+              <Redo2 className="w-4 h-4 stroke-[2.2]" />
+            </button>
+
+            {/* Cancel */}
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="py-1 px-3 rounded-full border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+
+            {/* ⚡ Save Purple Pill Button */}
+            <button
+              type="button"
+              onClick={handleSave}
+              className="py-1 px-3.5 rounded-full bg-[#7033FF] hover:bg-[#6025e6] text-white text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer transition-all"
+            >
+              <Zap className="w-3.5 h-3.5 fill-current" />
+              <span>{savedToast ? 'Saved' : 'Save'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Center Mobile Phone Preview Area */}
+        <div className={`flex-1 flex items-center justify-center p-2.5 sm:p-3 overflow-hidden relative transition-all ${activeSubview ? 'max-h-[46vh]' : ''}`}>
+          <div
+            className="w-[305px] sm:w-[325px] h-[540px] sm:h-[600px] max-h-full rounded-[36px] shadow-2xl relative border border-white/10 overflow-hidden flex flex-col shrink-0"
+            style={{
+              background: current.backgroundValue || '#111111',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          >
+            {/* Top Phone Frame Bar */}
+            <div
+              className="px-5 pt-3.5 pb-1 flex items-center justify-between text-xs shrink-0"
+              style={{ color: current.textColor || '#FFFFFF' }}
+            >
+              <span className="font-extrabold text-sm leading-none">✱</span>
+              <button type="button" className="opacity-90 hover:opacity-100 cursor-pointer" title="Share">
+                <Share2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Phone Body Scroll Area */}
+            <div className="flex-1 overflow-y-auto px-4 py-2 flex flex-col items-center no-scrollbar [&::-webkit-scrollbar]:hidden">
+              {/* Avatar */}
+              <div className="w-16 h-16 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-2 shadow-inner shrink-0">
+                {currentTree?.avatarUrl ? (
+                  <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-9 h-9 text-white" />
+                )}
+              </div>
+
+              {/* Title */}
+              {isLogo && logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="max-h-7 max-w-[150px] object-contain my-0.5" />
+              ) : (
+                <h2
+                  className="font-extrabold text-sm leading-tight text-center"
+                  style={{
+                    color: titleColor,
+                    fontFamily: titleFont !== 'inherit' ? `'${titleFont}', sans-serif` : 'inherit',
+                  }}
+                >
+                  {titleText}
+                </h2>
+              )}
+
+              {/* Bio */}
+              {bioText && (
+                <p
+                  className="text-[11px] leading-tight max-w-[210px] text-gray-400 mt-0.5 mb-2 text-center"
+                  style={{ color: current.textColor ? `${current.textColor}bb` : '#9CA3AF' }}
+                >
+                  {bioText}
+                </p>
+              )}
+
+              {/* Links List */}
+              <div className="w-full space-y-2 my-2 flex-1">
+                {visibleCards.map((card) => (
+                  <CardRenderer key={card.id} card={card} theme={previewTheme} isPreview />
+                ))}
+              </div>
+
+              {/* Footer */}
+              {current.footerEnabled !== false && (
+                <div className="mt-auto pt-4 pb-4 text-center text-[9px] text-gray-400 leading-tight shrink-0">
+                  <div>Cookie Preferences • Report • Privacy</div>
+                  <div className="mt-0.5">More from Linktree</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Bottom Toolbar (Image 0: When drawer is closed) */}
+        {!activeSubview && (
+          <div className="h-16 bg-white border-t border-gray-200 px-2 flex items-center justify-between shrink-0 z-20">
+            {/* 1. Theme */}
+            <button
+              type="button"
+              onClick={() => setActiveSubview('theme')}
+              className="flex flex-col items-center gap-1 group cursor-pointer flex-1"
+            >
+              <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-300 p-1 flex flex-col justify-between items-center group-hover:scale-105 transition-transform">
+                <span className="text-[9px] font-black text-gray-800 leading-none">Aa</span>
+                <div className="w-full h-1.5 rounded-full bg-white border border-gray-200" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700">Theme</span>
+            </button>
+
+            {/* 2. Header */}
+            <button
+              type="button"
+              onClick={() => {
+                if (onOpenHeader) onOpenHeader();
+              }}
+              className="flex flex-col items-center gap-1 group cursor-pointer flex-1"
+            >
+              <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-300 flex items-center justify-center relative group-hover:scale-105 transition-transform">
+                <User className="w-4 h-4 text-gray-600" />
+                <span className="w-2 h-2 rounded-full bg-red-500 absolute top-0.5 right-0.5 ring-1 ring-white" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700">Header</span>
+            </button>
+
+            {/* 3. Wallpaper */}
+            <button
+              type="button"
+              onClick={() => setActiveSubview('wallpaper')}
+              className="flex flex-col items-center gap-1 group cursor-pointer flex-1"
+            >
+              <div
+                className="w-8 h-8 rounded-lg border border-gray-300 overflow-hidden shadow-2xs group-hover:scale-105 transition-transform"
+                style={{
+                  background: current.backgroundValue || '#111111',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
+              />
+              <span className="text-[10px] font-medium text-gray-700">Wallpaper</span>
+            </button>
+
+            {/* 4. Text */}
+            <button
+              type="button"
+              onClick={() => setActiveSubview('text')}
+              className="flex flex-col items-center gap-1 group cursor-pointer flex-1"
+            >
+              <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-300 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <span className="text-xs font-black text-gray-800">Aa</span>
+              </div>
+              <span className="text-[10px] font-medium text-gray-700">Text</span>
+            </button>
+
+            {/* 5. Buttons */}
+            <button
+              type="button"
+              onClick={() => setActiveSubview('buttons')}
+              className="flex flex-col items-center gap-1 group cursor-pointer flex-1"
+            >
+              <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-300 flex items-center justify-center p-1.5 group-hover:scale-105 transition-transform">
+                <div
+                  className="w-full h-2.5 rounded-full border border-gray-400"
+                  style={{ backgroundColor: current.buttonColor || '#FFFFFF' }}
+                />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700">Buttons</span>
+            </button>
+
+            {/* 6. Colors */}
+            <button
+              type="button"
+              onClick={() => setActiveSubview('colors')}
+              className="flex flex-col items-center gap-1 group cursor-pointer flex-1"
+            >
+              <div className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
+                <div className="w-1/2 h-full bg-[#FA5252]" />
+                <div className="w-1/2 h-full bg-[#FD7E14]" />
+              </div>
+              <span className="text-[10px] font-medium text-gray-700">Colors</span>
+            </button>
+          </div>
+        )}
+
+        {/* Mobile Bottom Sheet Drawer (Image 1: When tool is selected) */}
+        {activeSubview && (
+          <div className="h-[52vh] sm:h-[55vh] bg-white rounded-t-[32px] border-t border-gray-200 shadow-2xl flex flex-col shrink-0 z-30 animate-in slide-in-from-bottom duration-200">
+            {/* Top Grab Handle */}
+            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0" />
+
+            {/* Drawer Header with Title & (X) Close button */}
+            <div className="px-5 py-2 flex items-center justify-between shrink-0">
+              <h3 className="text-base font-extrabold text-[#111111] capitalize">{activeSubview}</h3>
+              <button
+                type="button"
+                onClick={() => setActiveSubview(null)}
+                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Tool Content */}
+            {activeSubview === 'theme' && (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Tabs */}
+                <div className="px-5 flex items-center gap-6 border-b border-gray-100 text-xs font-bold shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setThemeTab('customizable')}
+                    className={`pb-2.5 transition-colors cursor-pointer relative ${
+                      themeTab === 'customizable'
+                        ? 'text-black border-b-2 border-black'
+                        : 'text-gray-400 hover:text-black'
+                    }`}
+                  >
+                    Customizable
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setThemeTab('curated')}
+                    className={`pb-2.5 transition-colors cursor-pointer relative ${
+                      themeTab === 'curated'
+                        ? 'text-black border-b-2 border-black'
+                        : 'text-gray-400 hover:text-black'
+                    }`}
+                  >
+                    Curated
+                  </button>
+                </div>
+
+                {/* Theme Grid */}
+                <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 card-scrollbar">
+                  {/* Shuffle Button */}
+                  <button
+                    type="button"
+                    onClick={handleShuffleTheme}
+                    className="w-full py-2 px-4 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center gap-2 text-xs font-semibold text-gray-800 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    <Shuffle className="w-3.5 h-3.5 text-gray-600" />
+                    <span>Shuffle</span>
+                  </button>
+
+                  {/* Curated Theme Info */}
+                  {themeTab === 'curated' && (
+                    <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#EEF7FE] border border-[#BFDBFE] text-[#0369A1] text-[11px] font-medium">
+                      <span className="leading-snug">
+                        Curated themes are made in collaboration with creators.
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-4 gap-2.5 pt-1">
+                    {themeTab === 'customizable' && (
+                      <div className="flex flex-col items-center">
+                        <button
+                          type="button"
+                          onClick={() => setActiveSubview('wallpaper')}
+                          className="w-full h-24 rounded-2xl bg-[#EEEEEE] border border-gray-200 flex items-center justify-center cursor-pointer hover:border-gray-300 transition-all shadow-2xs group"
+                        >
+                          <Paintbrush className="w-5 h-5 text-gray-600 stroke-[1.5] group-hover:scale-110 transition-transform" />
+                        </button>
+                        <span className="text-[10px] font-medium text-gray-700 text-center mt-1">Custom</span>
+                      </div>
+                    )}
+
+                    {PRESET_THEMES.filter(
+                      (pt) =>
+                        pt.id !== 'classic-light' &&
+                        (pt.category === themeTab || (themeTab === 'customizable' && !pt.category))
+                    ).map((pt) => {
+                      const isSelected =
+                        current.themeId === pt.id || (pt.id === 'air' && current.themeId === 'classic-light');
+                      return (
+                        <div key={pt.id} className="flex flex-col items-center">
+                          <button
+                            type="button"
+                            onClick={() => applyPresetTheme(pt)}
+                            className={`w-full h-24 rounded-2xl p-2 flex flex-col justify-between overflow-hidden relative transition-all cursor-pointer shadow-2xs ${
+                              isSelected
+                                ? 'border-2 border-black ring-1 ring-black/10'
+                                : 'border border-gray-200 hover:border-gray-300'
+                            }`}
+                            style={{
+                              background: pt.theme.backgroundValue,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                            }}
+                          >
+                            <span
+                              className="font-bold text-xs tracking-tight leading-none text-left"
+                              style={{
+                                color: pt.theme.textColor || '#111111',
+                                fontFamily: pt.theme.fontFamily || 'Inter',
+                              }}
+                            >
+                              Aa
+                            </span>
+                            <div
+                              className="w-full h-3 rounded-full shadow-2xs"
+                              style={{
+                                backgroundColor: pt.theme.buttonColor,
+                                borderRadius: `${Math.min(pt.theme.buttonRadius || 9999, 8)}px`,
+                                border:
+                                  pt.theme.buttonStyle === 'outline'
+                                    ? `1px solid ${pt.theme.buttonTextColor}`
+                                    : 'none',
+                              }}
+                            />
+                          </button>
+                          <span className="text-[10px] font-medium text-gray-700 text-center mt-1 truncate max-w-full">
+                            {pt.name}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSubview === 'wallpaper' && (
+              <div className="flex-1 overflow-y-auto px-4 py-2 card-scrollbar">
+                <WallpaperEditor current={current} commitChange={commitChange} />
+              </div>
+            )}
+
+            {activeSubview === 'buttons' && (
+              <div className="flex-1 overflow-y-auto px-4 py-2 card-scrollbar">
+                <ButtonEditor
+                  current={current}
+                  commitChange={commitChange}
+                  onBack={() => setActiveSubview(null)}
+                />
+              </div>
+            )}
+
+            {activeSubview === 'text' && (
+              <div className="flex-1 overflow-y-auto px-4 py-2 card-scrollbar">
+                <TextEditor
+                  current={current}
+                  commitChange={commitChange}
+                  onBack={() => setActiveSubview(null)}
+                />
+              </div>
+            )}
+
+            {activeSubview === 'colors' && (
+              <div className="flex-1 overflow-y-auto px-4 py-2 card-scrollbar">
+                <ColorsEditor
+                  current={current}
+                  commitChange={commitChange}
+                  onBack={() => setActiveSubview(null)}
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
