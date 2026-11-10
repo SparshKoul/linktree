@@ -128,8 +128,8 @@ export function PhonePreview({
 
     // Default: 'classic'
     return (
-      <div className="flex flex-col items-center text-center mb-2.5">
-        <div className="w-20 h-20 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-2.5 shadow-md ring-2 ring-white/10 shrink-0">
+      <div className="flex flex-col items-center text-center mb-2.5 shrink-0">
+        <div className="w-24 h-24 sm:w-26 sm:h-26 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3 shadow-lg ring-1 ring-white/15 shrink-0">
           {tree?.avatarUrl || activeTheme?.avatarUrl ? (
             <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
           ) : defaultAvatarSvg}
@@ -255,25 +255,29 @@ export function PhonePreview({
 
       {/* 2. Scrollable Content Container Over Sticky Wallpaper */}
       <div
-        className={`absolute inset-0 z-10 overflow-y-auto px-3.5 pb-8 flex flex-col justify-between text-center no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+        className={`absolute inset-0 z-10 overflow-y-auto px-4 sm:px-5 pb-8 flex flex-col justify-between text-center no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
           currentHeaderLayout === 'banner' || currentHeaderLayout === 'hero'
             ? 'pt-3'
-            : 'pt-4'
+            : 'pt-5 sm:pt-6'
         }`}
       >
-        <div className="flex flex-col justify-between flex-1 min-h-full w-full max-w-[480px] mx-auto">
-          {/* Top Icons Inside Phone matching Reference */}
-          <div className="w-full flex items-center justify-between text-xs mb-4 z-10" style={{ color: activeTheme?.textColor || '#FFFFFF' }}>
-            <span className="w-7 h-7 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white text-xs font-black shadow-xs">
+        <div className="flex flex-col justify-between flex-1 min-h-full w-full max-w-[440px] mx-auto">
+          {/* Top Icons Inside Phone matching Reference (iPhone 16 Pro Max) */}
+          <div className="w-full flex items-center justify-between text-xs mb-4 z-10 px-1 pt-1" style={{ color: activeTheme?.textColor || '#FFFFFF' }}>
+            <span className="font-black text-base text-white select-none">
               ✱
             </span>
             <button
               type="button"
               onClick={onShare}
-              className="w-7 h-7 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white shadow-xs hover:bg-black/40 transition-colors cursor-pointer"
+              className="p-1 text-white hover:opacity-80 transition-opacity cursor-pointer"
               title="Share"
             >
-              <Share2 className="w-3.5 h-3.5" />
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                <polyline points="16 6 12 2 8 6" />
+                <line x1="12" y1="2" x2="12" y2="15" />
+              </svg>
             </button>
           </div>
 

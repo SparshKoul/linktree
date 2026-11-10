@@ -2223,17 +2223,17 @@ export function App() {
           )}
 
           <div className="relative w-full h-full lg:w-auto lg:h-auto flex items-center justify-center">
-            {/* Phone Screen Mockup Container matching Reference */}
+            {/* Phone Screen Mockup Container matching iPhone 16 Pro Max Preview Size */}
             <PhonePreview
               tree={currentTree}
               theme={activeTheme}
               footerEnabled={isFooterEnabled}
-              containerClassName="w-full h-full lg:w-[325px] lg:xl:w-[335px] lg:h-[650px] lg:xl:h-[670px] lg:max-h-[calc(100vh-110px)] rounded-none lg:rounded-[42px] shadow-none lg:shadow-xl relative border-0 lg:border border-gray-200/80"
+              containerClassName="w-full h-full lg:w-[410px] xl:w-[430px] 2xl:w-[440px] lg:h-[840px] lg:max-h-[min(900px,calc(100vh-70px))] rounded-none lg:rounded-[55px] shadow-none lg:shadow-2xl relative border-0 lg:border-[8px] lg:border-[#1C1C1E]"
               onShare={handleCopyLiveUrl}
             />
 
             {/* Floating Side Action Pill on Phone Frame matching Reference */}
-            <div className="absolute -right-10 top-1/2 -translate-y-1/2 bg-white rounded-full p-2.5 shadow-md border border-gray-200/90 flex flex-col gap-3 text-gray-600">
+            <div className="hidden lg:flex absolute -right-12 top-1/2 -translate-y-1/2 bg-white rounded-full p-2.5 shadow-md border border-gray-200/90 flex-col gap-3 text-gray-600 z-30">
               <Link2 className="w-4 h-4 hover:text-black cursor-pointer transition-colors" />
               <ExternalLink className="w-4 h-4 hover:text-black cursor-pointer transition-colors" />
             </div>
