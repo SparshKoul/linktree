@@ -125,8 +125,14 @@ Desktop.ini
 *.bak
 
 # ==============================================================================
-# Local agents and AI caches
+# Local agents, AI caches, and sensitive project docs
 # ==============================================================================
 .agents/
 .gemini/
 .cursor/
+ANTIGRAVITY.md
+AGENTS.md
+docs/
+*.secret.md
+*.sensitive.md
+*.private.md
