@@ -2222,9 +2222,9 @@ export function App() {
           )}
 
           <div className="relative w-full h-full lg:w-auto lg:h-auto flex items-center justify-center">
-            {/* Phone Screen Mockup Container matching iPhone 16 Pro Max Preview Size */}
+            {/* Phone Screen Mockup Container matching iPhone 16 Pro Max Preview Size (440px * 956px) */}
             <div
-              className="w-full h-full lg:w-[410px] xl:w-[430px] 2xl:w-[440px] lg:h-[840px] lg:max-h-[min(900px,calc(100vh-70px))] rounded-none lg:rounded-[55px] shadow-none lg:shadow-2xl relative border-0 lg:border-[8px] lg:border-[#1C1C1E] overflow-hidden select-none"
+              className="w-full h-full lg:w-[440px] lg:h-[956px] lg:max-h-[calc(100vh-60px)] aspect-[440/956] rounded-none lg:rounded-[55px] shadow-none lg:shadow-2xl relative border-0 lg:border-[8px] lg:border-[#1C1C1E] overflow-hidden select-none"
               style={{
                 color: activeTheme?.textColor || '#111111',
                 fontFamily:

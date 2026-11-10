@@ -848,8 +848,8 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
             className={`w-full h-full ${
               activeSubview
                 ? 'max-w-[440px] origin-top scale-[0.88] rounded-[32px] border border-white/10'
-                : 'rounded-none border-0'
-            } shadow-2xl relative overflow-hidden flex flex-col transition-all duration-200 select-none`}
+                : 'max-w-[440px] rounded-none border-0'
+            } shadow-2xl relative overflow-hidden flex flex-col transition-all duration-200 select-none mx-auto`}
             style={{
               background: current.backgroundValue || current.backgroundColor || '#111111',
               backgroundSize: 'cover',
