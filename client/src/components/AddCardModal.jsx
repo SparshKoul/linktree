@@ -426,10 +426,21 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
       : categoryItems[activeCategory] || categoryItems.suggested;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white rounded-[32px] w-full max-w-[720px] p-6 sm:p-7 space-y-5 text-[#111111] shadow-2xl relative border border-gray-100 min-h-[460px] flex flex-col justify-start">
-        {/* Header */}
-        <div className="flex items-center justify-between shrink-0">
+    <div
+      className="fixed inset-0 z-50 flex flex-col justify-end lg:justify-center lg:items-center lg:p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="bg-white rounded-t-[28px] sm:rounded-t-[32px] lg:rounded-[32px] w-full lg:max-w-[720px] p-4 sm:p-6 lg:p-7 space-y-3.5 lg:space-y-5 text-[#111111] shadow-2xl relative border-t border-gray-100 lg:border max-h-[85vh] lg:min-h-[460px] flex flex-col justify-start animate-in slide-in-from-bottom duration-200 lg:slide-in-from-bottom-0"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Mobile Top Drag Handle Bar */}
+        <div className="lg:hidden w-11 h-1 bg-[#D1D5DB] rounded-full mx-auto -mt-1 mb-1 shrink-0" />
+
+        {/* Desktop Header */}
+        <div className="hidden lg:flex items-center justify-between shrink-0">
           <div className="w-6" />
           <h2 className="font-extrabold text-sm sm:text-base text-[#111111]">
             Add
@@ -444,7 +455,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
 
         {/* Top Input Bar: "Paste a link or search..." */}
         <div className="flex items-center gap-3 shrink-0">
-          <div className="flex-1 flex items-center gap-3 px-4 py-2.5 rounded-full bg-[#F3F3F1] text-xs">
+          <div className="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 sm:px-4 rounded-2xl lg:rounded-full bg-[#EAEAEA] lg:bg-[#F3F3F1] text-xs">
             <Search className="w-4 h-4 text-gray-500 shrink-0" />
             <input
               ref={inputRef}
@@ -572,80 +583,204 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
           )
         ) : (
           /* Default Explorer View */
-          <div className="flex gap-6 pt-1 flex-1 overflow-hidden">
-            {/* Left Column: Categories List */}
-            <div className="w-36 space-y-1 shrink-0 overflow-y-auto pr-1">
-              {categories.map((cat) => {
-                const IconComponent = cat.icon;
-                const isSelected = activeCategory === cat.id;
-
-                return (
+          <>
+            {/* Mobile Drawer View matching uploaded screenshot */}
+            <div className="lg:hidden flex flex-col flex-1 overflow-y-auto space-y-3 max-h-[62vh] pr-0.5 no-scrollbar">
+              {/* 4 Quick Tiles Grid */}
+              <div className="grid grid-cols-4 gap-2.5 shrink-0 pt-0.5">
+                {/* 1. Collection */}
+                <div className="flex flex-col items-center">
                   <button
-                    key={cat.id}
-                    onClick={() => setActiveCategory(cat.id)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-bold transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#F3F3F1] text-black font-extrabold'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-black'
-                    }`}
+                    type="button"
+                    onClick={() => {
+                      onAddCard('collapsible', 'Add collection title', { subtitle: 'Add or drag & drop an existing link' });
+                      onClose();
+                    }}
+                    className="w-full aspect-square rounded-2xl bg-[#F4F4F5] hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
                   >
-                    <IconComponent className="w-4 h-4 shrink-0 text-gray-700" />
-                    <span>{cat.label}</span>
+                    <LayoutGrid className="w-5 h-5 text-gray-800 stroke-[1.8]" />
                   </button>
-                );
-              })}
+                  <span className="font-semibold text-[10px] text-gray-700 text-center mt-1.5">Collection</span>
+                </div>
+
+                {/* 2. Link */}
+                <div className="flex flex-col items-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsFocused(true);
+                      if (inputRef.current) inputRef.current.focus();
+                    }}
+                    className="w-full aspect-square rounded-2xl bg-[#F4F4F5] hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                  >
+                    <Link2 className="w-5 h-5 text-gray-800 stroke-[1.8]" />
+                  </button>
+                  <span className="font-semibold text-[10px] text-gray-700 text-center mt-1.5">Link</span>
+                </div>
+
+                {/* 3. Product */}
+                <div className="flex flex-col items-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onAddCard('product', 'Special Product', { price: '$49.00' });
+                      onClose();
+                    }}
+                    className="w-full aspect-square rounded-2xl bg-[#F4F4F5] hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                  >
+                    <Tag className="w-5 h-5 text-gray-800 stroke-[1.8]" />
+                  </button>
+                  <span className="font-semibold text-[10px] text-gray-700 text-center mt-1.5">Product</span>
+                </div>
+
+                {/* 4. Form */}
+                <div className="flex flex-col items-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onAddCard('contact_form', 'Contact Form');
+                      onClose();
+                    }}
+                    className="w-full aspect-square rounded-2xl bg-[#F4F4F5] hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
+                  >
+                    <MessageSquare className="w-5 h-5 text-gray-800 stroke-[1.8]" />
+                  </button>
+                  <span className="font-semibold text-[10px] text-gray-700 text-center mt-1.5">Form</span>
+                </div>
+              </div>
+
+              {/* Mobile Suggested Section */}
+              <div className="pt-2 space-y-1">
+                <h3 className="font-bold text-xs text-gray-900 pb-0.5">Suggested</h3>
+                <div className="space-y-0.5">
+                  {categoryItems.suggested.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => {
+                        if (item.id === 'messaging') {
+                          onAddCard('contact', 'Messaging', {
+                            subtitle: 'Let visitors message you directly from your Linktree',
+                            platform: 'messaging',
+                          });
+                          onClose();
+                        } else if (item.id === 'instagram') {
+                          onAddCard('instagram', 'Instagram', {
+                            url: 'https://instagram.com',
+                            subtitle: 'Display your posts and reels',
+                            platform: 'instagram',
+                          });
+                          onClose();
+                        } else if (item.id === 'tiktok') {
+                          onAddCard('video', 'TikTok', {
+                            url: 'https://tiktok.com',
+                            subtitle: 'Share your TikToks on your Linktree',
+                            platform: 'tiktok',
+                          });
+                          onClose();
+                        } else {
+                          onAddCard(item.type, item.title, {
+                            url: 'https://example.com',
+                            subtitle: item.desc,
+                          });
+                          onClose();
+                        }
+                      }}
+                      className="p-2 rounded-2xl hover:bg-[#F6F6F7] flex items-center justify-between transition-colors cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {item.renderIcon()}
+                        <div className="min-w-0 space-y-0.5">
+                          <div className="font-bold text-xs text-[#111111] leading-snug">
+                            {item.title}
+                          </div>
+                          <div className="text-[11px] text-gray-400 leading-tight truncate">
+                            {item.desc}
+                          </div>
+                        </div>
+                      </div>
+
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-black shrink-0 transition-colors" />
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* Right Column: 4 Quick Tiles + Scrollable Suggested Integrations */}
-            <div className="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[340px]">
-              {/* 4 Quick Tiles */}
-              <div className="grid grid-cols-4 gap-2.5">
-                <button
-                  onClick={() => {
-                    onAddCard('collapsible', 'My Collection');
-                    onClose();
-                  }}
-                  className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
-                >
-                  <span className="font-bold text-xs text-[#111111]">Collection</span>
-                  <LayoutGrid className="w-4 h-4 text-black stroke-[2.2]" />
-                </button>
+            {/* Desktop Explorer View (Untouched) */}
+            <div className="hidden lg:flex gap-6 pt-1 flex-1 overflow-hidden">
+              {/* Left Column: Categories List */}
+              <div className="w-36 space-y-1 shrink-0 overflow-y-auto pr-1">
+                {categories.map((cat) => {
+                  const IconComponent = cat.icon;
+                  const isSelected = activeCategory === cat.id;
 
-                <button
-                  onClick={() => {
-                    setIsFocused(true);
-                    if (inputRef.current) {
-                      inputRef.current.focus();
-                    }
-                  }}
-                  className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
-                >
-                  <span className="font-bold text-xs text-[#111111]">Link</span>
-                  <Link2 className="w-4 h-4 text-black stroke-[2.2]" />
-                </button>
-
-                <button
-                  onClick={() => {
-                    onAddCard('product', 'Special Product', { price: '$49.00' });
-                    onClose();
-                  }}
-                  className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
-                >
-                  <span className="font-bold text-xs text-[#111111]">Product</span>
-                  <Tag className="w-4 h-4 text-black stroke-[2.2]" />
-                </button>
-
-                <button
-                  onClick={() => {
-                    onAddCard('contact_form', 'Contact Form');
-                    onClose();
-                  }}
-                  className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
-                >
-                  <span className="font-bold text-xs text-[#111111]">Form</span>
-                  <MessageSquare className="w-4 h-4 text-black stroke-[2.2]" />
-                </button>
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setActiveCategory(cat.id)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-bold transition-colors cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#F3F3F1] text-black font-extrabold'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                      }`}
+                    >
+                      <IconComponent className="w-4 h-4 shrink-0 text-gray-700" />
+                      <span>{cat.label}</span>
+                    </button>
+                  );
+                })}
               </div>
+
+              {/* Right Column: 4 Quick Tiles + Scrollable Suggested Integrations */}
+              <div className="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[340px]">
+                {/* 4 Quick Tiles */}
+                <div className="grid grid-cols-4 gap-2.5">
+                  <button
+                    onClick={() => {
+                      onAddCard('collapsible', 'My Collection');
+                      onClose();
+                    }}
+                    className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
+                  >
+                    <span className="font-bold text-xs text-[#111111]">Collection</span>
+                    <LayoutGrid className="w-4 h-4 text-black stroke-[2.2]" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setIsFocused(true);
+                      if (inputRef.current) {
+                        inputRef.current.focus();
+                      }
+                    }}
+                    className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
+                  >
+                    <span className="font-bold text-xs text-[#111111]">Link</span>
+                    <Link2 className="w-4 h-4 text-black stroke-[2.2]" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onAddCard('product', 'Special Product', { price: '$49.00' });
+                      onClose();
+                    }}
+                    className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
+                  >
+                    <span className="font-bold text-xs text-[#111111]">Product</span>
+                    <Tag className="w-4 h-4 text-black stroke-[2.2]" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      onAddCard('contact_form', 'Contact Form');
+                      onClose();
+                    }}
+                    className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
+                  >
+                    <span className="font-bold text-xs text-[#111111]">Form</span>
+                    <MessageSquare className="w-4 h-4 text-black stroke-[2.2]" />
+                  </button>
+                </div>
 
               {/* Category-specific Integrations */}
               <div className="space-y-1.5 pt-1">
@@ -733,7 +868,8 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
               </div>
             </div>
           </div>
-        )}
+        </>
+      )}
       </div>
     </div>
   );
