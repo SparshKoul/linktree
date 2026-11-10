@@ -22,6 +22,8 @@ export function PublicTreePage({ slug }) {
   const [loading, setLoading] = useState(!treeData);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [blockedMessage, setBlockedMessage] = useState('');
 
   useEffect(() => {
     let localCards = [];
@@ -38,7 +40,15 @@ export function PublicTreePage({ slug }) {
     if (!treeData) setLoading(true);
 
     fetch(`/api/public/trees/${encodeURIComponent(slug)}`)
-      .then((res) => {
+      .then(async (res) => {
+        if (res.status === 403) {
+          const data = await res.json().catch(() => ({}));
+          setIsBlocked(true);
+          setBlockedMessage(data.message || 'This digital card is temporarily unavailable because the account has been locked.');
+          setTreeData(null);
+          setLoading(false);
+          return null;
+        }
         if (!res.ok) {
           if (treeData) return null;
           throw new Error('Tree not found or unpublished');
@@ -46,6 +56,9 @@ export function PublicTreePage({ slug }) {
         return res.json();
       })
       .then((data) => {
+        setLoading(false);
+        if (!data) return;
+        setIsBlocked(false);
         if (data && data.tree) {
           setTreeData((prev) => {
             const finalCards =
@@ -93,6 +106,81 @@ export function PublicTreePage({ slug }) {
       setTimeout(() => setCopied(false), 2000);
     }
   };
+
+  if (isBlocked) {
+    return (
+      <div className="min-h-screen bg-[#111318] text-white flex flex-col justify-between p-6 sm:p-10 relative overflow-hidden font-sans selection:bg-[#00E575] selection:text-black">
+        {/* Subtle background glow */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-red-600/10 rounded-full blur-[120px] pointer-events-none" />
+
+        {/* Top Navbar Header */}
+        <header className="relative z-10 max-w-5xl w-full mx-auto flex items-center justify-between">
+          <a href="https://indiataps.vercel.app" className="flex items-center gap-2 group">
+            <div className="w-9 h-9 rounded-xl bg-white text-black flex items-center justify-center font-black text-lg shadow-sm">
+              <span className="text-[#00E575] leading-none">✱</span>
+            </div>
+            <span className="font-black text-lg tracking-tight text-white group-hover:text-[#00E575] transition-colors">
+              IndiaTaps
+            </span>
+          </a>
+
+          <a
+            href="https://indiataps.vercel.app"
+            className="text-xs font-bold text-gray-400 hover:text-white px-3 py-1.5 rounded-full border border-gray-800 hover:border-gray-700 transition-colors"
+          >
+            indiataps.vercel.app
+          </a>
+        </header>
+
+        {/* Main Content Area in Landing Page Style */}
+        <main className="relative z-10 max-w-xl w-full mx-auto my-auto py-12 text-center space-y-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono font-bold tracking-wide">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span>ACCOUNT TEMPORARILY LOCKED</span>
+          </div>
+
+          <div className="space-y-3">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
+              Card Unavailable
+            </h1>
+            <p className="text-sm sm:text-base text-gray-400 leading-relaxed max-w-md mx-auto">
+              This digital card (<span className="text-white font-mono font-bold">/{slug}</span>) is currently blocked. Please contact the administrator of <span className="text-white font-semibold">indiataps.vercel.app</span> to restore service.
+            </p>
+          </div>
+
+          {/* Action Box */}
+          <div className="p-6 rounded-3xl bg-[#1A1D24] border border-gray-800/80 shadow-2xl space-y-4 text-left">
+            <div className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+              <span>Contact Administrator</span>
+            </div>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              If this is your business profile or client account, please contact the IndiaTaps administrator to reactivate your cards. Once unblocked, all your cards will automatically work normally as they used to.
+            </p>
+
+            <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+              <a
+                href="https://indiataps.vercel.app"
+                className="flex-1 py-3 px-4 rounded-full bg-[#00E575] hover:bg-[#00c966] text-black font-extrabold text-xs transition-all text-center shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+              >
+                indiataps.vercel.app
+              </a>
+              <a
+                href="mailto:sparshkoul6@gmail.com?subject=Reactivate%20IndiaTaps%20Card%20Account"
+                className="flex-1 py-3 px-4 rounded-full bg-gray-800 hover:bg-gray-700 text-white font-bold text-xs transition-all text-center border border-gray-700"
+              >
+                Email Administrator
+              </a>
+            </div>
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="relative z-10 max-w-5xl w-full mx-auto text-center pt-8 border-t border-gray-900 text-xs text-gray-600">
+          Powered by <span className="text-gray-400 font-bold">IndiaTaps</span> • Digital Business Cards & Smart Profiles
+        </footer>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

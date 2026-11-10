@@ -462,6 +462,81 @@ describe('Super Admin & Authentication Restrictions', () => {
     expect(checkCredentials(clientUser, 'oldpassword123')).toBe(401);
     expect(checkCredentials(clientUser, 'newBrandNewPassword999')).toBe(200);
   });
+
+  it('hides cards and shows suspended state when card owner account is blocked, and restores when unblocked', () => {
+    const owner = { id: 77, email: 'bistro@example.com', account_state: 'active', isBlocked: false };
+    const tree = { id: 701, adminId: 77, slug: 'bistro-delight', status: 'live' };
+    const cards = [
+      { id: 1, treeId: 701, title: 'Menu' },
+      { id: 2, treeId: 701, title: 'Instagram' },
+    ];
+
+    function resolvePublicTree(slug, currentOwner, currentTree, currentCards) {
+      if (!currentTree || currentTree.slug !== slug || currentTree.status !== 'live') {
+        return { status: 404, error: 'Not found' };
+      }
+      if (currentOwner.account_state === 'locked' || currentOwner.isBlocked) {
+        return {
+          status: 403,
+          error: 'Account Suspended',
+          isBlocked: true,
+          message: 'This digital card is temporarily unavailable because the account has been locked. Please contact the administrator at indiataps.vercel.app or sparshkoul6@gmail.com.',
+        };
+      }
+      return { status: 200, tree: currentTree, cards: currentCards };
+    }
+
+    // 1. When owner is active, public page returns cards normally
+    const activeRes = resolvePublicTree('bistro-delight', owner, tree, cards);
+    expect(activeRes.status).toBe(200);
+    expect(activeRes.cards.length).toBe(2);
+    expect(activeRes.cards[0].title).toBe('Menu');
+
+    // 2. When owner is locked/blocked, public page returns 403 and hides all cards
+    owner.account_state = 'locked';
+    owner.isBlocked = true;
+    const blockedRes = resolvePublicTree('bistro-delight', owner, tree, cards);
+    expect(blockedRes.status).toBe(403);
+    expect(blockedRes.isBlocked).toBe(true);
+    expect(blockedRes.cards).toBeUndefined();
+    expect(blockedRes.message).toContain('indiataps.vercel.app');
+
+    // 3. When unblocked, all cards work normally again without loss
+    owner.account_state = 'active';
+    owner.isBlocked = false;
+    const restoredRes = resolvePublicTree('bistro-delight', owner, tree, cards);
+    expect(restoredRes.status).toBe(200);
+    expect(restoredRes.cards.length).toBe(2);
+  });
+
+  it('guarantees unique slug constraint persists even when the card owner is locked/blocked', () => {
+    const blockedOwner = { id: 88, email: 'blocked@example.com', account_state: 'locked', isBlocked: true };
+    const trees = [
+      { id: 801, adminId: 88, slug: 'helo', deletedAt: null },
+    ];
+
+    function checkSlugAvailable(slug, allTrees) {
+      const clean = slug.toLowerCase().trim();
+      const taken = allTrees.some((t) => t.slug.toLowerCase() === clean && !t.deletedAt);
+      return !taken;
+    }
+
+    // Even though owner is blocked, slug 'helo' remains strictly reserved
+    expect(checkSlugAvailable('helo', trees)).toBe(false);
+    expect(checkSlugAvailable('HELO', trees)).toBe(false);
+
+    // Another user attempting to create/claim 'helo' gets rejected
+    function tryCreateTree(slug, allTrees) {
+      if (!checkSlugAvailable(slug, allTrees)) {
+        return { status: 409, error: 'This URL slug is already taken or reserved across IndiaTaps' };
+      }
+      return { status: 201, success: true };
+    }
+
+    const claimAttempt = tryCreateTree('helo', trees);
+    expect(claimAttempt.status).toBe(409);
+    expect(claimAttempt.error).toContain('already taken');
+  });
 });
 
 

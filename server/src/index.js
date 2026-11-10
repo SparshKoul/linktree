@@ -1007,11 +1007,57 @@ app.post('/api/admin/trees/:id/sync', async (req, res) => {
   });
 });
 
+// Check if tree owner account is blocked/locked
+async function isTreeOwnerBlocked(adminId, slug = null) {
+  if (adminId) {
+    const memoryUser = store.users.find((u) => u.id === Number(adminId));
+    if (memoryUser) {
+      if (memoryUser.account_state === 'locked' || memoryUser.isBlocked || memoryUser.tier === 'blocked' || memoryUser.status === 'blocked') {
+        return true;
+      }
+    }
+    try {
+      const { data: user } = await supabase.from('users').select('id, tier, account_state').eq('id', Number(adminId)).single();
+      if (user && (user.account_state === 'locked' || user.tier === 'blocked')) {
+        return true;
+      }
+    } catch {}
+  }
+
+  if (slug) {
+    const memoryUser = store.users.find((u) => u.username && u.username.toLowerCase() === slug.toLowerCase());
+    if (memoryUser) {
+      if (memoryUser.account_state === 'locked' || memoryUser.isBlocked || memoryUser.tier === 'blocked' || memoryUser.status === 'blocked') {
+        return true;
+      }
+    }
+    try {
+      const { data: user } = await supabase.from('users').select('id, tier, account_state').ilike('username', slug.toLowerCase()).single();
+      if (user && (user.account_state === 'locked' || user.tier === 'blocked')) {
+        return true;
+      }
+    } catch {}
+  }
+
+  return false;
+}
+
 // Public Tree Page
 app.get('/api/public/trees/:slug', async (req, res) => {
   const slug = req.params.slug.toLowerCase();
   const dbTree = await db.getTreeBySlug(slug);
   if (dbTree) {
+    const adminId = dbTree.admin_id ?? dbTree.adminId;
+    const isBlocked = await isTreeOwnerBlocked(adminId, slug);
+    if (isBlocked) {
+      return res.status(403).json({
+        error: 'Account Suspended',
+        isBlocked: true,
+        slug,
+        message: 'This digital card is temporarily unavailable because the account has been locked. Please contact the administrator at indiataps.vercel.app or sparshkoul6@gmail.com.',
+      });
+    }
+
     db.recordAnalyticsEvent({
       treeId: dbTree.id,
       eventType: 'page_view',
@@ -1037,6 +1083,16 @@ app.get('/api/public/trees/:slug', async (req, res) => {
 
   const tree = store.trees.find((t) => t.slug === slug && !t.deletedAt && t.status === 'live');
   if (!tree) return res.status(404).json({ error: 'Tree not found or unpublished' });
+
+  const isBlocked = await isTreeOwnerBlocked(tree.adminId, slug);
+  if (isBlocked) {
+    return res.status(403).json({
+      error: 'Account Suspended',
+      isBlocked: true,
+      slug,
+      message: 'This digital card is temporarily unavailable because the account has been locked. Please contact the administrator at indiataps.vercel.app or sparshkoul6@gmail.com.',
+    });
+  }
 
   const publicCards = store.cards
     .filter((c) => c.treeId === tree.id && c.visible !== false)
