@@ -1,40 +1,45 @@
-import { useEffect, useState } from 'react';
-import { ReactLenis } from 'lenis/react';
+import React, { useEffect, useRef } from 'react';
+import Lenis from 'lenis';
 import 'lenis/dist/lenis.css';
 
 /**
- * Premium smooth-scrolling wrapper powered by Lenis.
- * Features momentum easing, reduced-motion compliance, and non-blocking touch/wheel handling.
+ * Premium smooth-scrolling component powered directly by core Lenis.
+ * Avoids duplicate React instance issues by managing the Lenis RAF loop natively.
  */
 export function SmoothScroll({ children }) {
-  const [reducedMotion, setReducedMotion] = useState(false);
+  const lenisRef = useRef(null);
 
   useEffect(() => {
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReducedMotion(media.matches);
+    if (typeof window === 'undefined') return;
 
-    const listener = (e) => setReducedMotion(e.matches);
-    media.addEventListener('change', listener);
-    return () => media.removeEventListener('change', listener);
+    // Respect user's preference for reduced motion
+    const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    if (prefersReduced) return;
+
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      wheelMultiplier: 0.95,
+      touchMultiplier: 1.2,
+      infinite: false,
+    });
+
+    lenisRef.current = lenis;
+
+    let rafId;
+    function raf(time) {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    }
+    rafId = requestAnimationFrame(raf);
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      lenis.destroy();
+      lenisRef.current = null;
+    };
   }, []);
 
-  if (reducedMotion) {
-    return <>{children}</>;
-  }
-
-  return (
-    <ReactLenis
-      root
-      options={{
-        lerp: 0.09,
-        duration: 1.2,
-        smoothWheel: true,
-        wheelMultiplier: 0.95,
-        touchMultiplier: 1.2,
-        infinite: false,
-      }}
-    >
-      {children}
-    </ReactLenis>
-  );
+  return <>{children}</>;
 }
