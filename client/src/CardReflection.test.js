@@ -165,5 +165,35 @@ describe('Card Reflection Logic', () => {
     expect(isSetupNeeded).toBe(false);
     expect(galleryCard.settings.images).toHaveLength(2);
   });
+
+  it('correctly discriminates and supports .png, .jpg, and .mp4 media items', () => {
+    const isVideoMedia = (url = '') => {
+      if (!url) return false;
+      return (
+        /\.(mp4|webm|mov|ogg)($|\?)/i.test(url) ||
+        url.startsWith('data:video') ||
+        url.includes('video/mp4') ||
+        url.includes('video/webm') ||
+        url.includes('video/quicktime')
+      );
+    };
+
+    const normalizeExtension = (filename = '') => {
+      const ext = filename.split('.').pop().toLowerCase();
+      return ext === 'pnj' ? 'png' : ext;
+    };
+
+    expect(isVideoMedia('clip.mp4')).toBe(true);
+    expect(isVideoMedia('https://storage.com/clip.mp4?v=1')).toBe(true);
+    expect(isVideoMedia('data:video/mp4;base64,AAAA')).toBe(true);
+
+    expect(isVideoMedia('photo.jpg')).toBe(false);
+    expect(isVideoMedia('image.png')).toBe(false);
+    expect(isVideoMedia('image.pnj')).toBe(false);
+
+    expect(normalizeExtension('photo.jpg')).toBe('jpg');
+    expect(normalizeExtension('graphic.png')).toBe('png');
+    expect(normalizeExtension('typo.pnj')).toBe('png');
+  });
 });
 

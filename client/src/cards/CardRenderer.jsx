@@ -61,10 +61,20 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     Boolean(card.url && card.url.startsWith('data:application/pdf')) ||
     (card.title || '').toLowerCase().includes('menu');
 
+  const isVideoMedia = (url = '') => {
+    if (!url) return false;
+    return (
+      /\.(mp4|webm|mov|ogg)($|\?)/i.test(url) ||
+      url.startsWith('data:video') ||
+      url.includes('video/mp4') ||
+      url.includes('video/webm') ||
+      url.includes('video/quicktime')
+    );
+  };
+
   const isLocalVideo =
     card.type === 'video' ||
-    Boolean(card.url && /\.(mp4|webm|mov|ogg)($|\?)/i.test(card.url)) ||
-    Boolean(card.url && card.url.startsWith('data:video'));
+    Boolean(card.url && isVideoMedia(card.url));
 
   const isLocalMedia = isGallery || isPdfOrMenu || isLocalVideo;
 
@@ -953,7 +963,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
             {isGallery && (
               <>
                 {galleryImages.map((itemUrl, idx) => {
-                  const isVid = /\.(mp4|webm|mov|ogg)($|\?)/i.test(itemUrl) || itemUrl.startsWith('data:video');
+                  const isVid = isVideoMedia(itemUrl);
                   return (
                     <div
                       key={idx}

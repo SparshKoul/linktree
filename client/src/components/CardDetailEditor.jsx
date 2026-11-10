@@ -517,7 +517,7 @@ export function CardDetailEditor({
                 <input
                   type="file"
                   ref={galleryInputRef}
-                  accept="image/*,video/*"
+                  accept=".png,.jpg,.jpeg,.mp4,.webm,.mov,.pnj,image/png,image/jpeg,image/jpg,image/webp,video/mp4,video/webm,video/quicktime"
                   multiple
                   onChange={handleGallerySelect}
                   className="hidden"
@@ -577,10 +577,10 @@ export function CardDetailEditor({
                       <ImageIcon className="w-4 h-4" />
                     </div>
                     <div className="font-bold text-xs text-gray-700 group-hover:text-black">
-                      Upload Photos & Videos
+                      Upload Photos & Videos (.png, .jpg, .mp4)
                     </div>
                     <div className="text-[10px] text-gray-400">
-                      Select images or video clips from your computer or phone
+                      Select .png, .jpg photos or .mp4 video clips from your device
                     </div>
                   </button>
                 )}

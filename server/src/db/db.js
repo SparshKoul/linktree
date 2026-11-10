@@ -743,7 +743,8 @@ export const db = {
       }
 
       const buffer = Buffer.from(base64Content, 'base64');
-      const ext = filename ? filename.split('.').pop() : (mimeType.split('/')[1] || 'bin');
+      const rawExt = filename ? filename.split('.').pop().toLowerCase() : (mimeType.split('/')[1] || 'bin');
+      const ext = rawExt === 'pnj' ? 'png' : rawExt;
       const cleanFolder = (folder || 'uploads').replace(/^\/+|\/+$/g, '');
       const subDir = treeId ? `tree_${treeId}` : 'common';
       const cleanName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
