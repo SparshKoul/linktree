@@ -394,7 +394,7 @@ export const PRESET_THEMES = [
       buttonRadius: 9999,
       fontFamily: 'Inter',
       textColor: '#FFFFFF',
-      footerText: 'Linktree* ✕',
+      footerText: 'IndiaTaps* ✕',
     },
   },
   {

@@ -21,8 +21,11 @@ import {
   Utensils,
   Plus,
   Play,
+  Star,
+  AlertCircle,
 } from 'lucide-react';
 import { FaviconIcon } from './FaviconIcon.jsx';
+import { PdfViewer } from './PdfViewer.jsx';
 
 export const formatFileSize = (bytes) => {
   if (!bytes || isNaN(bytes)) return '';
@@ -78,20 +81,33 @@ export function CardDetailEditor({
     Boolean(cardSettings.address) ||
     Boolean(card?.url && /maps\.google|maps\.app\.goo\.gl/i.test(card.url));
 
+  const isReviews =
+    card?.type === 'reviews' ||
+    Boolean(cardSettings.rating || cardSettings.reviewCount || cardSettings.reviewsCount) ||
+    (card?.title || '').toLowerCase().includes('review');
+
   const isMenu =
     card?.type === 'menu' ||
+    card?.type === 'resume' ||
     cardSettings.platform === 'menu' ||
     Boolean(cardSettings.isPdf) ||
-    Boolean(card?.url && /\.pdf($|\?)/i.test(card.url));
+    Boolean(cardSettings.pdfName) ||
+    Boolean(card?.url && /\.pdf($|\?)/i.test(card.url)) ||
+    Boolean(card?.url && card.url.startsWith('data:application/pdf')) ||
+    (card?.title || '').toLowerCase().includes('resume') ||
+    (card?.title || '').toLowerCase().includes('menu');
 
   const isGallery =
-    card?.type === 'gallery' ||
-    cardSettings.platform === 'gallery' ||
-    Boolean(cardSettings.images && cardSettings.images.length > 0) ||
-    (card?.title || '').toLowerCase().includes('gallery');
+    !isMenu && (
+      card?.type === 'gallery' ||
+      cardSettings.platform === 'gallery' ||
+      Boolean(cardSettings.images && cardSettings.images.length > 0) ||
+      (card?.title || '').toLowerCase().includes('gallery')
+    );
 
   const MAX_GALLERY_ITEMS = 10;
   const MAX_GALLERY_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB limit per container
+  const MAX_PDF_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB limit for PDF / resume
 
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'powerups' | 'insights'
   const [title, setTitle] = useState(card?.title ?? '');
@@ -99,6 +115,8 @@ export function CardDetailEditor({
   const [url, setUrl] = useState(card?.url ?? '');
   const [thumbnailUrl, setThumbnailUrl] = useState(card?.thumbnailUrl ?? '');
   const [layout, setLayout] = useState(cardSettings.layout || 'classic');
+  const [rating, setRating] = useState(cardSettings.rating ?? 5.0);
+  const [reviewCount, setReviewCount] = useState(cardSettings.reviewCount ?? cardSettings.reviewsCount ?? 48);
   const [showMenu, setShowMenu] = useState(false);
   const fileInputRef = useRef(null);
   const pdfInputRef = useRef(null);
@@ -106,6 +124,7 @@ export function CardDetailEditor({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [galleryError, setGalleryError] = useState('');
+  const [pdfError, setPdfError] = useState('');
 
   useEffect(() => {
     if (card) {
@@ -114,6 +133,8 @@ export function CardDetailEditor({
       setUrl(card.url ?? '');
       setThumbnailUrl(card.thumbnailUrl ?? '');
       setLayout(card.settings?.layout || 'classic');
+      setRating(card.settings?.rating ?? 5.0);
+      setReviewCount(card.settings?.reviewCount ?? card.settings?.reviewsCount ?? 48);
     }
   }, [card?.id]);
 
@@ -131,6 +152,40 @@ export function CardDetailEditor({
       settings: {
         ...(card.settings || {}),
         address: val,
+      },
+    });
+  };
+
+  const handleRatingChange = (val) => {
+    const num = parseFloat(val) || 0;
+    setRating(val);
+    const count = reviewCount || 48;
+    const newSubtitle = `${val} ★ (${count} reviews)`;
+    setSubtitle(newSubtitle);
+    onUpdateCard(card.id, {
+      subtitle: newSubtitle,
+      settings: {
+        ...(card.settings || {}),
+        rating: num,
+        reviewCount: parseInt(count, 10),
+        reviewsCount: parseInt(count, 10),
+      },
+    });
+  };
+
+  const handleReviewCountChange = (val) => {
+    const count = parseInt(val, 10) || 0;
+    setReviewCount(val);
+    const r = rating || 5.0;
+    const newSubtitle = `${r} ★ (${val} reviews)`;
+    setSubtitle(newSubtitle);
+    onUpdateCard(card.id, {
+      subtitle: newSubtitle,
+      settings: {
+        ...(card.settings || {}),
+        rating: parseFloat(r),
+        reviewCount: count,
+        reviewsCount: count,
       },
     });
   };
@@ -217,48 +272,80 @@ export function CardDetailEditor({
   const handlePdfSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setPdfError('');
+
+    if (file.size > MAX_PDF_SIZE_BYTES) {
+      setPdfError(`File size exceeds 50 MB limit (${formatFileSize(file.size)}). Please choose a file under 50 MB.`);
+      e.target.value = '';
+      return;
+    }
+
+    const fileName = file.name;
+    const formattedSize = formatFileSize(file.size);
+    const docLabel = (card?.title || '').toLowerCase().includes('resume') ? 'Resume' : 'Menu';
+
+    setIsUploading(true);
+    setUploadStatus(`Uploading ${docLabel} (${fileName} · ${formattedSize})...`);
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const dataUrl = event.target?.result;
       if (typeof dataUrl === 'string') {
         setUrl(dataUrl);
-        setSubtitle(`Menu (${file.name})`);
+        setSubtitle(`${docLabel} (${fileName})`);
         onUpdateCard(card.id, {
           url: dataUrl,
-          subtitle: `Menu (${file.name})`,
+          subtitle: `${docLabel} (${fileName})`,
           settings: {
             ...(card.settings || {}),
             isPdf: true,
-            pdfName: file.name,
+            pdfName: fileName,
+            pdfSize: formattedSize,
+            pdfUrl: dataUrl,
             needsSetup: false,
           },
         });
 
         // Upload PDF to Supabase Storage CDN for faster streaming & smaller payloads
-        fetch('/api/admin/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ file: dataUrl, filename: file.name, folder: 'menus' }),
-        })
-          .then((res) => res.json())
-          .then((res) => {
-            if (res?.url) {
-              setUrl(res.url);
+        try {
+          const res = await fetch('/api/admin/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ file: dataUrl, filename: file.name, folder: 'menus' }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.url) {
+              setUrl(data.url);
               onUpdateCard(card.id, {
-                url: res.url,
+                url: data.url,
                 settings: {
                   ...(card.settings || {}),
                   isPdf: true,
-                  pdfName: file.name,
+                  pdfName: fileName,
+                  pdfSize: formattedSize,
+                  pdfUrl: data.url,
                   needsSetup: false,
                 },
               });
             }
-          })
-          .catch(() => {});
+          }
+        } catch {
+          // Local dataUrl remains functional if offline/network fails
+        } finally {
+          setIsUploading(false);
+          setUploadStatus('');
+        }
+      } else {
+        setIsUploading(false);
+        setUploadStatus('');
       }
+    };
+    reader.onerror = () => {
+      setIsUploading(false);
+      setUploadStatus('');
+      setPdfError('Failed to read PDF document.');
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -520,10 +607,27 @@ export function CardDetailEditor({
               </div>
               <div className="space-y-0.5">
                 <div className="font-extrabold text-xs text-[#1E3A8A]">
-                  Location Card
+                  Google Maps Location Card
                 </div>
                 <div className="text-[11px] text-[#3B82F6]">
                   Displays your location pin, address, and directions on your IndiaTaps.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Info Banner for Reviews */}
+          {isReviews && (
+            <div className="bg-[#FEFCE8] border border-amber-200 rounded-2xl p-3.5 flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
+                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="font-extrabold text-xs text-[#854D0E]">
+                  Google Reviews Card
+                </div>
+                <div className="text-[11px] text-[#A16207]">
+                  Customize your business rating score, review count, and link directly to your Google review page.
                 </div>
               </div>
             </div>
@@ -573,14 +677,14 @@ export function CardDetailEditor({
             <div className="space-y-1">
               <div className="p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-gray-300 transition-colors">
                 <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">
-                  {isMaps ? 'Place or Business Name' : 'Title'}
+                  {isMaps ? 'Place or Business Name' : isReviews ? 'Business / Place Name' : 'Title'}
                 </label>
                 <div className="flex items-center justify-between">
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => handleTitleChange(e.target.value)}
-                    placeholder="Card title"
+                    placeholder={isReviews ? 'e.g. Riyast Cafe' : isMaps ? 'e.g. Riyast Store' : 'Card title'}
                     className="w-full bg-transparent text-sm font-bold text-[#111111] focus:outline-none"
                   />
                   <button className="text-gray-400 hover:text-black p-1 shrink-0">
@@ -590,22 +694,69 @@ export function CardDetailEditor({
               </div>
             </div>
 
+            {/* If Reviews: Editable Star Rating & Total Review Count */}
+            {isReviews && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-gray-300 transition-colors">
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">
+                    Star Rating (1.0 - 5.0)
+                  </label>
+                  <div className="flex items-center justify-between gap-2">
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="1.0"
+                      max="5.0"
+                      value={rating}
+                      onChange={(e) => handleRatingChange(e.target.value)}
+                      className="w-full bg-transparent text-sm font-bold text-[#111111] focus:outline-none"
+                    />
+                    <Star className="w-4 h-4 fill-amber-400 text-amber-500 shrink-0" />
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-gray-300 transition-colors">
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">
+                    Number of Reviews
+                  </label>
+                  <div className="flex items-center justify-between gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={reviewCount}
+                      onChange={(e) => handleReviewCountChange(e.target.value)}
+                      className="w-full bg-transparent text-sm font-bold text-[#111111] focus:outline-none"
+                    />
+                    <span className="text-[11px] font-bold text-gray-400 shrink-0">reviews</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Subtitle / Address Field */}
             <div className="space-y-1">
               <div className="p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-gray-300 transition-colors">
                 <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">
-                  {isMaps ? 'Location Address' : 'Subtitle / Description'}
+                  {isMaps ? 'Location Address' : isReviews ? 'Subtitle / Reviews Preview' : 'Subtitle / Description'}
                 </label>
                 <div className="flex items-center justify-between">
                   <input
                     type="text"
                     value={subtitle}
                     onChange={(e) => handleSubtitleChange(e.target.value)}
-                    placeholder={isMaps ? 'e.g. 123 Main St, New York' : 'e.g. Brief description or subtitle'}
+                    placeholder={
+                      isMaps
+                        ? 'e.g. 123 Main St, New York'
+                        : isReviews
+                        ? 'e.g. 5.0 ★ (48 reviews)'
+                        : 'e.g. Brief description or subtitle'
+                    }
                     className="w-full bg-transparent text-sm font-semibold text-[#111111] focus:outline-none"
                   />
                   {isMaps ? (
                     <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                  ) : isReviews ? (
+                    <Star className="w-4 h-4 text-amber-500 fill-amber-400 shrink-0" />
                   ) : (
                     <Pencil className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                   )}
@@ -795,11 +946,11 @@ export function CardDetailEditor({
               );
             })()}
 
-            {/* Dedicated PDF Menu Upload for Restaurant Menu & Catalogs */}
+            {/* Dedicated PDF Document Upload for Restaurant Menu, Resume & Catalogs */}
             {isMenu && (
               <div className="space-y-2">
                 <label className="block text-[11px] font-semibold text-gray-500">
-                  Menu / Catalog PDF
+                  {(card?.title || '').toLowerCase().includes('resume') ? 'Resume PDF Document' : 'Menu / Catalog / Resume PDF'}
                 </label>
                 <input
                   type="file"
@@ -809,88 +960,143 @@ export function CardDetailEditor({
                   className="hidden"
                 />
 
-                {card.settings?.pdfName ? (
-                  <div className="p-3.5 rounded-2xl bg-orange-50/70 border border-orange-200 flex items-center justify-between gap-3 shadow-2xs">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-xl bg-[#EF4444] text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-2xs">
-                        PDF
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-bold text-xs text-[#111111] truncate">
-                          {card.settings.pdfName}
-                        </div>
-                        <div className="text-[10px] text-gray-500">
-                          Uploaded PDF Document
-                        </div>
-                      </div>
+                {/* Uploading progress banner & animation matching gallery */}
+                {isUploading && (
+                  <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 flex items-center gap-3 text-blue-700 animate-pulse shadow-2xs">
+                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-bold text-xs">Uploading Document...</div>
+                      <div className="text-[11px] text-blue-600 truncate">{uploadStatus}</div>
                     </div>
+                  </div>
+                )}
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-2.5 py-1 rounded-full bg-white border border-gray-200 hover:bg-gray-50 text-[10px] font-bold text-gray-700 transition-colors shadow-2xs"
-                      >
-                        Preview
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => pdfInputRef.current?.click()}
-                        className="px-2.5 py-1 rounded-full bg-white border border-gray-200 hover:bg-gray-50 text-[10px] font-bold text-gray-700 transition-colors shadow-2xs cursor-pointer"
-                      >
-                        Replace
-                      </button>
+                {/* 50 MB limit error notice */}
+                {pdfError && (
+                  <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-600 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{pdfError}</span>
+                  </div>
+                )}
+
+                {(card.settings?.pdfName || (url && (url.startsWith('data:application/pdf') || url.includes('.pdf') || card.settings?.isPdf))) ? (
+                  <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-2xs space-y-0">
+                    {/* Visual PDF document preview container matching gallery media preview */}
+                    <div
+                      className="relative w-full h-72 sm:h-80 bg-gray-50 border-b border-gray-100 overflow-hidden flex items-center justify-center"
+                      data-lenis-prevent
+                    >
+                      <PdfViewer
+                        url={url}
+                        title={card.settings?.pdfName || 'Uploaded PDF'}
+                      />
                       <button
                         type="button"
                         onClick={() => {
+                          setUrl('');
                           onUpdateCard(card.id, {
+                            url: '',
+                            subtitle: '',
                             settings: {
                               ...(card.settings || {}),
                               isPdf: false,
                               pdfName: null,
+                              pdfUrl: null,
+                              pdfSize: null,
                             },
                           });
                         }}
-                        className="p-1 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-black/75 hover:bg-black text-white flex items-center justify-center transition-colors cursor-pointer shadow-md z-20"
                         title="Remove PDF"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-4 h-4 stroke-[2.5]" />
                       </button>
+                    </div>
+
+                    {/* Metadata & Actions footer matching gallery styling */}
+                    <div className="p-3 bg-white flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-[#EF4444] text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-2xs">
+                          PDF
+                        </div>
+                        <div className="min-w-0">
+                          <div className="font-bold text-xs text-[#111111] truncate" title={card.settings?.pdfName || 'Document.pdf'}>
+                            {card.settings?.pdfName || 'Document.pdf'}
+                          </div>
+                          <div className="text-[10px] text-gray-500 flex items-center gap-1.5">
+                            <span>Uploaded Document</span>
+                            {card.settings?.pdfSize && (
+                              <>
+                                <span>•</span>
+                                <span className="font-mono font-bold text-gray-700">{card.settings.pdfSize}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-800 transition-colors flex items-center gap-1"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span>Preview</span>
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => pdfInputRef.current?.click()}
+                          className="px-3 py-1.5 rounded-xl bg-black hover:bg-gray-800 text-xs font-semibold text-white transition-colors cursor-pointer shadow-2xs"
+                        >
+                          Replace PDF
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ) : (
                   <button
                     type="button"
                     onClick={() => pdfInputRef.current?.click()}
-                    className="w-full p-4 rounded-2xl border-2 border-dashed border-gray-300 hover:border-[#EA580C] bg-gray-50/60 hover:bg-orange-50/30 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer group"
+                    className="w-full p-6 rounded-2xl border-2 border-dashed border-gray-300 hover:border-[#EA580C] bg-gray-50/60 hover:bg-orange-50/30 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer group"
                   >
-                    <div className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 group-hover:text-[#EA580C] shadow-2xs transition-colors">
-                      <FileText className="w-4 h-4" />
+                    <div className="w-11 h-11 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 group-hover:text-[#EA580C] shadow-2xs transition-colors">
+                      <FileText className="w-5 h-5" />
                     </div>
-                    <div className="font-bold text-xs text-gray-700 group-hover:text-black">
-                      Upload Menu PDF
+                    <div className="font-bold text-xs text-gray-800 group-hover:text-black">
+                      {(card?.title || '').toLowerCase().includes('resume') ? 'Upload Resume PDF' : 'Upload Menu / Catalog PDF'}
                     </div>
-                    <div className="text-[10px] text-gray-400">
-                      Select a .pdf file from your computer or phone
+                    <div className="text-[11px] text-gray-400">
+                      Select a .pdf file from your computer or phone (up to 50 MB)
                     </div>
                   </button>
                 )}
               </div>
             )}
 
-            {/* URL Field - hidden for Gallery since it contains multiple uploaded photos/videos */}
-            {!isGallery && (
+            {/* URL Field - hidden for Gallery & PDF Documents since they use uploaded files */}
+            {!isGallery && !isMenu && (
               <div className="p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-gray-300 transition-colors">
                 <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">
-                  Destination URL
+                  {isMaps
+                    ? 'Google Maps Link (URL)'
+                    : isReviews
+                    ? 'Google Reviews Page Link (URL)'
+                    : 'Destination URL'}
                 </label>
                 <div className="flex items-center justify-between">
                   <input
                     type="text"
                     value={url}
                     onChange={(e) => handleUrlChange(e.target.value)}
-                    placeholder="https://example.com"
+                    placeholder={
+                      isMaps
+                        ? 'https://maps.google.com/?q=...'
+                        : isReviews
+                        ? 'https://g.page/r/.../review or https://maps.google.com/...'
+                        : 'https://example.com'
+                    }
                     className="w-full bg-transparent text-sm font-semibold text-[#111111] focus:outline-none font-mono"
                   />
                   <button className="text-gray-400 hover:text-black p-1 shrink-0">

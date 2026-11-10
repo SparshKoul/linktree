@@ -69,7 +69,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
       titleFont: custom.titleFont || tree?.titleFont || 'Manrope',
       titleColor: custom.titleColor || tree?.titleColor || '#111111',
       footerEnabled: tree?.footerEnabled !== undefined ? tree.footerEnabled : custom.footerEnabled !== false,
-      footerText: custom.footerText || 'Get your own Linktree',
+      footerText: custom.footerText || 'Get your own IndiaTaps',
       stickers: custom.stickers || [],
       headerLayout: tree?.headerLayout || custom.headerLayout || 'classic',
       avatarUrl: tree?.avatarUrl || custom.avatarUrl || null,
@@ -247,7 +247,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
       buttonRadius: themeObj.theme.buttonRadius,
       fontFamily: themeObj.theme.fontFamily,
       textColor: themeObj.theme.textColor,
-      footerText: themeObj.theme.footerText || 'Get your own Linktree',
+      footerText: themeObj.theme.footerText || 'Get your own IndiaTaps',
     });
   };
 
@@ -761,9 +761,9 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
         <div className="space-y-4 animate-in fade-in duration-150">
           <div className="flex items-center justify-between p-4 border border-gray-200 rounded-2xl bg-white">
             <div>
-              <span className="text-xs font-bold text-gray-900 block">Show Linktree footer badge</span>
+              <span className="text-xs font-bold text-gray-900 block">Show IndiaTaps footer badge</span>
               <span className="text-[11px] text-gray-500">
-                Display the clean "Get your own Linktree" footer badge at the bottom of the page.
+                Display the clean "Get your own IndiaTaps" footer badge at the bottom of the page.
               </span>
             </div>
             <button
@@ -897,18 +897,18 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
                   </div>
                 ) : currentHeaderLayout === 'banner' ? (
                   <div className="w-full flex flex-col items-center mb-2 shrink-0">
-                    <div className="w-full h-28 sm:h-32 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA]">
+                    <div className="w-full h-28 sm:h-32 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA] shrink-0">
                       {current.bannerUrl || currentTree?.bannerUrl ? (
-                        <img src={current.bannerUrl || currentTree.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                        <img src={current.bannerUrl || currentTree.bannerUrl} alt="Banner" className="w-full h-full object-cover object-center" />
                       ) : (
                         <div className="w-full h-full opacity-90 bg-gradient-to-r from-[#FF007A] via-[#A855F7] to-[#7928CA]" />
                       )}
                     </div>
-                    <div className="-mt-11 mb-2 relative ring-4 ring-white rounded-full shadow-md w-22 h-22 overflow-hidden bg-white flex items-center justify-center">
+                    <div className="-mt-10 mb-2 relative ring-4 ring-white rounded-full shadow-md w-20 h-20 aspect-square shrink-0 overflow-hidden bg-white flex items-center justify-center z-10">
                       {current.avatarUrl || currentTree?.avatarUrl ? (
-                        <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                        <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover object-center" />
                       ) : (
-                        <User className="w-12 h-12 text-gray-400" />
+                        <User className="w-10 h-10 text-gray-400" />
                       )}
                     </div>
                   </div>
@@ -922,18 +922,18 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
                   </div>
                 ) : (
                   /* Classic Avatar matching Image */
-                  <div className="w-28 h-28 sm:w-30 sm:h-30 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mt-7 sm:mt-8 mb-3.5 shadow-lg ring-1 ring-white/15 shrink-0">
+                  <div className="w-32 h-32 sm:w-36 sm:h-36 aspect-square rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mt-10 sm:mt-12 mb-4 shadow-lg ring-1 ring-white/15 shrink-0">
                     {current.avatarUrl || currentTree?.avatarUrl ? (
-                      <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover object-center" />
                     ) : (
-                      <User className="w-16 h-16 text-white" />
+                      <User className="w-18 h-18 text-white" />
                     )}
                   </div>
                 )}
 
                 {/* Title */}
                 {isLogo && logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className="max-h-8 max-w-[170px] object-contain my-0.5" />
+                  <img src={logoUrl} alt="Logo" className="max-h-12 max-w-[220px] object-contain mt-2.5 mb-1.5" />
                 ) : (
                   <h2
                     className="font-black text-[28px] sm:text-[32px] leading-tight text-center tracking-tight"
@@ -967,7 +967,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
                 {current.footerEnabled !== false && (
                   <div className="mt-auto pt-6 pb-6 text-center text-[10px] text-gray-400 leading-tight shrink-0">
                     <div>Cookie Preferences • Report • Privacy</div>
-                    <div className="mt-0.5">More from Linktree</div>
+                    <div className="mt-0.5">More from IndiaTaps</div>
                   </div>
                 )}
               </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Trash2, Sparkles, Lock, DollarSign, Calendar, ExternalLink } from 'lucide-react';
+import { X, Trash2, Sparkles, Lock, DollarSign, Calendar, ExternalLink, Star, MapPin } from 'lucide-react';
 
 export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
   if (!isOpen || !card) return null;
@@ -12,13 +12,26 @@ export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
   const [eventDate, setEventDate] = useState(card.settings?.date || 'DEC 20');
   const [venue, setVenue] = useState(card.settings?.venue || 'Showcase Stage');
   const [content, setContent] = useState(card.settings?.content || '');
+  const [rating, setRating] = useState(card.settings?.rating ?? 5.0);
+  const [reviewCount, setReviewCount] = useState(card.settings?.reviewCount ?? card.settings?.reviewsCount ?? 48);
+  const [address, setAddress] = useState(card.settings?.address || card.subtitle || '');
 
   const handleSave = () => {
+    const isReviews = card.type === 'reviews' || card.settings?.rating != null;
+    const isMaps = card.type === 'maps' || card.settings?.address;
+    const computedSubtitle = isReviews
+      ? `${rating} ★ (${reviewCount} reviews)`
+      : isMaps
+      ? address
+      : card.subtitle;
+
     const updatedSettings = {
       ...(card.settings || {}),
       ...(card.type === 'product' ? { price } : {}),
       ...(card.type === 'events' ? { date: eventDate, venue } : {}),
       ...(card.type === 'collapsible' || card.type === 'text' || card.type === 'custom_html' ? { content } : {}),
+      ...(isReviews ? { rating: parseFloat(rating), reviewCount: parseInt(reviewCount, 10), reviewsCount: parseInt(reviewCount, 10) } : {}),
+      ...(isMaps ? { address } : {}),
     };
 
     onSave(card.id, {
@@ -26,6 +39,7 @@ export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
       url,
       animation,
       lockType,
+      subtitle: computedSubtitle,
       settings: updatedSettings,
     });
     onClose();
@@ -132,6 +146,56 @@ export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
                   className="w-full px-3 py-2 rounded-2xl border border-gray-200 bg-[#F6F6F7] text-xs font-semibold"
                 />
               </div>
+            </div>
+          )}
+
+          {/* Reviews Specific: Star Rating & Total Review Count */}
+          {(card.type === 'reviews' || card.settings?.rating != null) && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1 flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                  Star Rating
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="1.0"
+                  max="5.0"
+                  value={rating}
+                  onChange={(e) => setRating(e.target.value)}
+                  className="w-full px-3 py-2 rounded-2xl border border-gray-200 bg-[#F6F6F7] text-xs font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">
+                  Review Count
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={reviewCount}
+                  onChange={(e) => setReviewCount(e.target.value)}
+                  className="w-full px-3 py-2 rounded-2xl border border-gray-200 bg-[#F6F6F7] text-xs font-bold"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Maps Specific: Location Address */}
+          {(card.type === 'maps' || card.settings?.address != null) && (
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1 flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5 text-red-500" />
+                Store / Location Address
+              </label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="123 Main Street, City"
+                className="w-full px-4 py-2.5 rounded-2xl border border-gray-200 bg-[#F6F6F7] text-xs font-semibold focus:outline-none"
+              />
             </div>
           )}
 

@@ -23,7 +23,8 @@ app.use((req, res, next) => {
   } else if (cookieId && !isNaN(parseInt(cookieId, 10))) {
     req.userId = parseInt(cookieId, 10);
   } else {
-    req.userId = store.currentUserId || 1;
+    // Unauthenticated callers get null userId (no auto-impersonating user 1)
+    req.userId = null;
   }
   next();
 });
@@ -33,7 +34,10 @@ const store = {
   admin: {
     id: 1,
     email: 'sparshkoul6@gmail.com',
-    twoFactorEnabled: false,
+    username: 'riyast',
+    role: 'super_admin',
+    accountType: 'super_admin',
+    isSuperAdmin: true,
   },
   users: [
     {
@@ -41,15 +45,21 @@ const store = {
       email: 'sparshkoul6@gmail.com',
       username: 'riyast',
       password: 'password123',
+      role: 'super_admin',
+      accountType: 'super_admin',
+      isSuperAdmin: true,
     },
     {
       id: 2,
       email: 'alex@example.com',
       username: 'alex',
       password: 'password123',
+      role: 'client',
+      accountType: 'client',
+      isSuperAdmin: false,
     },
   ],
-  currentUserId: 1,
+  currentUserId: null,
   trees: [
     {
       id: 1,
@@ -121,6 +131,45 @@ const store = {
 
 const RESERVED_SLUGS = ['admin', 'api', 'login', 'dashboard', 'settings', 'static', 'auth'];
 
+// Ownership & Slug Verification Helpers
+async function resolveTreeOwner(treeId) {
+  const dbOwner = await db.getTreeOwner(treeId);
+  if (dbOwner !== null) return dbOwner;
+  const memTree = store.trees.find((t) => t.id === treeId && !t.deletedAt);
+  return memTree ? memTree.adminId : null;
+}
+
+async function resolveCardOwner(cardId) {
+  const dbOwner = await db.getCardOwner(cardId);
+  if (dbOwner !== null) return dbOwner;
+  const memCard = store.cards.find((c) => c.id === cardId);
+  if (!memCard) return null;
+  const memTree = store.trees.find((t) => t.id === memCard.treeId && !t.deletedAt);
+  return memTree ? memTree.adminId : null;
+}
+
+async function isSlugAvailableGlobally(slug, excludeTreeId = null) {
+  const cleanSlug = slug.toLowerCase().trim();
+  if (RESERVED_SLUGS.includes(cleanSlug)) return false;
+  if (!/^[a-z0-9-]+$/.test(cleanSlug) || cleanSlug.length < 3 || cleanSlug.length > 30) return false;
+
+  const takenInDb = await db.isSlugTaken(cleanSlug, excludeTreeId);
+  if (takenInDb) return false;
+
+  const takenInStore = store.trees.some(
+    (t) => t.slug.toLowerCase() === cleanSlug && !t.deletedAt && (excludeTreeId ? t.id !== excludeTreeId : true)
+  );
+  return !takenInStore;
+}
+
+// Super Admin Permission Verifier
+async function isCallerSuperAdmin(userId) {
+  if (!userId) return false;
+  const user = (await db.getUserById(userId)) || store.users.find((u) => u.id === userId);
+  if (!user) return false;
+  return user.email?.toLowerCase() === 'sparshkoul6@gmail.com' || user.role === 'super_admin' || user.accountType === 'super_admin';
+}
+
 // Auth Me
 app.get('/api/auth/me', async (req, res) => {
   const userId = req.userId || store.currentUserId;
@@ -138,11 +187,12 @@ app.get('/api/auth/me', async (req, res) => {
   res.json(safeUser);
 });
 
-// Auth Login
+// Auth Login (Email + Password only)
 app.post('/api/auth/login', async (req, res) => {
-  const { identifier, password } = req.body;
-  if (!identifier || !password) {
-    return res.status(400).json({ error: 'Username/Email and password are required' });
+  const { identifier, email, password } = req.body;
+  const loginId = (email || identifier || '').trim().toLowerCase();
+  if (!loginId || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
   }
 
   const setAuthCookies = (u) => {
@@ -158,7 +208,7 @@ app.post('/api/auth/login', async (req, res) => {
   };
 
   try {
-    const user = await db.signInUser({ identifier, password });
+    const user = await db.signInUser({ identifier: loginId, password });
     if (user) {
       store.currentUserId = user.id;
       setAuthCookies(user);
@@ -167,18 +217,17 @@ app.post('/api/auth/login', async (req, res) => {
     }
   } catch (err) {
     if (err.message && !err.message.includes('fetch failed')) {
-      return res.status(401).json({ error: err.message || 'Invalid username/email or password' });
+      return res.status(401).json({ error: err.message || 'Invalid email or password' });
     }
   }
 
-  const clean = identifier.toLowerCase().trim();
   const user = store.users.find(
     (u) =>
-      (u.email.toLowerCase() === clean || u.username.toLowerCase() === clean) &&
+      (u.email.toLowerCase() === loginId || u.username.toLowerCase() === loginId) &&
       u.password === password
   );
   if (!user) {
-    return res.status(401).json({ error: 'Invalid username/email or password' });
+    return res.status(401).json({ error: 'Invalid email or password' });
   }
   store.currentUserId = user.id;
   setAuthCookies(user);
@@ -186,64 +235,66 @@ app.post('/api/auth/login', async (req, res) => {
   res.json({ user: safeUser, message: 'Logged in successfully' });
 });
 
-// Auth Register / Signup
+// Auth Register / Signup (Super Admin ONLY - public self-registration is strictly disabled)
 app.post('/api/auth/register', async (req, res) => {
-  const { email, username, password } = req.body;
-  if (!email || !username || !password) {
-    return res.status(400).json({ error: 'All fields are required' });
-  }
-  const cleanUsername = username.toLowerCase().trim().replace(/[^a-z0-9-]/g, '');
-  if (cleanUsername.length < 3) {
-    return res.status(400).json({ error: 'Username must be at least 3 alphanumeric characters' });
+  const callerId = req.userId;
+  const isSuper = await isCallerSuperAdmin(callerId);
+  if (!isSuper) {
+    return res.status(403).json({
+      error: 'Public registration is disabled. Accounts can only be provisioned by the Super Admin (sparshkoul6@gmail.com).',
+    });
   }
 
-  const setAuthCookies = (u) => {
-    res.cookie('userId', String(u.id), {
-      sameSite: 'lax',
-      maxAge: 365 * 24 * 60 * 60 * 1000,
-    });
-    res.cookie('token', String(u.id), {
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 365 * 24 * 60 * 60 * 1000,
-    });
-  };
+  const { email, password, role, accountType } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+  const cleanEmail = email.toLowerCase().trim();
+  const rawUsername = req.body.username || cleanEmail.split('@')[0] || `user_${Date.now()}`;
+  const cleanUsername = rawUsername.toLowerCase().trim().replace(/[^a-z0-9-]/g, '') || `user_${Date.now()}`;
 
   try {
-    const user = await db.signUpUser({ email, username: cleanUsername, password });
+    const user = await db.signUpUser({ email: cleanEmail, username: cleanUsername, password });
     if (user) {
-      store.currentUserId = user.id;
-      setAuthCookies(user);
-      const { password: _, ...safeUser } = user;
-      return res.status(201).json({ user: safeUser, message: 'Account verified & created in Supabase' });
+      const isSuperUser = user.email?.toLowerCase() === 'sparshkoul6@gmail.com';
+      const safeUser = {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: isSuperUser ? 'super_admin' : (role || user.role || 'client'),
+        accountType: isSuperUser ? 'super_admin' : (accountType || user.account_type || 'client'),
+        isSuperAdmin: isSuperUser,
+      };
+      return res.status(201).json({ user: safeUser, message: 'Account provisioned successfully by Super Admin' });
     }
   } catch (err) {
     if (err.message && (err.message.includes('already registered') || err.message.includes('duplicate key'))) {
-      return res.status(409).json({ error: 'Username or email already in use' });
+      return res.status(409).json({ error: 'Email already in use' });
     }
   }
 
   const existing = store.users.find(
     (u) =>
-      u.email.toLowerCase() === email.toLowerCase().trim() ||
+      u.email.toLowerCase() === cleanEmail ||
       u.username.toLowerCase() === cleanUsername
   );
   if (existing) {
-    return res.status(409).json({ error: 'Username or email already in use' });
+    return res.status(409).json({ error: 'Email already in use' });
   }
 
   const newId = Date.now();
   const newUser = {
     id: newId,
-    email: email.trim(),
+    email: cleanEmail,
     username: cleanUsername,
     password,
+    role: role || 'client',
+    accountType: accountType || 'client',
+    isSuperAdmin: false,
   };
   store.users.push(newUser);
-  store.currentUserId = newId;
-  setAuthCookies(newUser);
 
-  // Automatically create their primary tree
+  // Automatically create their primary card
   const newTreeId = newId + 1;
   const newTree = {
     id: newTreeId,
@@ -261,32 +312,99 @@ app.post('/api/auth/register', async (req, res) => {
   store.trees.push(newTree);
 
   const { password: _, ...safeUser } = newUser;
-  res.status(201).json({ user: safeUser, message: 'Account created successfully' });
+  res.status(201).json({ user: safeUser, message: 'Account provisioned successfully by Super Admin' });
 });
 
-// Google OAuth Authorization URL
+// Super Admin User Provisioning endpoint (Email + Password only)
+app.post('/api/admin/users', async (req, res) => {
+  const callerId = req.userId;
+  const isSuper = await isCallerSuperAdmin(callerId);
+  if (!isSuper) {
+    return res.status(403).json({ error: 'Forbidden: Super Admin access required to create accounts.' });
+  }
+
+  const { email, password, role, accountType } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+
+  const cleanEmail = email.toLowerCase().trim();
+  const rawUsername = req.body.username || cleanEmail.split('@')[0] || `user_${Date.now()}`;
+  const cleanUsername = rawUsername.toLowerCase().trim().replace(/[^a-z0-9-]/g, '') || `user_${Date.now()}`;
+
+  try {
+    const user = await db.signUpUser({ email: cleanEmail, username: cleanUsername, password });
+    if (user) {
+      const isSuperUser = user.email?.toLowerCase() === 'sparshkoul6@gmail.com';
+      const safe = {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: isSuperUser ? 'super_admin' : (role || 'client'),
+        accountType: isSuperUser ? 'super_admin' : (accountType || 'client'),
+        isSuperAdmin: isSuperUser,
+      };
+      return res.status(201).json({ user: safe, success: true });
+    }
+  } catch (err) {
+    return res.status(409).json({ error: err.message || 'User already exists' });
+  }
+
+  const newId = Date.now();
+  const newUser = {
+    id: newId,
+    email: cleanEmail,
+    username: cleanUsername,
+    password,
+    role: role || 'client',
+    accountType: accountType || 'client',
+    isSuperAdmin: false,
+  };
+  store.users.push(newUser);
+  const { password: _, ...safeUser } = newUser;
+  res.status(201).json({ user: safeUser, success: true });
+});
+
+// Super Admin List Users
+app.get('/api/admin/users', async (req, res) => {
+  const callerId = req.userId;
+  const isSuper = await isCallerSuperAdmin(callerId);
+  if (!isSuper) {
+    return res.status(403).json({ error: 'Forbidden: Super Admin access required' });
+  }
+
+  let dbUsers = null;
+  try {
+    const { data } = await supabase.from('users').select('id, email, username, role, created_at');
+    if (data) {
+      dbUsers = data.map((u) => {
+        const isS = u.email?.toLowerCase() === 'sparshkoul6@gmail.com' || u.role === 'super_admin';
+        return {
+          ...u,
+          role: isS ? 'super_admin' : (u.role || 'client'),
+          accountType: isS ? 'super_admin' : (u.account_type || u.role || 'client'),
+          isSuperAdmin: isS,
+        };
+      });
+    }
+  } catch {}
+
+  const list = dbUsers || store.users.map(({ password, ...u }) => u);
+  res.json(list);
+});
+
+// Google OAuth & Social Logins (Completely Disabled per security policy)
 app.get('/api/auth/google', (req, res) => {
-  const redirectTo = req.query.redirect_to || 'http://localhost:5173';
-  const supabaseUrl = process.env.SUPABASE_URL || 'https://qbnrhcllnuwdeivpxxoj.supabase.co';
-  const authUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
-  res.json({ url: authUrl });
+  res.status(403).json({
+    error: 'Google OAuth and social logins are disabled. Please sign in using your email and password.',
+  });
 });
 
-// OAuth Callback / Session Sync
-app.post('/api/auth/oauth-callback', async (req, res) => {
-  const { email, username } = req.body;
-  if (!email) {
-    return res.status(400).json({ error: 'Email is required' });
-  }
-  const user = await db.syncOAuthUser({ email, username });
-  if (user) {
-    store.currentUserId = user.id;
-    res.cookie('userId', String(user.id), { sameSite: 'lax', maxAge: 365 * 24 * 60 * 60 * 1000 });
-    res.cookie('token', String(user.id), { httpOnly: true, sameSite: 'lax', maxAge: 365 * 24 * 60 * 60 * 1000 });
-    const { password: _, ...safeUser } = user;
-    return res.json({ user: safeUser, message: 'OAuth account synced' });
-  }
-  res.status(500).json({ error: 'Failed to sync OAuth account' });
+// OAuth Callback (Disabled)
+app.post('/api/auth/oauth-callback', (req, res) => {
+  res.status(403).json({
+    error: 'Social login is disabled.',
+  });
 });
 
 // Auth Logout
@@ -299,37 +417,45 @@ app.post('/api/auth/logout', (req, res) => {
 
 // Admin Me
 app.get('/api/admin/me', async (req, res) => {
-  const userId = req.userId || store.currentUserId;
+  const userId = req.userId;
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
   let user = await db.getUserById(userId);
   if (!user) {
     user = store.users.find((u) => u.id === userId);
   }
-  res.json(user || store.admin);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  const { password, ...safeUser } = user;
+  res.json(safeUser);
 });
 
-// Check Slug Availability
-app.get('/api/admin/trees/check-slug/:slug', (req, res) => {
+// Check Slug Availability globally
+app.get('/api/admin/trees/check-slug/:slug', async (req, res) => {
   const slug = req.params.slug.toLowerCase().trim();
-  if (RESERVED_SLUGS.includes(slug)) {
-    return res.json({ available: false, reason: 'Reserved keyword' });
-  }
-  if (!/^[a-z0-9-]+$/.test(slug) || slug.length < 3 || slug.length > 30) {
-    return res.json({ available: false, reason: 'Invalid format (3-30 chars, alphanumeric or hyphen)' });
-  }
-  const exists = store.trees.some((t) => t.slug === slug && !t.deletedAt);
-  res.json({ available: !exists });
+  const available = await isSlugAvailableGlobally(slug);
+  res.json({
+    available,
+    reason: available ? undefined : 'Reserved keyword or already claimed by another card',
+  });
 });
 
-// List Trees (filtered by current logged in user)
+// List Trees (filtered strictly by current authenticated user)
 app.get('/api/admin/trees', async (req, res) => {
-  const currentId = req.userId || store.currentUserId;
+  const currentId = req.userId;
+  if (!currentId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const dbTrees = await db.getTrees(currentId);
   if (dbTrees !== null) {
     return res.json(dbTrees);
   }
 
   const activeTrees = store.trees
-    .filter((t) => !t.deletedAt && (!currentId || t.adminId === currentId))
+    .filter((t) => !t.deletedAt && t.adminId === currentId)
     .map((t) => {
       const treeCards = store.cards.filter((c) => c.treeId === t.id);
       return {
@@ -340,24 +466,25 @@ app.get('/api/admin/trees', async (req, res) => {
   res.json(activeTrees);
 });
 
-// Create Tree
+// Create Tree (enforces global slug uniqueness and ownership)
 app.post('/api/admin/trees', async (req, res) => {
+  const currentId = req.userId;
+  if (!currentId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const { name, slug, title } = req.body;
   if (!slug || slug.length < 3) {
     return res.status(400).json({ error: 'Username must be at least 3 characters' });
   }
 
   const cleanSlug = slug.toLowerCase().trim();
-  if (RESERVED_SLUGS.includes(cleanSlug)) {
-    return res.status(400).json({ error: 'This username is reserved' });
+  const available = await isSlugAvailableGlobally(cleanSlug);
+  if (!available) {
+    return res.status(409).json({ error: 'This URL slug is already taken or reserved across IndiaTaps' });
   }
 
-  const existing = store.trees.find((t) => t.slug === cleanSlug && !t.deletedAt);
-  if (existing) {
-    return res.status(409).json({ error: 'This username is already taken' });
-  }
-
-  const adminId = store.currentUserId || store.admin.id;
+  const adminId = currentId;
   const createdDbTree = await db.createTree({
     adminId,
     name: name || cleanSlug,
@@ -365,6 +492,7 @@ app.post('/api/admin/trees', async (req, res) => {
     title: title || cleanSlug,
   });
   if (createdDbTree) {
+    store.trees.push(createdDbTree);
     return res.status(201).json(createdDbTree);
   }
 
@@ -397,9 +525,22 @@ app.post('/api/admin/trees', async (req, res) => {
   res.status(201).json(newTree);
 });
 
-// Get Tree Details with Cards
+// Get Tree Details with Cards (requires ownership)
 app.get('/api/admin/trees/:id', async (req, res) => {
+  const currentId = req.userId;
+  if (!currentId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const treeId = parseInt(req.params.id, 10);
+  const ownerId = await resolveTreeOwner(treeId);
+  if (ownerId === null) {
+    return res.status(404).json({ error: 'Tree not found' });
+  }
+  if (ownerId !== currentId) {
+    return res.status(403).json({ error: 'Forbidden: You do not have permission to view or edit this tree' });
+  }
+
   const dbTree = await db.getTreeById(treeId);
   if (dbTree) {
     return res.json(dbTree);
@@ -412,9 +553,30 @@ app.get('/api/admin/trees/:id', async (req, res) => {
   res.json({ ...tree, cards: treeCards });
 });
 
-// Update Tree
+// Update Tree (requires ownership & global slug uniqueness check)
 app.put('/api/admin/trees/:id', async (req, res) => {
+  const currentId = req.userId;
+  if (!currentId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const treeId = parseInt(req.params.id, 10);
+  const ownerId = await resolveTreeOwner(treeId);
+  if (ownerId === null) {
+    return res.status(404).json({ error: 'Tree not found' });
+  }
+  if (ownerId !== currentId) {
+    return res.status(403).json({ error: 'Forbidden: You do not have permission to edit this tree' });
+  }
+
+  if (req.body.slug) {
+    const cleanSlug = req.body.slug.toLowerCase().trim();
+    const available = await isSlugAvailableGlobally(cleanSlug, treeId);
+    if (!available) {
+      return res.status(409).json({ error: 'This URL slug is already taken or invalid' });
+    }
+  }
+
   const updatedDb = await db.updateTree(treeId, req.body);
   if (updatedDb) {
     return res.json(updatedDb);
@@ -433,9 +595,22 @@ app.put('/api/admin/trees/:id', async (req, res) => {
   res.json(updatedTree);
 });
 
-// Delete Tree
+// Delete Tree (requires ownership)
 app.delete('/api/admin/trees/:id', async (req, res) => {
+  const currentId = req.userId;
+  if (!currentId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const treeId = parseInt(req.params.id, 10);
+  const ownerId = await resolveTreeOwner(treeId);
+  if (ownerId === null) {
+    return res.status(404).json({ error: 'Tree not found' });
+  }
+  if (ownerId !== currentId) {
+    return res.status(403).json({ error: 'Forbidden: You do not have permission to delete this tree' });
+  }
+
   await db.deleteTree(treeId);
 
   const treeIndex = store.trees.findIndex((t) => t.id === treeId);
@@ -445,9 +620,22 @@ app.delete('/api/admin/trees/:id', async (req, res) => {
   res.json({ success: true, id: treeId });
 });
 
-// Add Card
+// Add Card (requires tree ownership)
 app.post('/api/admin/trees/:id/cards', async (req, res) => {
+  const currentId = req.userId;
+  if (!currentId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const treeId = parseInt(req.params.id, 10);
+  const ownerId = await resolveTreeOwner(treeId);
+  if (ownerId === null) {
+    return res.status(404).json({ error: 'Tree not found' });
+  }
+  if (ownerId !== currentId) {
+    return res.status(403).json({ error: 'Forbidden: You do not have permission to add cards to this tree' });
+  }
+
   const createdCard = await db.createCard({
     treeId,
     type: req.body.type || 'link',
@@ -458,6 +646,7 @@ app.post('/api/admin/trees/:id/cards', async (req, res) => {
     settings: req.body.settings || {},
   });
   if (createdCard) {
+    store.cards.push(createdCard);
     return res.status(201).json(createdCard);
   }
 
@@ -483,9 +672,22 @@ app.post('/api/admin/trees/:id/cards', async (req, res) => {
   res.status(201).json(newCard);
 });
 
-// Update Card
+// Update Card (requires ownership of parent tree)
 app.put('/api/admin/cards/:id', async (req, res) => {
+  const currentId = req.userId;
+  if (!currentId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const cardId = parseInt(req.params.id, 10);
+  const ownerId = await resolveCardOwner(cardId);
+  if (ownerId === null) {
+    return res.status(404).json({ error: 'Card not found' });
+  }
+  if (ownerId !== currentId) {
+    return res.status(403).json({ error: 'Forbidden: You do not have permission to edit this card' });
+  }
+
   const updatedDb = await db.updateCard(cardId, req.body);
   if (updatedDb) {
     return res.json(updatedDb);
@@ -502,9 +704,22 @@ app.put('/api/admin/cards/:id', async (req, res) => {
   res.json(store.cards[cardIndex]);
 });
 
-// Delete Card
+// Delete Card (requires ownership of parent tree)
 app.delete('/api/admin/cards/:id', async (req, res) => {
+  const currentId = req.userId;
+  if (!currentId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const cardId = parseInt(req.params.id, 10);
+  const ownerId = await resolveCardOwner(cardId);
+  if (ownerId === null) {
+    return res.status(404).json({ error: 'Card not found' });
+  }
+  if (ownerId !== currentId) {
+    return res.status(403).json({ error: 'Forbidden: You do not have permission to delete this card' });
+  }
+
   await db.deleteCard(cardId);
 
   const cardIndex = store.cards.findIndex((c) => c.id === cardId);
@@ -512,6 +727,65 @@ app.delete('/api/admin/cards/:id', async (req, res) => {
     store.cards.splice(cardIndex, 1);
   }
   res.json({ success: true, id: cardId });
+});
+
+// Sync whole tree and cards state to database (requires ownership)
+app.post('/api/admin/trees/:id/sync', async (req, res) => {
+  const currentId = req.userId;
+  if (!currentId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  const treeId = parseInt(req.params.id, 10);
+  const ownerId = await resolveTreeOwner(treeId);
+  if (ownerId === null) {
+    return res.status(404).json({ error: 'Tree not found' });
+  }
+  if (ownerId !== currentId) {
+    return res.status(403).json({ error: 'Forbidden: You do not have permission to modify this tree' });
+  }
+
+  const { treeUpdates, cards } = req.body;
+  if (treeUpdates?.slug) {
+    const cleanSlug = treeUpdates.slug.toLowerCase().trim();
+    const available = await isSlugAvailableGlobally(cleanSlug, treeId);
+    if (!available) {
+      return res.status(409).json({ error: 'This URL slug is already taken or invalid' });
+    }
+  }
+
+  let savedTree = null;
+  if (treeUpdates) {
+    savedTree = await db.updateTree(treeId, treeUpdates);
+    const treeIdx = store.trees.findIndex((t) => t.id === treeId);
+    if (treeIdx !== -1) {
+      store.trees[treeIdx] = { ...store.trees[treeIdx], ...(savedTree || treeUpdates) };
+    }
+  }
+
+  let savedCards = [];
+  if (Array.isArray(cards)) {
+    const synced = await db.syncTreeCards(treeId, cards);
+    if (synced) {
+      savedCards = synced;
+      store.cards = store.cards.filter((c) => c.treeId !== treeId);
+      store.cards.push(...synced);
+    } else {
+      store.cards = store.cards.filter((c) => c.treeId !== treeId);
+      cards.forEach((c, idx) => {
+        store.cards.push({ ...c, treeId, position: idx });
+      });
+      savedCards = store.cards.filter((c) => c.treeId === treeId);
+    }
+  }
+
+  const finalTree = savedTree || (await db.getTreeById(treeId)) || store.trees.find((t) => t.id === treeId);
+  res.json({
+    success: true,
+    tree: finalTree,
+    cards: savedCards,
+    message: 'Tree and cards successfully saved to database',
+  });
 });
 
 // Public Tree Page
@@ -527,9 +801,15 @@ app.get('/api/public/trees/:slug', async (req, res) => {
       ip: req.ip || req.socket?.remoteAddress,
     });
 
-    const publicCards = (dbTree.cards || [])
-      .filter((c) => c.visible)
-      .sort((a, b) => a.position - b.position);
+    let rawCards = dbTree.cards || [];
+    if (rawCards.length === 0) {
+      rawCards = store.cards.filter((c) => c.treeId === dbTree.id);
+    }
+
+    const publicCards = rawCards
+      .filter((c) => c.visible !== false)
+      .sort((a, b) => (a.position || 0) - (b.position || 0));
+
     return res.json({
       tree: dbTree,
       cards: publicCards,
@@ -540,8 +820,8 @@ app.get('/api/public/trees/:slug', async (req, res) => {
   if (!tree) return res.status(404).json({ error: 'Tree not found or unpublished' });
 
   const publicCards = store.cards
-    .filter((c) => c.treeId === tree.id && c.visible)
-    .sort((a, b) => a.position - b.position);
+    .filter((c) => c.treeId === tree.id && c.visible !== false)
+    .sort((a, b) => (a.position || 0) - (b.position || 0));
 
   res.json({
     tree,
@@ -573,9 +853,20 @@ app.post('/api/public/cards/:id/click', async (req, res) => {
 
 // Upload Asset (Image / PDF) to Supabase Storage CDN
 app.post('/api/admin/upload', async (req, res) => {
+  if (!req.userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const { file, filename, folder, treeId } = req.body;
   if (!file) {
     return res.status(400).json({ error: 'File data is required' });
+  }
+
+  if (treeId) {
+    const ownerId = await resolveTreeOwner(parseInt(treeId, 10));
+    if (ownerId !== null && ownerId !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden: You do not own this tree' });
+    }
   }
 
   const publicUrl = await db.uploadAsset({
@@ -596,7 +887,18 @@ app.post('/api/admin/upload', async (req, res) => {
 
 // List Assets (Media Library)
 app.get('/api/admin/assets', async (req, res) => {
+  if (!req.userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const treeId = req.query.treeId ? parseInt(req.query.treeId, 10) : undefined;
+  if (treeId) {
+    const ownerId = await resolveTreeOwner(treeId);
+    if (ownerId !== null && ownerId !== req.userId) {
+      return res.status(403).json({ error: 'Forbidden: You do not own this tree' });
+    }
+  }
+
   const folder = req.query.folder ? String(req.query.folder) : undefined;
   const assets = await db.getAssets({ treeId, adminId: req.userId, folder });
   res.json(assets);
@@ -604,6 +906,10 @@ app.get('/api/admin/assets', async (req, res) => {
 
 // Delete Asset from Storage
 app.delete('/api/admin/assets', async (req, res) => {
+  if (!req.userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
   const { filePath, publicUrl } = req.body;
   const success = await db.deleteAsset({ filePath, publicUrl });
   res.json({ success });

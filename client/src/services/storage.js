@@ -10,8 +10,8 @@ export const storage = {
   getUser() {
     try {
       const data = localStorage.getItem(USER_KEY);
-      if (data === 'null' || data === '') return null;
-      return data ? JSON.parse(data) : { id: 1, username: 'riyast', email: 'sparshkoul6@gmail.com' };
+      if (!data || data === 'null' || data === 'undefined' || data === '') return null;
+      return JSON.parse(data);
     } catch {
       return null;
     }
@@ -29,7 +29,7 @@ export const storage = {
     }
   },
 
-  getTrees(userId = 1) {
+  getTrees(userId = null) {
     try {
       const raw = localStorage.getItem(TREES_KEY);
       let trees = raw ? JSON.parse(raw) : null;
@@ -62,6 +62,22 @@ export const storage = {
       return userId ? normalized.filter((t) => t.adminId === userId) : normalized;
     } catch {
       return [];
+    }
+  },
+
+  saveTree(tree) {
+    try {
+      const raw = localStorage.getItem(TREES_KEY);
+      let trees = raw ? JSON.parse(raw) : [];
+      const idx = trees.findIndex((t) => t.id === tree.id || t.slug === tree.slug);
+      if (idx >= 0) {
+        trees[idx] = { ...trees[idx], ...tree };
+      } else {
+        trees.push(tree);
+      }
+      localStorage.setItem(TREES_KEY, JSON.stringify(trees));
+    } catch (e) {
+      console.warn('localStorage saveTree error', e);
     }
   },
 

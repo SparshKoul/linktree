@@ -5,6 +5,7 @@ export function CreateTreeModal({
   isOpen,
   onClose,
   onTreeCreated,
+  currentUser,
   adminEmail = 'sparshkoul6@gmail.com',
 }) {
   const [step, setStep] = useState('input'); // 'input' | 'success'
@@ -35,7 +36,7 @@ export function CreateTreeModal({
     const clean = slug.toLowerCase().trim();
     if (!clean || clean.length < 3) {
       setIsAvailable(null);
-      setError(clean.length > 0 && clean.length < 3 ? 'Username must be at least 3 characters' : null);
+      setError(clean.length > 0 && clean.length < 3 ? 'Card URL must be at least 3 characters' : null);
       return;
     }
 
@@ -48,7 +49,7 @@ export function CreateTreeModal({
     const reserved = ['admin', 'api', 'login', 'dashboard', 'settings', 'static'];
     if (reserved.includes(clean)) {
       setIsAvailable(false);
-      setError('This username is reserved. Please pick another.');
+      setError('This card URL is reserved. Please pick another.');
       return;
     }
 
@@ -60,7 +61,7 @@ export function CreateTreeModal({
         const data = await res.json();
         setIsAvailable(data.available);
         if (!data.available) {
-          setError('This username is already taken. Try another.');
+          setError('This card URL is already claimed. Try another.');
         }
       } catch {
         setIsAvailable(true);
@@ -87,11 +88,16 @@ export function CreateTreeModal({
     try {
       let tree = null;
       try {
+        const headers = { 'Content-Type': 'application/json' };
+        if (currentUser?.id) {
+          headers['x-user-id'] = String(currentUser.id);
+        }
         const res = await fetch('/api/admin/trees', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           credentials: 'include',
           body: JSON.stringify({
+            adminId: currentUser?.id,
             name: name.trim() || cleanSlug,
             slug: cleanSlug,
             title: name.trim() || cleanSlug,
@@ -108,7 +114,7 @@ export function CreateTreeModal({
       if (!tree) {
         tree = {
           id: Date.now(),
-          adminId: 1,
+          adminId: currentUser?.id || 1,
           name: name.trim() || cleanSlug,
           slug: cleanSlug,
           status: 'live',
@@ -156,12 +162,12 @@ export function CreateTreeModal({
         </button>
 
         {step === 'input' ? (
-          /* Step 1: Username & Business Selection */
+          /* Step 1: Card URL & Business Selection */
           <form onSubmit={handleCreate} className="space-y-6">
             <div>
-              <h2 className="text-3xl font-extrabold tracking-tight mb-2">Create a new IndiaTaps</h2>
+              <h2 className="text-3xl font-extrabold tracking-tight mb-2">Create a new Digital Card</h2>
               <p className="text-sm text-gray-500">
-                Choose a unique username for your new business page. This will be your permanent URL.
+                You can create as many cards as you want under your account. Choose a unique URL for your digital card and QR code.
               </p>
             </div>
 
@@ -181,7 +187,7 @@ export function CreateTreeModal({
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                  Choose a username for your business <span className="text-[#7033FF]">*</span>
+                  Choose a URL for this card <span className="text-[#7033FF]">*</span>
                 </label>
                 <div className="flex items-center rounded-2xl border border-gray-200 bg-[#F6F6F7] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#7033FF] overflow-hidden transition-all">
                   <span className="px-4 py-3 text-gray-400 text-sm font-semibold select-none border-r border-gray-200">
@@ -219,7 +225,7 @@ export function CreateTreeModal({
                 ) : isAvailable === true ? (
                   <p className="mt-2 text-xs text-green-600 flex items-center gap-1 font-medium">
                     <Check className="w-3.5 h-3.5 shrink-0" />
-                    Username is available!
+                    Card URL is available!
                   </p>
                 ) : (
                   <p className="mt-2 text-xs text-gray-400">

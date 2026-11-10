@@ -20,6 +20,8 @@ import {
   ChevronDown,
   ListFilter,
   Trash2,
+  X,
+  Copy,
   HelpCircle,
   MessageSquare,
   LogOut,
@@ -51,6 +53,9 @@ import {
   ChevronLeft,
   Paintbrush,
   Upload,
+  CloudUpload,
+  Save,
+  Loader2,
 } from 'lucide-react';
 import { TreeSwitcher } from './components/TreeSwitcher.jsx';
 import { CreateTreeModal } from './components/CreateTreeModal.jsx';
@@ -66,6 +71,9 @@ import { DesignEditor } from './components/DesignEditor.jsx';
 import { getPatternSvg, getContrastingPatternColor } from './components/WallpaperEditor.jsx';
 import { PRESET_THEMES } from './constants/themes.js';
 import { storage } from './services/storage.js';
+import { LandingPage } from './components/LandingPage.jsx';
+import { PublicTreePage } from './components/PublicTreePage.jsx';
+import { ContactPage } from './components/ContactPage.jsx';
 
 export function App() {
   const initialUser = storage.getUser();
@@ -89,6 +97,8 @@ export function App() {
   const [footerEnabled, setFooterEnabled] = useState(initialSettings.footerEnabled);
   const [previewPhoneView, setPreviewPhoneView] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
+  const [copiedSupportEmail, setCopiedSupportEmail] = useState(false);
   const [lastDeletedCards, setLastDeletedCards] = useState(null);
   const [undoToast, setUndoToast] = useState(false);
   const [cardPendingDelete, setCardPendingDelete] = useState(null);
@@ -106,11 +116,59 @@ export function App() {
   const [draggedCardIndex, setDraggedCardIndex] = useState(null);
   const avatarInputRef = useRef(null);
   const [isBioBannerVisible, setIsBioBannerVisible] = useState(initialSettings.bioBannerVisible);
+  const [isSavingTree, setIsSavingTree] = useState(false);
+  const [treeSavedRecently, setTreeSavedRecently] = useState(false);
+
+  // Client-side SaaS routing (Main Landing '/' vs Dashboard '/dashboard' vs Public Tree '/:slug')
+  const [currentPath, setCurrentPath] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.location.pathname || '/';
+    }
+    return '/';
+  });
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname || '/');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigate = (path) => {
+    if (typeof window !== 'undefined') {
+      window.history.pushState(null, '', path);
+      setCurrentPath(path.split('?')[0]);
+      window.scrollTo(0, 0);
+    }
+  };
+
+  const isLanding = currentPath === '/' || currentPath === '' || currentPath === '/home';
+  const isDashboard = currentPath.startsWith('/dashboard') || currentPath.startsWith('/admin') || currentPath.startsWith('/app');
+  const isContact = currentPath === '/contact' || currentPath.startsWith('/contact') || currentPath === '/pricing' || currentPath === '/features' || currentPath === '/solutions';
+  const isPublicSlug = !isLanding && !isDashboard && !isContact && !currentPath.startsWith('/api') && !currentPath.startsWith('/login') && !currentPath.startsWith('/signup');
+
+  // If a username is claimed from the landing page, open the Create Tree modal
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isDashboard) {
+      const params = new URLSearchParams(window.location.search);
+      const claim = params.get('claim');
+      if (claim) {
+        setIsCreateModalOpen(true);
+      }
+    }
+  }, [currentPath, isDashboard]);
 
   // Load current user and trees on mount or user change using localStorage first
   const fetchUserData = (userId) => {
     const user = storage.getUser();
-    const effectiveUserId = userId || user?.id || 1;
+    const effectiveUserId = userId || user?.id;
+    if (!effectiveUserId) {
+      setCurrentUser(null);
+      setTrees([]);
+      setCurrentTree(null);
+      return;
+    }
     setCurrentUser(user);
 
     const localTrees = storage.getTrees(effectiveUserId);
@@ -240,27 +298,31 @@ export function App() {
   const handleAuthSuccess = (user) => {
     setCurrentUser(user);
     storage.setUser(user);
+    setIsAuthModalOpen(false);
     setTopToast({
-      title: `Welcome, @${user.username}`,
-      subtitle: 'Account loaded with your trees',
+      title: 'Welcome back',
+      subtitle: `${user.email} signed in`,
     });
     setTimeout(() => setTopToast(null), 3000);
     fetchUserData(user.id);
+    navigate('/dashboard');
   };
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
     } catch {}
     storage.setUser(null);
     setCurrentUser(null);
     setTrees([]);
     setCurrentTree(null);
+    setIsAuthModalOpen(false);
     setTopToast({
       title: 'Logged out',
-      subtitle: 'Sign in to access your trees',
+      subtitle: 'Signed out of IndiaTaps',
     });
     setTimeout(() => setTopToast(null), 3000);
+    navigate('/');
   };
 
   const handleUpdateTree = async (updates) => {
@@ -271,7 +333,7 @@ export function App() {
     const allTrees = storage.getTrees();
     const updatedAll = allTrees.map((t) => (t.id === currentTree.id ? updated : t));
     storage.saveTrees(updatedAll);
-    setTrees(updatedAll.filter((t) => t.adminId === currentUser?.id));
+    setTrees(updatedAll.filter((t) => !currentUser?.id || t.adminId === currentUser?.id));
 
     // Sync to Supabase backend and update CDN URLs if returned
     fetch(`/api/admin/trees/${currentTree.id}`, {
@@ -292,6 +354,108 @@ export function App() {
         }
       })
       .catch(() => {});
+  };
+
+  const handleSaveTree = async () => {
+    if (!currentTree || isSavingTree) return;
+    setIsSavingTree(true);
+
+    try {
+      // 1. Immediately ensure local storage holds active state
+      storage.saveTree(currentTree);
+      const activeCards = (currentTree.cards && currentTree.cards.length > 0)
+        ? currentTree.cards
+        : storage.getCards(currentTree.id) || [];
+      if (activeCards.length > 0) {
+        const allLocal = storage.getCards();
+        const otherCards = allLocal.filter((c) => Number(c.treeId) !== Number(currentTree.id));
+        storage.saveCards([...otherCards, ...activeCards]);
+      }
+
+      // 2. Upload and sync the entire tree & cards state to database
+      const res = await fetch(`/api/admin/trees/${currentTree.id}/sync`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {}),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          treeUpdates: {
+            name: currentTree.name,
+            title: currentTree.title,
+            bio: currentTree.bio,
+            avatarUrl: currentTree.avatarUrl,
+            bannerUrl: currentTree.bannerUrl || currentTree.customTheme?.bannerUrl,
+            heroUrl: currentTree.heroUrl || currentTree.customTheme?.heroUrl,
+            logoUrl: currentTree.logoUrl || currentTree.customTheme?.logoUrl,
+            themeId: currentTree.themeId,
+            customTheme: {
+              ...(currentTree.customTheme || {}),
+              backgroundType: activeTheme.backgroundType,
+              backgroundValue: activeTheme.backgroundValue,
+              backgroundColor: activeTheme.backgroundColor,
+              backgroundImageUrl: activeTheme.backgroundImageUrl,
+              wallpaperStyle: activeTheme.wallpaperStyle,
+              wallpaperVideoUrl: activeTheme.wallpaperVideoUrl,
+              patternType: activeTheme.patternType,
+              tint: activeTheme.tint,
+              noise: activeTheme.noise,
+              effect: activeTheme.effect,
+              buttonStyle: activeTheme.buttonStyle,
+              buttonColor: activeTheme.buttonColor,
+              buttonTextColor: activeTheme.buttonTextColor,
+              buttonRadius: activeTheme.buttonRadius,
+              fontFamily: activeTheme.fontFamily,
+              textColor: activeTheme.textColor,
+            },
+            headerLayout: currentTree.headerLayout,
+            titleStyle: currentTree.titleStyle,
+            titleFont: currentTree.titleFont,
+            titleColor: currentTree.titleColor,
+            footerEnabled: currentTree.footerEnabled,
+            footerText: currentTree.footerText,
+            socialLinks: currentTree.socialLinks,
+            seo: currentTree.seo,
+          },
+          cards: activeCards,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.tree && data.cards) {
+          const mergedTree = {
+            ...currentTree,
+            ...data.tree,
+            cards: data.cards,
+          };
+          setCurrentTree(mergedTree);
+          storage.saveTree(mergedTree);
+          const allLocal = storage.getCards();
+          const otherCards = allLocal.filter((c) => Number(c.treeId) !== Number(currentTree.id));
+          storage.saveCards([...otherCards, ...data.cards]);
+        }
+      }
+
+      setTreeSavedRecently(true);
+      setTopToast({
+        title: 'Tree Saved to Database!',
+        subtitle: `All cards and state are live across devices on indiataps.com/${currentSlug}`,
+      });
+      setTimeout(() => {
+        setTreeSavedRecently(false);
+        setTopToast(null);
+      }, 3500);
+    } catch (err) {
+      setTopToast({
+        title: 'Tree Saved Locally',
+        subtitle: 'Saved to local storage; will sync when server is reachable',
+      });
+      setTimeout(() => setTopToast(null), 3000);
+    } finally {
+      setIsSavingTree(false);
+    }
   };
 
   const handleAvatarUpload = (e) => {
@@ -395,8 +559,6 @@ export function App() {
   const handleAddSocialQuick = (platform) => {
     if (platform === 'instagram') {
       handleAddCard('instagram', 'Instagram', { url: 'https://instagram.com/' });
-    } else if (platform === 'tiktok') {
-      handleAddCard('link', 'TikTok', { url: 'https://tiktok.com/@' });
     } else if (platform === 'whatsapp') {
       handleAddCard('phone', 'WhatsApp', { url: 'https://wa.me/' });
     } else if (platform === 'mail') {
@@ -713,10 +875,13 @@ export function App() {
     setTimeout(() => setCopiedUrl(false), 2000);
   };
 
-  const activeTheme =
-    currentTree?.customTheme ||
+  const basePreset =
     PRESET_THEMES.find((p) => p.id === currentTree?.themeId)?.theme ||
     PRESET_THEMES[0].theme;
+  const activeTheme = {
+    ...basePreset,
+    ...(currentTree?.customTheme || {}),
+  };
 
   const isFooterEnabled =
     currentTree?.footerEnabled !== undefined
@@ -745,7 +910,7 @@ export function App() {
     const renderTitleBlock = (isHero = false) => (
       <div className="flex flex-col items-center text-center space-y-1 mt-1">
         {isLogo && logoUrl ? (
-          <img src={logoUrl} alt="Logo" className="max-h-8 max-w-[170px] object-contain my-0.5" />
+          <img src={logoUrl} alt="Logo" className="max-h-12 max-w-[220px] object-contain mt-2.5 mb-1.5" />
         ) : (
           <h2
             className={`font-black text-[28px] sm:text-[32px] tracking-tight leading-tight ${isHero ? 'text-white drop-shadow-xs' : ''}`}
@@ -797,17 +962,17 @@ export function App() {
       return (
         <div className="w-full flex flex-col items-center text-center mb-3">
           {/* Top wide banner cover with equal left, right, and top padding */}
-          <div className="w-full h-32 sm:h-34 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA]">
+          <div className="w-full h-32 sm:h-34 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA] shrink-0">
             {bannerImage ? (
-              <img src={bannerImage} alt="Banner" className="w-full h-full object-cover" />
+              <img src={bannerImage} alt="Banner" className="w-full h-full object-cover object-center" />
             ) : (
               <div className="w-full h-full opacity-90 bg-gradient-to-r from-[#FF007A] via-[#A855F7] to-[#7928CA]" />
             )}
           </div>
           {/* Circular avatar overlapping bottom of banner with crisp white border */}
-          <div className="-mt-11 mb-2 relative ring-4 ring-white rounded-full shadow-md w-20 h-20 overflow-hidden bg-white flex items-center justify-center">
+          <div className="-mt-10 mb-2 relative ring-4 ring-white rounded-full shadow-md w-20 h-20 aspect-square shrink-0 overflow-hidden bg-white flex items-center justify-center z-10">
             {currentTree?.avatarUrl ? (
-              <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover object-center" />
             ) : defaultAvatarSvg}
           </div>
           {renderTitleBlock()}
@@ -847,16 +1012,99 @@ export function App() {
 
     // Default: 'classic'
     return (
-      <div className="flex flex-col items-center text-center mt-7 sm:mt-8 mb-3 shrink-0">
-        <div className="w-28 h-28 sm:w-30 sm:h-30 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3.5 shadow-lg ring-1 ring-white/15 shrink-0">
+      <div className="flex flex-col items-center text-center mt-10 sm:mt-12 mb-3 shrink-0">
+        <div className="w-32 h-32 sm:w-36 sm:h-36 aspect-square rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-4 shadow-lg ring-1 ring-white/15 shrink-0">
           {currentTree?.avatarUrl ? (
-            <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover object-center" />
           ) : defaultAvatarSvg}
         </div>
         {renderTitleBlock()}
       </div>
     );
   };
+
+  if (isLanding) {
+    return (
+      <>
+        <LandingPage
+          onNavigate={navigate}
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          onOpenAuth={(mode) => {
+            setAuthModalMode(mode || 'login');
+            setIsAuthModalOpen(true);
+          }}
+        />
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          currentUser={currentUser}
+          onAuthSuccess={handleAuthSuccess}
+          onLogout={handleLogout}
+          initialMode={authModalMode}
+          treesCount={trees.length}
+          onOpenCreateTree={() => setIsCreateModalOpen(true)}
+        />
+      </>
+    );
+  }
+
+  if (isContact) {
+    return (
+      <>
+        <ContactPage
+          onNavigate={navigate}
+          currentUser={currentUser}
+          onOpenAuth={(mode) => {
+            setAuthModalMode(mode || 'login');
+            setIsAuthModalOpen(true);
+          }}
+        />
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          currentUser={currentUser}
+          onAuthSuccess={handleAuthSuccess}
+          onLogout={handleLogout}
+          initialMode={authModalMode}
+          treesCount={trees.length}
+          onOpenCreateTree={() => setIsCreateModalOpen(true)}
+        />
+      </>
+    );
+  }
+
+  if (isPublicSlug) {
+    const rawSlug = currentPath.replace(/^\/(t\/)?/, '').split('/')[0];
+    const slug = decodeURIComponent(rawSlug);
+    return <PublicTreePage slug={slug} />;
+  }
+
+  // Protected Route: dashboard requires an authenticated account
+  if (isDashboard && !currentUser) {
+    return (
+      <>
+        <LandingPage
+          onNavigate={navigate}
+          currentUser={null}
+          onLogout={handleLogout}
+          onOpenAuth={(mode) => {
+            setAuthModalMode(mode || 'login');
+            setIsAuthModalOpen(true);
+          }}
+        />
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          currentUser={null}
+          onAuthSuccess={handleAuthSuccess}
+          onLogout={handleLogout}
+          initialMode={authModalMode}
+          treesCount={trees.length}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FAFBFB] text-[#111111] flex flex-col font-sans select-none antialiased">
@@ -869,8 +1117,25 @@ export function App() {
         </defs>
       </svg>
       {/* 1. Topmost Dark Header Band matching Reference */}
-      <div className="hidden lg:flex h-10 bg-[#232833] px-5 items-center shrink-0">
-        <span className="text-[#26D07C] font-black text-xl leading-none select-none tracking-tight">✱</span>
+      <div className="hidden lg:flex h-10 bg-[#232833] px-5 items-center justify-between shrink-0">
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 text-white font-extrabold text-xs hover:text-[#26D07C] transition-colors cursor-pointer"
+          title="Back to IndiaTaps Main Site"
+        >
+          <span className="text-[#26D07C] font-black text-xl leading-none select-none tracking-tight">✱</span>
+          <span>IndiaTaps</span>
+        </button>
+        <div className="flex items-center gap-3 text-xs font-semibold text-gray-400">
+          <button
+            onClick={() => navigate('/')}
+            className="hover:text-white transition-colors cursor-pointer"
+          >
+            ← Main Site
+          </button>
+          <span className="text-gray-600">|</span>
+          <span className="text-[#26D07C]">Admin Dashboard</span>
+        </div>
       </div>
 
       {/* 2. Secondary Navigation Bar matching Reference */}
@@ -908,18 +1173,18 @@ export function App() {
                 setIsAuthModalOpen(true);
               }}
               className="flex items-center gap-2 pl-1.5 pr-2.5 py-1 rounded-full border border-gray-200/90 hover:border-gray-300 bg-white hover:bg-gray-50 text-xs font-bold text-[#111111] shadow-2xs transition-all cursor-pointer group"
-              title={`Logged in as @${currentUser.username} (${currentUser.email})`}
+              title={`Logged in as ${currentUser.email}`}
             >
               <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center text-[10px] font-black relative">
-                {(currentUser.username || 'U')[0].toUpperCase()}
+                {(currentUser.email || 'A')[0].toUpperCase()}
                 <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#00E575] border border-white ring-1 ring-[#00E575]/20 animate-pulse" />
               </div>
               <div className="flex flex-col items-start text-left leading-none">
                 <span className="text-[11px] font-extrabold text-gray-900 group-hover:text-purple-600 transition-colors">
-                  @{currentUser.username}
+                  {currentUser.email ? (currentUser.email.length > 20 ? currentUser.email.substring(0, 18) + '...' : currentUser.email) : 'Account'}
                 </span>
                 <span className="text-[9px] text-gray-400 font-mono">
-                  {currentUser.email ? (currentUser.email.length > 16 ? currentUser.email.substring(0, 14) + '...' : currentUser.email) : 'account'}
+                  {currentUser.role === 'super_admin' ? 'Super Admin' : `${trees.length} card${trees.length === 1 ? '' : 's'}`}
                 </span>
               </div>
             </button>
@@ -1007,10 +1272,8 @@ export function App() {
             <div className="space-y-4">
               {/* Top row: User pill button + Bell notification */}
               <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                <button
-                  onClick={() => setSidebarMenuMode(sidebarMenuMode === 'main' ? 'account' : 'main')}
-                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-gray-100 text-left transition-colors cursor-pointer"
-                  title="Click to toggle account menu"
+                <div
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left"
                 >
                   <div className="w-6 h-6 rounded-full bg-[#D1D5DB] flex items-center justify-center overflow-hidden shrink-0">
                     <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -1020,8 +1283,7 @@ export function App() {
                   <span className="font-bold text-xs truncate max-w-[120px] text-black">
                     {currentSlug}
                   </span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ${sidebarMenuMode === 'account' ? 'rotate-180' : ''}`} />
-                </button>
+                </div>
 
                 <div className="flex items-center gap-1">
                   <button className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
@@ -1037,116 +1299,136 @@ export function App() {
                 </div>
               </div>
 
-              {/* View 1: Main Navigation (Minimal: Workspace & Cards Dashboard) */}
-              {sidebarMenuMode === 'main' ? (
-                <div className="space-y-1 text-xs font-semibold text-gray-700">
-                  <button
-                    onClick={() => {
-                      setCurrentView('workspace');
-                      setActiveRail('content');
-                      if (window.innerWidth < 1024) setIsSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${
-                      currentView === 'workspace'
-                        ? 'bg-[#F3F3F1] text-black font-extrabold shadow-2xs'
-                        : 'text-gray-600 hover:text-black hover:bg-gray-50'
-                    }`}
-                  >
-                    <LayoutGrid className="w-4 h-4" />
-                    <span>Workspace</span>
-                  </button>
+              {/* Main Navigation (Workspace & Cards Dashboard & Main Site) */}
+              <div className="space-y-1 text-xs font-semibold text-gray-700">
+                <button
+                  onClick={() => {
+                    setCurrentView('workspace');
+                    setActiveRail('content');
+                    if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${
+                    currentView === 'workspace'
+                      ? 'bg-[#F3F3F1] text-black font-extrabold shadow-2xs'
+                      : 'text-gray-600 hover:text-black hover:bg-gray-50'
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span>Workspace</span>
+                </button>
 
+                <button
+                  onClick={() => {
+                    setCurrentView('dashboard');
+                    if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${
+                    currentView === 'dashboard'
+                      ? 'bg-[#F3F3F1] text-black font-extrabold shadow-2xs'
+                      : 'text-gray-600 hover:text-black hover:bg-gray-50'
+                  }`}
+                >
+                  <ShoppingBag className="w-4 h-4 text-purple-600" />
+                  <span>Dashboard</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                    navigate('/');
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer text-gray-600 hover:text-black hover:bg-gray-50"
+                >
+                  <ExternalLink className="w-4 h-4 text-emerald-600" />
+                  <span>Main Website</span>
+                </button>
+              </div>
+
+              {/* Account & Digital Card Management (Directly visible without dropdown toggle) */}
+              <div className="pt-2 border-t border-gray-100 space-y-2">
+                {/* Account Card */}
+                <div className="flex items-center justify-between p-2.5 rounded-2xl bg-[#F6F6F7] border border-gray-100">
+                  <div className="flex items-center gap-2.5 overflow-hidden">
+                    <div className="w-7 h-7 rounded-full bg-[#D1D5DB] flex items-center justify-center overflow-hidden shrink-0">
+                      <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+                      </svg>
+                    </div>
+                    <div className="truncate">
+                      <div className="font-bold text-xs text-[#111111] leading-tight truncate">{currentSlug}</div>
+                      <div className="text-[10px] text-gray-400 font-mono leading-tight truncate">indiataps.com/{currentSlug}</div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-semibold text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full bg-white shrink-0">
+                    Free
+                  </span>
+                </div>
+
+                {/* Account Actions */}
+                <div className="space-y-0.5 text-xs font-semibold text-gray-700">
                   <button
                     onClick={() => {
                       setCurrentView('dashboard');
                       if (window.innerWidth < 1024) setIsSidebarOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${
-                      currentView === 'dashboard'
-                        ? 'bg-[#F3F3F1] text-black font-extrabold shadow-2xs'
-                        : 'text-gray-600 hover:text-black hover:bg-gray-50'
-                    }`}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer"
                   >
-                    <ShoppingBag className="w-4 h-4 text-purple-600" />
-                    <span>Dashboard</span>
+                    <span className="text-sm">⇄</span>
+                    <span>Switch IndiaTaps</span>
                   </button>
-                </div>
-              ) : (
-                /* View 2: Account Menu (matching Image 1) */
-                <div className="space-y-3 animate-in fade-in duration-150">
-                  {/* Account Card matching Image 1 */}
-                  <div className="flex items-center justify-between p-2.5 rounded-2xl bg-[#F6F6F7] border border-gray-100">
-                    <div className="flex items-center gap-2.5 overflow-hidden">
-                      <div className="w-8 h-8 rounded-full bg-[#D1D5DB] flex items-center justify-center overflow-hidden shrink-0">
-                        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-                        </svg>
-                      </div>
-                      <div className="truncate">
-                        <div className="font-bold text-xs text-[#111111]">{currentSlug}</div>
-                        <div className="text-[10px] text-gray-400 font-mono">indiataps.com/{currentSlug}</div>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-semibold text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full bg-white">
-                      Free
-                    </span>
-                  </div>
-
-                  {/* Account Action Items matching Image 1 */}
-                  <div className="space-y-0.5 text-xs font-semibold text-gray-700">
-                    <button
-                      onClick={() => setSidebarMenuMode('main')}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      <span className="text-sm">⇄</span>
-                      <span>Switch IndiaTaps</span>
-                    </button>
-                    <button
-                      onClick={() => setIsCreateModalOpen(true)}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4 text-gray-500" />
-                      <span>Create new IndiaTaps</span>
-                    </button>
+                  <button
+                    onClick={() => {
+                      setIsCreateModalOpen(true);
+                      if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4 text-gray-500" />
+                    <span>Create new IndiaTaps</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAuthModalMode('switch');
+                      setIsAuthModalOpen(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <Users className="w-4 h-4 text-gray-500" />
+                    <span>Account</span>
+                  </button>
+                  <button
+                    onClick={() => setIsHelpModalOpen(true)}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <span>📖</span>
+                    <span>Help topics</span>
+                  </button>
+                  {currentUser ? (
                     <button
                       onClick={() => {
-                        setAuthModalMode('switch');
-                        setIsAuthModalOpen(true);
+                        setIsSidebarOpen(false);
+                        handleLogout();
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      <Users className="w-4 h-4 text-gray-500" />
-                      <span>Account</span>
-                    </button>
-                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer">
-                      <HelpCircle className="w-4 h-4 text-gray-500" />
-                      <span>Ask a question</span>
-                    </button>
-                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer">
-                      <span>📖</span>
-                      <span>Help topics</span>
-                    </button>
-                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer">
-                      <MessageSquare className="w-4 h-4 text-gray-500" />
-                      <span>Share feedback</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setAuthModalMode('login');
-                        setIsAuthModalOpen(true);
-                      }}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-red-600 hover:bg-red-50 transition-colors cursor-pointer font-bold"
                     >
                       <LogOut className="w-4 h-4 text-red-500" />
                       <span>Log out</span>
                     </button>
-                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left hover:bg-gray-50 transition-colors cursor-pointer pt-2 border-t border-gray-100">
-                      <Sparkles className="w-4 h-4 text-purple-600" />
-                      <span>Post ideas</span>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setIsSidebarOpen(false);
+                        setAuthModalMode('login');
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left text-black hover:bg-gray-50 transition-colors cursor-pointer font-bold"
+                    >
+                      <User className="w-4 h-4 text-gray-700" />
+                      <span>Sign in</span>
                     </button>
-                  </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Bottom Settings Button beneath menu items */}
@@ -1161,9 +1443,9 @@ export function App() {
                 <Settings className="w-4 h-4 text-gray-500" />
                 <span>Settings</span>
                 {currentUser ? (
-                  <span className="ml-auto text-[10px] text-green-600 font-bold truncate max-w-[100px]">@{currentUser.username}</span>
+                  <span className="ml-auto text-[10px] text-green-600 font-bold truncate max-w-[120px]">{currentUser.email}</span>
                 ) : (
-                  <span className="ml-auto text-[10px] text-purple-600 font-bold">Login / Sign up</span>
+                  <span className="ml-auto text-[10px] text-purple-600 font-bold">Sign in</span>
                 )}
               </button>
             </div>
@@ -1288,7 +1570,7 @@ export function App() {
                   setIsAuthModalOpen(true);
                 }}
                 className="w-11 h-11 rounded-full flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-200/60 transition-colors cursor-pointer"
-                title="Settings & Accounts (Login / Sign up)"
+                title="Settings & Accounts (Sign In)"
               >
                 <Settings className="w-5 h-5 stroke-[2]" />
               </button>
@@ -1310,6 +1592,9 @@ export function App() {
               }
               setCurrentView('workspace');
             }}
+            onOpenAddCard={() => setIsAddCardOpen(true)}
+            onSelectRail={(rail) => setActiveRail(rail)}
+            onSelectTab={(tab) => setActiveTab(tab)}
           />
         ) : (
           <main className="flex-1 p-0 lg:px-1.5 lg:sm:px-2.5 lg:pt-2 lg:pb-4 h-full lg:h-[calc(100vh-88px)] flex justify-center lg:justify-end items-start overflow-hidden">
@@ -1394,6 +1679,20 @@ export function App() {
                               type="button"
                               onClick={() => {
                                 setIsMobileMoreMenuOpen(false);
+                                handleSaveTree();
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-emerald-700 hover:bg-emerald-50 text-left transition-colors cursor-pointer font-bold"
+                            >
+                              <CloudUpload className="w-4 h-4 text-emerald-600" />
+                              <span>Save tree to database</span>
+                            </button>
+
+                            <div className="my-1 border-t border-gray-100" />
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsMobileMoreMenuOpen(false);
                                 setIsReordering(!isReordering);
                               }}
                               className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-700 hover:text-black hover:bg-[#F6F6F7] text-left transition-colors cursor-pointer"
@@ -1449,6 +1748,27 @@ export function App() {
                         </>
                       )}
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSaveTree}
+                      disabled={isSavingTree}
+                      className={`h-9 px-3 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+                        treeSavedRecently
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-[#111111] hover:bg-neutral-800 text-white'
+                      } disabled:opacity-75`}
+                      title="Save tree to database"
+                    >
+                      {isSavingTree ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : treeSavedRecently ? (
+                        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                      ) : (
+                        <CloudUpload className="w-3.5 h-3.5" />
+                      )}
+                      <span>{isSavingTree ? 'Saving...' : treeSavedRecently ? 'Saved' : 'Save tree'}</span>
+                    </button>
 
                     <button
                       type="button"
@@ -1527,20 +1847,6 @@ export function App() {
 
                         <button
                           type="button"
-                          onClick={() => handleAddSocialQuick('tiktok')}
-                          className="w-8 h-8 rounded-full border border-gray-200/90 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
-                          title="Add TikTok"
-                        >
-                          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c1.61-1.42 2.39-3.2 2.39-5.75v-5.2a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.43-.57z"/>
-                          </svg>
-                          <span className="w-3.5 h-3.5 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
-                            +
-                          </span>
-                        </button>
-
-                        <button
-                          type="button"
                           onClick={() => handleAddSocialQuick('whatsapp')}
                           className="w-8 h-8 rounded-full border border-gray-200/90 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
                           title="Add WhatsApp"
@@ -1598,9 +1904,31 @@ export function App() {
 
                 {/* Desktop Header Title & Top Right Icons matching Image 1 */}
                 <div className="hidden lg:flex items-center justify-between">
-                  <h1 className="text-xl font-bold tracking-tight text-[#111111]">
-                    Content
-                  </h1>
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-xl font-bold tracking-tight text-[#111111]">
+                      Content
+                    </h1>
+                    <button
+                      type="button"
+                      onClick={handleSaveTree}
+                      disabled={isSavingTree}
+                      className={`h-8 px-3 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+                        treeSavedRecently
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-[#111111] hover:bg-neutral-800 text-white'
+                      } disabled:opacity-75`}
+                      title="Save tree state to database"
+                    >
+                      {isSavingTree ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : treeSavedRecently ? (
+                        <Check className="w-3 h-3 stroke-[2.5]" />
+                      ) : (
+                        <CloudUpload className="w-3 h-3" />
+                      )}
+                      <span>{isSavingTree ? 'Saving...' : treeSavedRecently ? 'Saved' : 'Save tree'}</span>
+                    </button>
+                  </div>
                   <div className="flex items-center gap-1 text-gray-500">
                     {/* Drag / Reorder mode toggle button */}
                     <button
@@ -1702,9 +2030,9 @@ export function App() {
                       <div className="text-[10px] text-gray-400 font-mono">indiataps.com/{currentSlug}</div>
                     </div>
                     <div className="flex items-center gap-2 pr-4">
-                      {/* TikTok circle badge */}
-                      <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[8px] font-bold">
-                        TT
+                      {/* Social bio badge */}
+                      <span className="w-4 h-4 rounded-full bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF] text-white flex items-center justify-center text-[7px] font-bold">
+                        IG
                       </span>
                       {/* Phone graphic preview */}
                       <div className="w-3.5 h-5 rounded-xs border border-gray-300 bg-gray-50 flex flex-col items-center justify-center gap-0.5 px-0.5 py-0.5">
@@ -1753,28 +2081,49 @@ export function App() {
                   </button>
                 </div>
 
-                {/* Action Buttons Row: [ ⊞ Add collection ] and [ + Add ] matching Reference */}
-                <div className="flex items-center gap-3">
+                {/* Action Buttons Row: [ ⊞ Add collection ], [ + Add ], and [ 💾 Save tree ] */}
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   <button
                     onClick={() => handleAddCard('collapsible', 'Add collection title', { subtitle: 'Add or drag & drop an existing link' })}
-                    className="flex-1 h-11 py-2.5 px-4 rounded-full bg-[#EAEAE8] hover:bg-[#E2E2E0] text-xs font-bold text-[#111111] flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    className="h-11 py-2.5 px-2 sm:px-3 rounded-full bg-[#EAEAE8] hover:bg-[#E2E2E0] text-xs font-bold text-[#111111] flex items-center justify-center gap-1.5 sm:gap-2 transition-colors cursor-pointer truncate"
                   >
                     {/* Collection grid icon */}
-                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                    <svg className="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
                       <rect x="3" y="3" width="7" height="7" rx="1.5" />
                       <rect x="14" y="3" width="7" height="7" rx="1.5" />
                       <rect x="3" y="14" width="7" height="7" rx="1.5" />
                       <rect x="14" y="14" width="7" height="7" rx="1.5" />
                     </svg>
-                    <span>Add collection</span>
+                    <span className="truncate">Add collection</span>
                   </button>
 
                   <button
                     onClick={() => setIsAddCardOpen(true)}
-                    className="flex-1 h-11 py-2.5 px-4 rounded-full bg-black hover:bg-neutral-800 text-xs font-bold text-white flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                    className="h-11 py-2.5 px-2 sm:px-3 rounded-full bg-black hover:bg-neutral-800 text-xs font-bold text-white flex items-center justify-center gap-1.5 sm:gap-2 shadow-xs transition-colors cursor-pointer"
                   >
-                    <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <Plus className="w-3.5 h-3.5 stroke-[2.5] shrink-0" />
                     <span>Add</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveTree}
+                    disabled={isSavingTree}
+                    className={`h-11 py-2.5 px-2 sm:px-3 rounded-full text-xs font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer shadow-xs disabled:opacity-75 ${
+                      treeSavedRecently
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white'
+                    }`}
+                    title="Save all cards and tree state to database"
+                  >
+                    {isSavingTree ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                    ) : treeSavedRecently ? (
+                      <Check className="w-3.5 h-3.5 stroke-[3] shrink-0" />
+                    ) : (
+                      <CloudUpload className="w-3.5 h-3.5 stroke-[2.2] shrink-0" />
+                    )}
+                    <span className="truncate">{isSavingTree ? 'Saving...' : treeSavedRecently ? 'Saved!' : 'Save tree'}</span>
                   </button>
                 </div>
 
@@ -2152,88 +2501,102 @@ export function App() {
               </div>
             )}
           </div>
-
-          {/* Mobile Floating Bottom Dock matching Desktop navigation */}
-          {!activeCardDetail && (
-            <div className="lg:hidden fixed bottom-3 inset-x-0 z-30 flex justify-center pointer-events-none px-4">
-              <div className="h-12 px-6 bg-white/95 backdrop-blur-md rounded-full shadow-2xl border border-gray-200/90 flex items-center gap-7 pointer-events-auto shrink-0">
-                {/* 1. Content */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentView('workspace');
-                    setActiveRail('content');
-                    setActiveTab('links');
-                  }}
-                  className={`flex flex-col items-center gap-0.5 cursor-pointer group transition-colors ${
-                    currentView === 'workspace' && activeRail === 'content'
-                      ? 'text-black font-extrabold'
-                      : 'text-gray-500 hover:text-black'
-                  }`}
-                >
-                  <svg className="w-4 h-4 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="7" y="3" width="13" height="13" rx="2" />
-                    <path d="M4 8v11a2 2 0 0 0 2 2h11" />
-                  </svg>
-                  <span className="text-[9px] font-bold">Content</span>
-                </button>
-
-                {/* 2. Header */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentView('workspace');
-                    setActiveRail('header');
-                  }}
-                  className={`flex flex-col items-center gap-0.5 cursor-pointer group transition-colors ${
-                    currentView === 'workspace' && activeRail === 'header'
-                      ? 'text-black font-extrabold'
-                      : 'text-gray-500 hover:text-black'
-                  }`}
-                >
-                  <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="16" rx="3" />
-                    <circle cx="9" cy="10" r="2" />
-                    <line x1="15" y1="9" x2="17" y2="9" />
-                    <line x1="15" y1="13" x2="17" y2="13" />
-                    <path d="M6 16c0-1.5 1.5-2.5 3-2.5s3 1 3 2.5" />
-                  </svg>
-                  <span className="text-[9px] font-bold">Header</span>
-                </button>
-
-                {/* 3. Design */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentView('workspace');
-                    setActiveRail('design');
-                  }}
-                  className={`flex flex-col items-center gap-0.5 cursor-pointer group transition-colors ${
-                    currentView === 'workspace' && activeRail === 'design'
-                      ? 'text-black font-extrabold'
-                      : 'text-gray-500 hover:text-black'
-                  }`}
-                >
-                  <Palette className="w-4 h-4 stroke-[2]" />
-                  <span className="text-[9px] font-bold">Design</span>
-                </button>
-
-                {/* 4. Settings */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthModalMode(currentUser ? 'switch' : 'login');
-                    setIsAuthModalOpen(true);
-                  }}
-                  className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-black cursor-pointer group transition-colors"
-                >
-                  <Settings className="w-4 h-4 stroke-[2]" />
-                  <span className="text-[9px] font-bold">Settings</span>
-                </button>
-              </div>
-            </div>
-          )}
         </main>
+        )}
+
+        {/* Mobile Floating Bottom Dock matching Reference Screenshot */}
+        {!activeCardDetail && (
+          <div className="lg:hidden fixed bottom-3 inset-x-0 z-30 flex justify-center pointer-events-none px-4">
+            <div className="h-12 px-4.5 bg-white/95 backdrop-blur-md rounded-full shadow-2xl border border-gray-200/90 flex items-center gap-5 sm:gap-6 pointer-events-auto shrink-0">
+              {/* 1. Dashboard */}
+              <button
+                type="button"
+                onClick={() => setCurrentView('dashboard')}
+                className={`flex flex-col items-center gap-0.5 cursor-pointer group transition-colors ${
+                  currentView === 'dashboard'
+                    ? 'text-black font-extrabold'
+                    : 'text-gray-500 hover:text-black'
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4 stroke-[2]" />
+                <span className="text-[9px] font-bold">Dashboard</span>
+              </button>
+
+              {/* 2. Content */}
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentView('workspace');
+                  setActiveRail('content');
+                  setActiveTab('links');
+                }}
+                className={`flex flex-col items-center gap-0.5 cursor-pointer group transition-colors ${
+                  currentView === 'workspace' && activeRail === 'content'
+                    ? 'text-black font-extrabold'
+                    : 'text-gray-500 hover:text-black'
+                }`}
+              >
+                <svg className="w-4 h-4 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="7" y="3" width="13" height="13" rx="2" />
+                  <path d="M4 8v11a2 2 0 0 0 2 2h11" />
+                </svg>
+                <span className="text-[9px] font-bold">Content</span>
+              </button>
+
+              {/* 3. Header */}
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentView('workspace');
+                  setActiveRail('header');
+                }}
+                className={`flex flex-col items-center gap-0.5 cursor-pointer group transition-colors ${
+                  currentView === 'workspace' && activeRail === 'header'
+                    ? 'text-black font-extrabold'
+                    : 'text-gray-500 hover:text-black'
+                }`}
+              >
+                <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="16" rx="3" />
+                  <circle cx="9" cy="10" r="2" />
+                  <line x1="15" y1="9" x2="17" y2="9" />
+                  <line x1="15" y1="13" x2="17" y2="13" />
+                  <path d="M6 16c0-1.5 1.5-2.5 3-2.5s3 1 3 2.5" />
+                </svg>
+                <span className="text-[9px] font-bold">Header</span>
+              </button>
+
+              {/* 4. Design */}
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentView('workspace');
+                  setActiveRail('design');
+                }}
+                className={`flex flex-col items-center gap-0.5 cursor-pointer group transition-colors ${
+                  currentView === 'workspace' && activeRail === 'design'
+                    ? 'text-black font-extrabold'
+                    : 'text-gray-500 hover:text-black'
+                }`}
+              >
+                <Palette className="w-4 h-4 stroke-[2]" />
+                <span className="text-[9px] font-bold">Design</span>
+              </button>
+
+              {/* 5. Settings */}
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthModalMode(currentUser ? 'switch' : 'login');
+                  setIsAuthModalOpen(true);
+                }}
+                className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-black cursor-pointer group transition-colors"
+              >
+                <Settings className="w-4 h-4 stroke-[2]" />
+                <span className="text-[9px] font-bold">Settings</span>
+              </button>
+            </div>
+          </div>
         )}
 
         {/* 4. Right Side: Centered Phone Preview Mockup matching Reference */}
@@ -2362,7 +2725,7 @@ export function App() {
               </div>
 
               {/* Scrollable Content Container Over Sticky Wallpaper */}
-              <div className="absolute inset-0 z-10 overflow-y-auto px-4 sm:px-5 pb-8 flex flex-col justify-between text-center no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-5 sm:pt-6">
+              <div data-lenis-prevent className="absolute inset-0 z-10 overflow-y-auto px-4 sm:px-5 pb-8 flex flex-col justify-between text-center no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-5 sm:pt-6">
                 <div className="flex flex-col justify-between flex-1 min-h-full w-full max-w-[440px] mx-auto">
                   {/* Top iOS Icons */}
                   <div className="w-full flex items-center justify-between text-xs mb-4 z-10 px-1 pt-1" style={{ color: activeTheme?.textColor || '#FFFFFF' }}>
@@ -2397,12 +2760,12 @@ export function App() {
                           type="button"
                           className="w-full max-w-[210px] py-2 px-4 rounded-full bg-white text-black text-xs font-bold shadow-md hover:scale-[1.02] transition-transform mx-auto block cursor-pointer border border-gray-100"
                         >
-                          {activeTheme?.footerText || 'Get your own Linktree'}
+                          {activeTheme?.footerText || 'Get your own IndiaTaps'}
                         </button>
                       )}
                       <div className="text-[10px] text-gray-400 leading-tight">
                         Cookie Preferences · Report · Privacy
-                        <div className="mt-0.5">More from Linktree</div>
+                        <div className="mt-0.5">More from IndiaTaps</div>
                       </div>
                     </div>
                   )}
@@ -2582,15 +2945,18 @@ export function App() {
       <CreateTreeModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        currentUser={currentUser}
         adminEmail={currentUser?.email || 'sparshkoul6@gmail.com'}
         onTreeCreated={(newTree) => {
+          const treeWithAdmin = {
+            ...newTree,
+            adminId: currentUser?.id || newTree.adminId || 1,
+          };
+          storage.saveTree(treeWithAdmin);
+          storage.setActiveTreeId(treeWithAdmin.id);
           const allTrees = storage.getTrees();
-          const exists = allTrees.find((t) => t.id === newTree.id);
-          if (!exists) allTrees.push(newTree);
-          storage.saveTrees(allTrees);
-          storage.setActiveTreeId(newTree.id);
-          setTrees(allTrees.filter((t) => t.adminId === currentUser?.id));
-          loadTreeDetails(newTree.id);
+          setTrees(allTrees.filter((t) => !currentUser?.id || t.adminId === currentUser?.id));
+          loadTreeDetails(treeWithAdmin.id);
           setActiveTab('links');
         }}
       />
@@ -2604,7 +2970,85 @@ export function App() {
         onLogout={handleLogout}
         initialMode={authModalMode}
         treesCount={trees.length}
+        onOpenCreateTree={() => setIsCreateModalOpen(true)}
       />
+
+      {/* Help Topics / Support Email Modal */}
+      {isHelpModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-[32px] max-w-md w-full p-6 sm:p-7 shadow-2xl border border-gray-100 relative space-y-5 animate-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setIsHelpModalOpen(false)}
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-black transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center mx-auto shadow-xs">
+                <Mail className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-black text-gray-950 tracking-tight">Need Help or Support?</h3>
+              <p className="text-xs sm:text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
+                Have questions about your digital cards, customization, or account? Contact us directly:
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-gray-50 border border-gray-200/80 space-y-3">
+              <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider text-center">
+                Support & Admin Email
+              </div>
+              <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-white border border-gray-200 shadow-2xs">
+                <span className="font-mono font-bold text-sm text-gray-900 truncate">
+                  sparshkoul6@gmail.com
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText('sparshkoul6@gmail.com');
+                    setCopiedSupportEmail(true);
+                    setTimeout(() => setCopiedSupportEmail(false), 2000);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                    copiedSupportEmail
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-black text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  {copiedSupportEmail ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copy</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex gap-2.5">
+              <a
+                href="mailto:sparshkoul6@gmail.com?subject=IndiaTaps%20Help%20%26%20Support"
+                className="flex-1 py-3 px-4 rounded-full bg-[#1E2330] hover:bg-black text-white font-bold text-xs sm:text-sm transition-all shadow-sm text-center flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Mail className="w-4 h-4" />
+                <span>Open in Email App</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setIsHelpModalOpen(false)}
+                className="px-5 py-3 rounded-full border border-gray-200 hover:bg-gray-100 text-gray-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

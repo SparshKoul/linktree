@@ -1,11 +1,27 @@
 import { useState, useEffect } from 'react';
-import { X, Lock, Mail, User, AlertCircle, ArrowRight, Check, Plus, LogOut, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { X, Lock, Mail, User, AlertCircle, ArrowRight, Check, Plus, LogOut, ArrowLeft, ShieldCheck, Layers } from 'lucide-react';
 
-export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login', currentUser, onLogout, treesCount = 0 }) {
-  const [mode, setMode] = useState(currentUser ? 'dashboard' : initialMode); // 'dashboard' | 'login' | 'signup'
-  const [identifier, setIdentifier] = useState('');
+export function AuthModal({
+  isOpen,
+  onClose,
+  onAuthSuccess,
+  initialMode = 'login',
+  currentUser,
+  onLogout,
+  treesCount = 0,
+  onOpenCreateTree,
+}) {
+  const isSuper = Boolean(
+    currentUser && (
+      currentUser.isSuperAdmin ||
+      currentUser.role === 'super_admin' ||
+      currentUser.accountType === 'super_admin' ||
+      currentUser.email?.toLowerCase() === 'sparshkoul6@gmail.com'
+    )
+  );
+
+  const [mode, setMode] = useState(currentUser ? 'dashboard' : 'login'); // 'dashboard' | 'login' | 'signup'
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -15,7 +31,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
     if (isOpen) {
       setError('');
       setSuccessMsg('');
-      if (initialMode === 'signup') {
+      if (initialMode === 'signup' && isSuper) {
         setMode('signup');
       } else if (currentUser) {
         setMode('dashboard');
@@ -23,36 +39,9 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
         setMode('login');
       }
     }
-  }, [isOpen, initialMode, currentUser]);
+  }, [isOpen, initialMode, currentUser, isSuper]);
 
   if (!isOpen) return null;
-
-  const isGoogleAccount = currentUser?.email && (
-    currentUser.email.endsWith('@gmail.com') ||
-    currentUser.email.includes('google')
-  );
-
-  const handleGoogleLogin = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/auth/google?redirect_to=${encodeURIComponent(window.location.origin)}`);
-      let data = {};
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error('Google authentication service unavailable');
-      }
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error(data.error || 'Google authentication service unavailable');
-      }
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-    }
-  };
 
   const handleLogin = async (e) => {
     e?.preventDefault();
@@ -64,7 +53,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ email, password }),
       });
       let data = {};
       try {
@@ -75,7 +64,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
       if (!res.ok) throw new Error(data.error || 'Failed to sign in');
 
       onAuthSuccess(data.user);
-      setSuccessMsg(`Logged in as @${data.user.username}`);
+      setSuccessMsg(`Logged in as ${data.user.email}`);
       setMode('dashboard');
     } catch (err) {
       setError(err.message);
@@ -86,15 +75,19 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
 
   const handleRegister = async (e) => {
     e?.preventDefault();
+    if (!isSuper) {
+      setError('Public self-registration is disabled. Only the Super Admin (sparshkoul6@gmail.com) can provision client accounts.');
+      return;
+    }
     setError('');
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email, username, password }),
+        body: JSON.stringify({ email, password, role: 'client', accountType: 'client' }),
       });
       let data = {};
       try {
@@ -102,11 +95,12 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
       } catch {
         throw new Error('Server connection error. Please make sure the backend is running.');
       }
-      if (!res.ok) throw new Error(data.error || 'Failed to create account');
+      if (!res.ok) throw new Error(data.error || 'Failed to provision client account');
 
-      onAuthSuccess(data.user);
-      setSuccessMsg(`Account created for @${data.user.username}`);
-      setMode('dashboard');
+      setSuccessMsg(`Account provisioned successfully for ${data.user?.email || email}`);
+      setEmail('');
+      setPassword('');
+      setTimeout(() => setMode('dashboard'), 1500);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -114,37 +108,8 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
     }
   };
 
-  const quickLoginAs = async (id, pwd) => {
-    setIdentifier(id);
-    setPassword(pwd);
-    setError('');
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ identifier: id, password: pwd }),
-      });
-      let data = {};
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error('Server connection error. Please make sure the backend is running.');
-      }
-      if (!res.ok) throw new Error(data.error || 'Failed to sign in');
-      onAuthSuccess(data.user);
-      setSuccessMsg(`Switched to @${data.user.username}`);
-      setMode('dashboard');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const startCreateAccount = () => {
-    setUsername('');
     setEmail('');
     setPassword('');
     setError('');
@@ -153,7 +118,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
   };
 
   const startSwitchAccount = () => {
-    setIdentifier('');
+    setEmail('');
     setPassword('');
     setError('');
     setSuccessMsg('');
@@ -182,7 +147,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
           <X className="w-4 h-4" />
         </button>
 
-        {/* Linktree Asterisk Header */}
+        {/* IndiaTaps Asterisk Header */}
         <div className="text-center space-y-1.5 pt-2">
           <div className="w-10 h-10 rounded-2xl bg-black text-white flex items-center justify-center mx-auto shadow-md relative">
             <span className="text-xl font-black text-[#00E575] leading-none">✱</span>
@@ -194,15 +159,15 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
             {mode === 'dashboard'
               ? 'Account Dashboard'
               : mode === 'signup'
-              ? 'Create a new account'
+              ? (isSuper ? 'Provision Client Account' : 'Account Registration')
               : 'Sign in to IndiaTaps'}
           </h2>
           <p className="text-xs text-gray-500">
             {mode === 'dashboard'
-              ? 'You are logged in & verified'
+              ? (isSuper ? 'Super Admin Console' : 'Authorized IndiaTaps Account')
               : mode === 'signup'
-              ? 'Create as many accounts as you want'
-              : 'Log in to manage your trees, links and settings'}
+              ? (isSuper ? 'Enter client email and password to create account' : 'Registration is restricted to Super Admin')
+              : 'Sign in with your email and password'}
           </p>
         </div>
 
@@ -222,7 +187,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
           </div>
         )}
 
-        {/* DASHBOARD MODE: SHOWS LOGGED-IN IDENTITY, GOOGLE ID, MULTI-ACCOUNT CREATION */}
+        {/* DASHBOARD MODE: SHOWS ACCOUNT EMAIL, DIGITAL CARDS COUNT, MULTI-CARD CREATION */}
         {mode === 'dashboard' && currentUser && (
           <div className="space-y-4">
             {/* Active User Card */}
@@ -230,181 +195,146 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-xs relative">
-                    {(currentUser.username || 'U')[0].toUpperCase()}
+                    {(currentUser.email || 'A')[0].toUpperCase()}
                     <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#00E575] border-2 border-white" />
                   </div>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-extrabold text-sm text-black truncate">@{currentUser.username}</span>
-                    </div>
-                    <span className="text-[10px] text-gray-500 font-mono">indiataps.com/{currentUser.username}</span>
+                    <span className="font-extrabold text-sm text-black truncate block">
+                      {currentUser.email}
+                    </span>
+                    <span className="text-[10px] text-gray-500 font-mono">
+                      Account #{currentUser.id || 1}
+                    </span>
                   </div>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full flex items-center gap-1 shrink-0">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#00E575] animate-pulse" />
-                  Logged in
+                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shrink-0 ${
+                  isSuper
+                    ? 'text-purple-800 bg-purple-100 border border-purple-300'
+                    : 'text-emerald-700 bg-emerald-50 border border-emerald-200'
+                }`}>
+                  {isSuper ? <ShieldCheck className="w-3 h-3 text-purple-600" /> : <span className="w-1.5 h-1.5 rounded-full bg-[#00E575] animate-pulse" />}
+                  {isSuper ? 'Super Admin' : 'Client Account'}
                 </span>
               </div>
 
-              {/* Google ID / Account Email Section */}
-              <div className="p-2.5 rounded-xl bg-white border border-gray-200/80 space-y-1">
-                <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                  <span className="flex items-center gap-1">
-                    {isGoogleAccount ? (
-                      <>
-                        <svg className="w-3 h-3" viewBox="0 0 24 24">
-                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                        </svg>
-                        <span>Google ID</span>
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="w-3 h-3 text-purple-600" />
-                        <span>Account Email</span>
-                      </>
-                    )}
-                  </span>
-                  <span className="text-emerald-600 flex items-center gap-0.5 lowercase font-mono">
-                    <Check className="w-2.5 h-2.5 stroke-[3]" /> verified
-                  </span>
-                </div>
-                <div className="font-mono text-xs font-bold text-gray-900 truncate">
-                  {currentUser.email || 'sparshkoul6@gmail.com'}
+              {/* Cards Count Banner: Person can make as many cards as possible */}
+              <div className="p-3 rounded-xl bg-white border border-gray-200/80 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center">
+                    <Layers className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-gray-900">
+                      {treesCount} Digital Card{treesCount === 1 ? '' : 's'} Created
+                    </div>
+                    <div className="text-[10px] text-gray-400">
+                      Unlimited cards allowed under this account
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Multi-Account Buttons: User can create as many accounts as possible */}
+            {/* Actions: Create another card under this account */}
             <div className="space-y-2">
               <button
                 type="button"
-                onClick={startCreateAccount}
+                onClick={() => {
+                  onClose();
+                  onOpenCreateTree?.();
+                }}
                 className="w-full py-2.5 px-4 rounded-full bg-black hover:bg-neutral-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>+ Create another account</span>
+                <span>+ Create new Digital Card</span>
               </button>
 
-              <div className="flex items-center gap-2">
+              {isSuper && (
                 <button
                   type="button"
-                  onClick={startSwitchAccount}
-                  className="flex-1 py-2 px-3 rounded-full border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-700 transition-colors cursor-pointer"
+                  onClick={startCreateAccount}
+                  className="w-full py-2.5 px-4 rounded-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
                 >
-                  Switch account
+                  <Plus className="w-4 h-4" />
+                  <span>+ Provision New Client Account</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onLogout();
-                    setMode('login');
-                  }}
-                  className="flex-1 py-2 px-3 rounded-full bg-red-50 hover:bg-red-100 text-xs font-bold text-red-600 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span>Log out</span>
-                </button>
-              </div>
+              )}
             </div>
 
-            {/* Quick 1-Click Switch: Switch to existing accounts instantly */}
-            <div className="pt-2 text-center space-y-1.5 border-t border-gray-100">
-              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">
-                Quick 1-Click Switch:
-              </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => quickLoginAs('riyast', 'password123')}
-                  className="flex-1 py-1.5 px-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-[11px] font-bold text-gray-800 transition-colors cursor-pointer"
-                >
-                  @riyast (Primary)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => quickLoginAs('alex', 'password123')}
-                  className="flex-1 py-1.5 px-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-[11px] font-bold text-gray-800 transition-colors cursor-pointer"
-                >
-                  @alex (Creator)
-                </button>
-              </div>
+            {/* Navigation & Logout Buttons */}
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={startSwitchAccount}
+                className="flex-1 py-2 px-3 rounded-full border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-700 transition-colors cursor-pointer"
+              >
+                Switch account
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onLogout();
+                  onClose();
+                }}
+                className="flex-1 py-2 px-3 rounded-full bg-red-50 hover:bg-red-100 text-xs font-bold text-red-600 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Log out</span>
+              </button>
             </div>
+
+
           </div>
         )}
 
         {/* LOGIN / SIGNUP MODE */}
         {mode !== 'dashboard' && (
           <div className="space-y-3.5">
-            {/* Google Sign-in Option */}
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="w-full py-2.5 px-4 rounded-full border border-gray-200/90 hover:bg-gray-50 flex items-center justify-center gap-2.5 text-xs font-bold text-gray-800 transition-all shadow-2xs hover:shadow-xs cursor-pointer"
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-              </svg>
-              <span>Continue with Google</span>
-            </button>
+            {/* If super admin, allow toggling to Provision Client Account. If not, only allow Login */}
+            {isSuper ? (
+              <div className="flex rounded-full bg-[#F3F3F1] p-1 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('login');
+                    setError('');
+                  }}
+                  className={`flex-1 py-2 rounded-full transition-all cursor-pointer ${
+                    mode === 'login' ? 'bg-white shadow-xs text-black font-extrabold' : 'text-gray-500 hover:text-black'
+                  }`}
+                >
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode('signup');
+                    setError('');
+                  }}
+                  className={`flex-1 py-2 rounded-full transition-all cursor-pointer ${
+                    mode === 'signup' ? 'bg-white shadow-xs text-black font-extrabold' : 'text-gray-500 hover:text-black'
+                  }`}
+                >
+                  Provision Client
+                </button>
+              </div>
+            ) : null}
 
-            <div className="relative flex items-center justify-center">
-              <div className="border-t border-gray-200 w-full" />
-              <span className="bg-white px-2 text-[10px] uppercase font-bold text-gray-400 shrink-0">
-                or with email
-              </span>
-              <div className="border-t border-gray-200 w-full" />
-            </div>
-
-            {/* Toggle between Sign In & Create Account */}
-            <div className="flex rounded-full bg-[#F3F3F1] p-1 text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('login');
-                  setError('');
-                }}
-                className={`flex-1 py-2 rounded-full transition-all cursor-pointer ${
-                  mode === 'login' ? 'bg-white shadow-xs text-black font-extrabold' : 'text-gray-500 hover:text-black'
-                }`}
-              >
-                Sign in
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setMode('signup');
-                  setError('');
-                }}
-                className={`flex-1 py-2 rounded-full transition-all cursor-pointer ${
-                  mode === 'signup' ? 'bg-white shadow-xs text-black font-extrabold' : 'text-gray-500 hover:text-black'
-                }`}
-              >
-                Create account
-              </button>
-            </div>
-
-            {/* LOGIN FORM */}
+            {/* LOGIN FORM (Email + Password only) */}
             {mode === 'login' && (
               <form onSubmit={handleLogin} className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    Username or Email
+                    Email address
                   </label>
                   <div className="flex items-center px-3.5 py-2.5 rounded-2xl bg-[#F6F6F7] border border-gray-200 text-xs">
                     <Mail className="w-3.5 h-3.5 text-gray-400 mr-2 shrink-0" />
                     <input
-                      type="text"
+                      type="email"
                       required
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder="riyast or user@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="name@email.com"
                       className="w-full bg-transparent focus:outline-none text-black font-medium"
                     />
                   </div>
@@ -434,32 +364,24 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
                 >
                   {loading ? 'Signing in...' : 'Sign in'}
                 </button>
+
+                {!currentUser && (
+                  <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 text-[11px] text-gray-500 text-center leading-relaxed">
+                    <p className="font-semibold text-gray-700">Invite-Only Access</p>
+                    <p className="mt-0.5">
+                      Client accounts are provisioned exclusively by Super Admin (<span className="font-mono text-gray-700">sparshkoul6@gmail.com</span>). Under your account, you can create and manage unlimited digital cards.
+                    </p>
+                  </div>
+                )}
               </form>
             )}
 
-            {/* SIGNUP FORM: Create unlimited new accounts */}
-            {mode === 'signup' && (
+            {/* SUPER ADMIN CLIENT PROVISIONING FORM (Email + Password only) */}
+            {mode === 'signup' && isSuper && (
               <form onSubmit={handleRegister} className="space-y-3">
                 <div>
                   <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    New Username (Your IndiaTaps URL)
-                  </label>
-                  <div className="flex items-center px-3.5 py-2.5 rounded-2xl bg-[#F6F6F7] border border-gray-200 text-xs">
-                    <span className="text-gray-400 font-mono mr-1">indiataps.com/</span>
-                    <input
-                      type="text"
-                      required
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                      placeholder="newuser"
-                      className="w-full bg-transparent focus:outline-none text-black font-bold font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    Email address
+                    Client Email
                   </label>
                   <div className="flex items-center px-3.5 py-2.5 rounded-2xl bg-[#F6F6F7] border border-gray-200 text-xs">
                     <Mail className="w-3.5 h-3.5 text-gray-400 mr-2 shrink-0" />
@@ -468,7 +390,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="name@email.com"
+                      placeholder="client@restaurant.com"
                       className="w-full bg-transparent focus:outline-none text-black font-medium"
                     />
                   </div>
@@ -476,7 +398,7 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
 
                 <div>
                   <label className="block text-[11px] font-bold text-gray-700 mb-1">
-                    Password
+                    Initial Password
                   </label>
                   <div className="flex items-center px-3.5 py-2.5 rounded-2xl bg-[#F6F6F7] border border-gray-200 text-xs">
                     <Lock className="w-3.5 h-3.5 text-gray-400 mr-2 shrink-0" />
@@ -494,35 +416,14 @@ export function AuthModal({ isOpen, onClose, onAuthSuccess, initialMode = 'login
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 rounded-full bg-black hover:bg-neutral-800 text-white font-bold text-xs transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
+                  className="w-full py-3 rounded-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
                 >
-                  {loading ? 'Creating account...' : 'Create account & IndiaTaps'}
+                  {loading ? 'Provisioning client...' : 'Provision Client Account'}
                 </button>
               </form>
             )}
 
-            {/* Quick 1-Click Switch: Switch to existing accounts */}
-            <div className="pt-2 text-center space-y-1.5 border-t border-gray-100">
-              <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">
-                Quick 1-Click Switch:
-              </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => quickLoginAs('riyast', 'password123')}
-                  className="flex-1 py-1.5 px-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-[11px] font-bold text-gray-800 transition-colors cursor-pointer"
-                >
-                  @riyast
-                </button>
-                <button
-                  type="button"
-                  onClick={() => quickLoginAs('alex', 'password123')}
-                  className="flex-1 py-1.5 px-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-[11px] font-bold text-gray-800 transition-colors cursor-pointer"
-                >
-                  @alex
-                </button>
-              </div>
-            </div>
+
           </div>
         )}
       </div>

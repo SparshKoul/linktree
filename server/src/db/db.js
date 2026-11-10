@@ -90,13 +90,26 @@ export const db = {
 
   async getTreeBySlug(slug) {
     try {
-      const { data, error } = await supabase
+      const cleanSlug = slug.toLowerCase().trim();
+      let { data: list, error } = await supabase
         .from('trees')
         .select('*')
-        .eq('slug', slug.toLowerCase())
+        .eq('slug', cleanSlug)
         .is('deleted_at', null)
-        .single();
-      if (error) throw error;
+        .order('id', { ascending: false })
+        .limit(1);
+
+      if (error || !list || list.length === 0) {
+        const fallback = await supabase
+          .from('trees')
+          .select('*')
+          .eq('slug', cleanSlug)
+          .order('id', { ascending: false })
+          .limit(1);
+        list = fallback.data;
+      }
+
+      const data = list?.[0];
       if (!data) return null;
 
       const cards = await this.getCards(data.id);
@@ -267,6 +280,7 @@ export const db = {
         };
       }
       if (updates.status !== undefined) payload.status = updates.status;
+      payload.deleted_at = null;
       payload.updated_at = new Date().toISOString();
 
       let { data, error } = await supabase
@@ -329,6 +343,61 @@ export const db = {
     } catch (err) {
       console.warn('[DB deleteTree fallback]', err.message);
       return false;
+    }
+  },
+
+  async isSlugTaken(slug, excludeTreeId = null) {
+    try {
+      const cleanSlug = slug.toLowerCase().trim();
+      let query = supabase
+        .from('trees')
+        .select('id')
+        .eq('slug', cleanSlug)
+        .is('deleted_at', null);
+      if (excludeTreeId) {
+        query = query.neq('id', excludeTreeId);
+      }
+      const { data, error } = await query.limit(1);
+      if (error) throw error;
+      return Array.isArray(data) && data.length > 0;
+    } catch (err) {
+      console.warn('[DB isSlugTaken fallback]', err.message);
+      return false;
+    }
+  },
+
+  async getTreeOwner(treeId) {
+    try {
+      const numId = Number(treeId);
+      if (!numId || isNaN(numId)) return null;
+      const { data, error } = await supabase
+        .from('trees')
+        .select('admin_id')
+        .eq('id', numId)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? Number(data.admin_id) : null;
+    } catch (err) {
+      console.warn('[DB getTreeOwner fallback]', err.message);
+      return null;
+    }
+  },
+
+  async getCardOwner(cardId) {
+    try {
+      const numId = Number(cardId);
+      if (!numId || isNaN(numId)) return null;
+      const { data: card, error: cardErr } = await supabase
+        .from('cards')
+        .select('tree_id')
+        .eq('id', numId)
+        .maybeSingle();
+      if (cardErr || !card) return null;
+      return await this.getTreeOwner(card.tree_id);
+    } catch (err) {
+      console.warn('[DB getCardOwner fallback]', err.message);
+      return null;
     }
   },
 
@@ -566,6 +635,33 @@ export const db = {
     }
   },
 
+  async syncTreeCards(treeId, cards) {
+    try {
+      await supabase.from('cards').delete().eq('tree_id', treeId);
+
+      const syncedCards = [];
+      for (let i = 0; i < cards.length; i++) {
+        const c = cards[i];
+        const cardPayload = {
+          ...c,
+          treeId,
+          position: i,
+          visible: c.visible ?? true,
+        };
+        const created = await this.createCard(cardPayload);
+        if (created) {
+          syncedCards.push(created);
+        } else {
+          syncedCards.push({ ...cardPayload, id: Date.now() + i });
+        }
+      }
+      return syncedCards;
+    } catch (err) {
+      console.warn('[DB syncTreeCards fallback]', err.message);
+      return null;
+    }
+  },
+
   async incrementCardClicks(id) {
     try {
       const { data: card } = await supabase.from('cards').select('clicks').eq('id', id).single();
@@ -593,7 +689,14 @@ export const db = {
         .eq('id', numId)
         .single();
       if (error) throw error;
-      return data || null;
+      if (!data) return null;
+      const isSuper = data.email?.toLowerCase() === 'sparshkoul6@gmail.com' || data.role === 'super_admin';
+      return {
+        ...data,
+        role: isSuper ? 'super_admin' : (data.role || 'client'),
+        accountType: isSuper ? 'super_admin' : (data.account_type || data.role || 'client'),
+        isSuperAdmin: isSuper,
+      };
     } catch (err) {
       return null;
     }
@@ -608,7 +711,15 @@ export const db = {
         .or(`email.ilike.${clean},username.ilike.${clean}`)
         .limit(1);
       if (error) throw error;
-      return data?.[0] || null;
+      const user = data?.[0];
+      if (!user) return null;
+      const isSuper = user.email?.toLowerCase() === 'sparshkoul6@gmail.com' || user.role === 'super_admin';
+      return {
+        ...user,
+        role: isSuper ? 'super_admin' : (user.role || 'client'),
+        accountType: isSuper ? 'super_admin' : (user.account_type || user.role || 'client'),
+        isSuperAdmin: isSuper,
+      };
     } catch (err) {
       console.warn('[DB getUserByEmailOrUsername fallback]', err.message);
       return null;

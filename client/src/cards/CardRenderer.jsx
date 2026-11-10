@@ -24,6 +24,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { FaviconIcon } from '../components/FaviconIcon.jsx';
+import { PdfViewer } from '../components/PdfViewer.jsx';
 
 export function CardRenderer({ card, theme, isPreview = false }) {
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
@@ -57,20 +58,36 @@ export function CardRenderer({ card, theme, isPreview = false }) {
         })()
       : card.settings || {};
 
-  const isGallery =
-    card.type === 'gallery' ||
-    cardSettings.platform === 'gallery' ||
-    Boolean(cardSettings.images && cardSettings.images.length > 0) ||
-    (card.title || '').toLowerCase().includes('gallery');
-
   const isPdfOrMenu =
     card.type === 'menu' ||
+    card.type === 'resume' ||
     cardSettings.platform === 'menu' ||
     Boolean(cardSettings.isPdf) ||
     Boolean(cardSettings.pdfName) ||
     Boolean(card.url && /\.pdf($|\?)/i.test(card.url)) ||
     Boolean(card.url && card.url.startsWith('data:application/pdf')) ||
-    (card.title || '').toLowerCase().includes('menu');
+    (card.title || '').toLowerCase().includes('menu') ||
+    (card.title || '').toLowerCase().includes('resume');
+
+  const pdfUrl =
+    cardSettings.pdfUrl ||
+    (card.url && (
+      card.url.startsWith('data:application/pdf') ||
+      card.url.startsWith('blob:') ||
+      /\.pdf($|\?)/i.test(card.url) ||
+      Boolean(cardSettings.isPdf) ||
+      Boolean(cardSettings.pdfName) ||
+      card.type === 'menu' ||
+      card.type === 'resume'
+    ) ? card.url : '');
+
+  const isGallery =
+    !isPdfOrMenu && (
+      card.type === 'gallery' ||
+      cardSettings.platform === 'gallery' ||
+      Boolean(cardSettings.images && cardSettings.images.length > 0) ||
+      (card.title || '').toLowerCase().includes('gallery')
+    );
 
   const isVideoMedia = (url = '') => {
     if (!url) return false;
@@ -551,7 +568,21 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     Boolean(card.settings?.isPdf) ||
     Boolean(card.url && /\.pdf($|\?)/i.test(card.url));
   const isPdf = Boolean(card.settings?.isPdf || card.settings?.pdfName || (card.url && /\.pdf($|\?)/i.test(card.url)));
-  const subtitle = card.subtitle || card.settings?.address || card.settings?.subtitle || (isPdf ? 'PDF Menu' : '');
+  const isReviewsCard =
+    card.type === 'reviews' ||
+    Boolean(cardSettings.rating || cardSettings.reviewCount || cardSettings.reviewsCount);
+  const reviewsCountVal = cardSettings.reviewCount ?? cardSettings.reviewsCount;
+  const reviewsSubtitleFallback =
+    cardSettings.rating != null || reviewsCountVal != null
+      ? `${cardSettings.rating ?? 5.0} ★ (${reviewsCountVal ?? 48} reviews)`
+      : '';
+
+  const subtitle =
+    card.subtitle ||
+    card.settings?.address ||
+    (isReviewsCard ? reviewsSubtitleFallback : '') ||
+    card.settings?.subtitle ||
+    (isPdf ? 'PDF Menu' : '');
 
   // Card 2 in Image 0 (Instagram.com): plain links with no custom thumbnail render as clean centered text pills
   const hasCustomThumbnail = Boolean(card.thumbnailUrl);
@@ -617,14 +648,36 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                 {/* Subtle map watermark */}
                 <text x="312" y="193" textAnchor="end" fill="#9CA3AF" fontSize="7" fontFamily="sans-serif">Map data ©</text>
               </svg>
-            ) : card.thumbnailUrl ? (
+            ) : isPdfOrMenu && pdfUrl ? (
+              <div
+                className="w-full h-full relative overflow-hidden bg-white flex items-center justify-center"
+                data-lenis-prevent
+                onClick={(e) => e.stopPropagation()}
+              >
+                <PdfViewer
+                  url={pdfUrl}
+                  title={card.settings?.pdfName || card.title || 'PDF Document'}
+                  isThumbnail={true}
+                />
+                <div className="absolute top-2.5 left-2.5 z-20 px-2 py-0.5 rounded-full bg-[#EF4444] text-white text-[10px] font-bold tracking-wide shadow-xs flex items-center gap-1 pointer-events-none">
+                  <FileText className="w-3 h-3" />
+                  <span>PDF</span>
+                </div>
+              </div>
+            ) : (card.thumbnailUrl || (isGallery && galleryImages[0])) ? (
               <img
-                src={card.thumbnailUrl}
+                src={card.thumbnailUrl || galleryImages[0]}
                 alt={card.title}
                 loading="lazy"
                 decoding="async"
                 className="w-full h-full object-cover"
               />
+            ) : isPdfOrMenu ? (
+              <div className="w-full h-full bg-gradient-to-tr from-orange-950/60 via-red-950/40 to-black/60 flex flex-col items-center justify-center text-white/90 p-4 text-center">
+                <FileText className="w-8 h-8 mb-1.5 text-orange-400" />
+                <span className="font-bold text-xs">{card.title || 'PDF Document'}</span>
+                <span className="text-[10px] text-white/60 mt-0.5">Click to view document</span>
+              </div>
             ) : (
               <div className="w-full h-full bg-gradient-to-tr from-purple-900/60 via-pink-900/40 to-black/60 flex flex-col items-center justify-center text-white/80 p-4 text-center">
                 <span className="text-2xl mb-1">🖼️</span>
@@ -646,22 +699,64 @@ export function CardRenderer({ card, theme, isPreview = false }) {
             </div>
             {subtitle && (
               <div className="text-xs text-center flex items-center justify-center gap-1.5 mt-1 opacity-80 font-normal max-w-[90%]">
-                <span className="text-red-500">📍</span>
+                {isMap && <span className="text-red-500">📍</span>}
                 <span className="truncate">{subtitle}</span>
               </div>
             )}
 
-            {/* "Get directions" button */}
+            {/* Action button */}
             <div className="mt-3 mb-1">
-              <a
-                href={card.url || `https://maps.google.com/?q=${encodeURIComponent(subtitle || card.title)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="px-5 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-semibold text-white/95 transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
-              >
-                Get directions
-              </a>
+              {isGallery ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsExpanded(true);
+                  }}
+                  className="px-5 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-semibold text-white/95 transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  View gallery
+                </button>
+              ) : isMap ? (
+                <a
+                  href={card.url || `https://maps.google.com/?q=${encodeURIComponent(subtitle || card.title)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="px-5 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-semibold text-white/95 transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  Get directions
+                </a>
+              ) : isPdfOrMenu ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setIsExpanded(true);
+                  }}
+                  className="px-5 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-semibold text-white/95 transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  {(card.title || '').toLowerCase().includes('resume') || pdfUrl ? 'View document' : 'View menu'}
+                </button>
+              ) : (
+                <a
+                  href={card.url || '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => {
+                    if (isLocalMedia) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsExpanded(true);
+                    }
+                  }}
+                  className="px-5 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-semibold text-white/95 transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isLocalVideo ? 'Watch video' : 'Visit link'}
+                </a>
+              )}
             </div>
           </div>
 
@@ -963,7 +1058,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
           {/* Header Bar matching Image 5 */}
           <div className="pt-6 pb-3 px-6 text-center shrink-0 border-b border-gray-100/80 bg-white">
             <h3 className="font-extrabold text-base sm:text-lg text-[#111111] tracking-tight truncate">
-              {card.title || (isGallery ? 'Gallery' : isPdfOrMenu ? 'Menu' : 'Video')}
+              {card.title || (isGallery ? 'Gallery' : isPdfOrMenu ? 'Document' : 'Video')}
             </h3>
             <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500 font-medium mt-0.5">
               {isGallery ? (
@@ -973,8 +1068,8 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                 </>
               ) : isPdfOrMenu ? (
                 <>
-                  <FileText className="w-3.5 h-3.5 text-gray-400" />
-                  <span>Menu · {card.settings?.pdfName || 'Catalog'}</span>
+                  <FileText className="w-3.5 h-3.5 text-red-500" />
+                  <span>PDF · {card.settings?.pdfName || 'Document'}</span>
                 </>
               ) : (
                 <>
@@ -986,7 +1081,10 @@ export function CardRenderer({ card, theme, isPreview = false }) {
           </div>
 
           {/* Scrollable Media Body */}
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div
+            className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            data-lenis-prevent
+          >
             {isGallery && (
               <>
                 {galleryItems.map((item, idx) => (
@@ -1021,49 +1119,53 @@ export function CardRenderer({ card, theme, isPreview = false }) {
 
             {isPdfOrMenu && !isGallery && (
               <div className="space-y-4">
-                {card.url && (card.url.startsWith('data:application/pdf') || card.url.endsWith('.pdf')) ? (
-                  <div className="w-full rounded-[20px] overflow-hidden border border-gray-200 bg-gray-50 shadow-inner">
-                    <iframe
-                      src={card.url}
-                      title={card.settings?.pdfName || 'Menu PDF'}
-                      className="w-full h-[58vh] border-0"
+                {pdfUrl ? (
+                  <div
+                    className="w-full h-[60vh] max-h-[560px] rounded-[20px] overflow-hidden border border-gray-200 bg-gray-50 shadow-inner flex flex-col"
+                    data-lenis-prevent
+                  >
+                    <PdfViewer
+                      url={pdfUrl}
+                      title={card.settings?.pdfName || card.title || 'PDF Document'}
                     />
                   </div>
                 ) : (
-                  <>
-                    <div className="w-full rounded-[20px] overflow-hidden bg-gray-100 shadow-xs border border-black/5">
-                      <img
-                        src={card.thumbnailUrl || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80'}
-                        alt={card.title || 'Menu'}
-                        className="w-full h-auto object-cover block"
-                      />
+                  <div className="w-full py-16 px-4 rounded-[20px] border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center text-center gap-2">
+                    <div className="w-12 h-12 rounded-full bg-red-50 text-red-600 flex items-center justify-center shadow-2xs">
+                      <FileText className="w-6 h-6" />
                     </div>
-                    {galleryImages.slice(1).map((imgUrl, idx) => (
-                      <div
-                        key={idx}
-                        className="w-full rounded-[20px] overflow-hidden bg-gray-100 shadow-xs border border-black/5"
-                      >
-                        <img
-                          src={imgUrl}
-                          alt={`Menu page ${idx + 2}`}
-                          className="w-full h-auto object-cover block"
-                        />
-                      </div>
-                    ))}
-                  </>
+                    <div className="font-bold text-sm text-gray-800">
+                      No PDF Uploaded Yet
+                    </div>
+                    <div className="text-xs text-gray-500 max-w-xs">
+                      Upload a PDF document or resume in the editor to display it here.
+                    </div>
+                  </div>
                 )}
 
-                {card.url && (
-                  <a
-                    href={card.url}
-                    download={card.settings?.pdfName || 'menu.pdf'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full py-3 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Download Menu</span>
-                  </a>
+                {pdfUrl && (
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={pdfUrl}
+                      download={card.settings?.pdfName || 'document.pdf'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 py-3 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download PDF</span>
+                    </a>
+                    <a
+                      href={pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-[#111111] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      title="Open in new window"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Open</span>
+                    </a>
+                  </div>
                 )}
               </div>
             )}
@@ -1131,9 +1233,9 @@ export function CardRenderer({ card, theme, isPreview = false }) {
           </div>
         </div>
 
-        {/* Footer Linktree text matching Image 5 */}
+        {/* Footer IndiaTaps text matching Image 5 */}
         <div className="mt-3 text-center text-[12px] text-white/70 font-medium tracking-tight select-none">
-          Get your own Linktree
+          Get your own IndiaTaps
         </div>
       </div>
     );

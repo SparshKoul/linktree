@@ -25,9 +25,13 @@ CREATE TABLE IF NOT EXISTS public.users (
 -- Safe migrations for existing users table
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS avatar_url TEXT;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS display_name TEXT;
-ALTER TABLE public.users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user';
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'client';
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS account_type TEXT NOT NULL DEFAULT 'client';
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS tier TEXT NOT NULL DEFAULT 'free';
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- Super Admin Provisioning
+UPDATE public.users SET role = 'super_admin', account_type = 'super_admin' WHERE LOWER(email) = 'sparshkoul6@gmail.com';
 
 -- ------------------------------------------------------------------------------
 -- 2. Trees Table (Modular Profiles, Design, Header & Footer Settings)

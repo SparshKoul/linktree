@@ -22,6 +22,7 @@ import {
   CalendarClock,
   Star,
   Utensils,
+  FileText,
   Phone,
   Mail,
   ShoppingBag,
@@ -51,13 +52,6 @@ export const getUrlMetadata = (rawQuery) => {
       title: 'YouTube · Enjoy the videos and music you love',
       subtitle: 'youtube.com',
       url: 'https://youtube.com',
-    };
-  }
-  if (lower.includes('tiktok.com')) {
-    return {
-      title: 'TikTok · Make Your Day',
-      subtitle: 'tiktok.com',
-      url: 'https://tiktok.com',
     };
   }
   if (lower.includes('twitter.com') || lower.includes('x.com')) {
@@ -203,9 +197,64 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
   const categoryItems = {
     suggested: [
       {
+        id: 'maps',
+        title: 'Google Maps Location',
+        desc: 'Share your store location or address',
+        type: 'maps',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-white border border-gray-200 shadow-2xs flex items-center justify-center shrink-0 p-1">
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="#4285F4" />
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 5.31 3.06 8.52L12 11.5V2z" fill="#34A853" />
+              <path d="M12 2v9.5l3.94 6.02C17.81 14.31 19 11.38 19 9c0-3.87-3.13-7-7-7z" fill="#EA4335" />
+              <path d="M12 11.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" fill="#FBBC05" />
+            </svg>
+          </div>
+        ),
+      },
+      {
+        id: 'reviews',
+        title: 'Google Reviews',
+        desc: 'Display customer ratings and reviews',
+        type: 'reviews',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-amber-50 border border-amber-200 text-amber-500 flex items-center justify-center shrink-0">
+            <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+          </div>
+        ),
+      },
+      {
+        id: 'restaurant_menu',
+        title: 'Restaurant Menu',
+        desc: 'Upload a PDF menu or catalog for visitors',
+        type: 'menu',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#EA580C] text-white flex items-center justify-center shrink-0 shadow-2xs relative">
+            <Utensils className="w-4 h-4" />
+            <span className="absolute -bottom-1 -right-1 bg-red-600 text-white font-black text-[7px] px-1 py-0.5 rounded-[3px] leading-none uppercase">
+              PDF
+            </span>
+          </div>
+        ),
+      },
+      {
+        id: 'resume_pdf',
+        title: 'Resume / CV',
+        desc: 'Upload your resume PDF for visitors to preview and download',
+        type: 'menu',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#2563EB] text-white flex items-center justify-center shrink-0 shadow-2xs relative">
+            <FileText className="w-4 h-4" />
+            <span className="absolute -bottom-1 -right-1 bg-red-600 text-white font-black text-[7px] px-1 py-0.5 rounded-[3px] leading-none uppercase">
+              PDF
+            </span>
+          </div>
+        ),
+      },
+      {
         id: 'messaging',
         title: 'Messaging',
-        desc: 'Let visitors message you directly from your Linktree',
+        desc: 'Let visitors message you directly from your IndiaTaps',
         type: 'contact',
         renderIcon: () => (
           <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center shrink-0">
@@ -225,19 +274,6 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
         ),
       },
       {
-        id: 'tiktok',
-        title: 'TikTok',
-        desc: 'Share your TikToks on your Linktree',
-        type: 'video',
-        renderIcon: () => (
-          <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center shrink-0">
-            <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
-              <path d="M19.589 6.686a4.793 4.793 0 0 1-3.77-4.245V2h-3.445v13.672a2.896 2.896 0 0 1-5.201 1.743 2.9 2.9 0 0 1 2.314-4.644c.314 0 .619.05.904.143V9.32a6.326 6.326 0 0 0-.904-.065c-3.504 0-6.347 2.842-6.347 6.347 0 3.503 2.843 6.345 6.347 6.345 3.42 0 6.21-2.709 6.34-6.104l.007-.243V8.895a8.163 8.163 0 0 0 4.76 1.524V6.986a4.832 4.832 0 0 1-1.001-.3z" />
-            </svg>
-          </div>
-        ),
-      },
-      {
         id: 'gallery',
         title: 'Image gallery',
         desc: 'Share a gallery of images',
@@ -251,7 +287,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
       {
         id: 'youtube',
         title: 'YouTube',
-        desc: 'Share YouTube videos on your Linktree',
+        desc: 'Share YouTube videos on your IndiaTaps',
         type: 'video',
         renderIcon: () => (
           <div className="w-9 h-9 rounded-full bg-[#EF4444] text-white flex items-center justify-center shrink-0">
@@ -261,6 +297,20 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
       },
     ],
     commerce: [
+      {
+        id: 'restaurant_menu',
+        title: 'Restaurant Menu',
+        desc: 'Upload a PDF menu or food catalog',
+        type: 'menu',
+        renderIcon: () => (
+          <div className="w-9 h-9 rounded-full bg-[#EA580C] text-white flex items-center justify-center shrink-0 shadow-2xs relative">
+            <Utensils className="w-4 h-4" />
+            <span className="absolute -bottom-1 -right-1 bg-red-600 text-white font-black text-[7px] px-1 py-0.5 rounded-[3px] leading-none uppercase">
+              PDF
+            </span>
+          </div>
+        ),
+      },
       {
         id: 'product',
         title: 'Product',
@@ -393,17 +443,6 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
         ),
       },
       {
-        id: 'tiktok',
-        title: 'TikTok',
-        desc: 'Share your TikToks on your IndiaTaps',
-        type: 'video',
-        renderIcon: () => (
-          <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center shrink-0 font-bold text-xs tracking-tighter">
-            TT
-          </div>
-        ),
-      },
-      {
         id: 'gallery',
         title: 'Image gallery',
         desc: 'Share a gallery of Images',
@@ -433,14 +472,14 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
       }}
     >
       <div
-        className="bg-white rounded-t-[28px] sm:rounded-t-[32px] lg:rounded-[32px] w-full lg:max-w-[720px] p-4 sm:p-6 lg:p-7 space-y-3.5 lg:space-y-5 text-[#111111] shadow-2xl relative border-t border-gray-100 lg:border max-h-[85vh] lg:min-h-[460px] flex flex-col justify-start animate-in slide-in-from-bottom duration-200 lg:slide-in-from-bottom-0"
+        className="bg-white rounded-t-[28px] sm:rounded-t-[32px] lg:rounded-[32px] w-full lg:max-w-[760px] p-4 sm:p-6 lg:p-7 space-y-3.5 lg:space-y-4 text-[#111111] shadow-2xl relative border-t border-gray-100 lg:border max-h-[92vh] lg:max-h-[600px] lg:min-h-[500px] flex flex-col justify-start animate-in slide-in-from-bottom duration-200 lg:slide-in-from-bottom-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile Top Drag Handle Bar */}
         <div className="lg:hidden w-11 h-1 bg-[#D1D5DB] rounded-full mx-auto -mt-1 mb-1 shrink-0" />
 
-        {/* Desktop Header */}
-        <div className="hidden lg:flex items-center justify-between shrink-0">
+        {/* Header — visible on all sizes */}
+        <div className="flex items-center justify-between shrink-0">
           <div className="w-6" />
           <h2 className="font-extrabold text-sm sm:text-base text-[#111111]">
             Add
@@ -584,132 +623,10 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
         ) : (
           /* Default Explorer View */
           <>
-            {/* Mobile Drawer View matching uploaded screenshot */}
-            <div className="lg:hidden flex flex-col flex-1 overflow-y-auto space-y-3 max-h-[62vh] pr-0.5 no-scrollbar">
-              {/* 4 Quick Tiles Grid */}
-              <div className="grid grid-cols-4 gap-2.5 shrink-0 pt-0.5">
-                {/* 1. Collection */}
-                <div className="flex flex-col items-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onAddCard('collapsible', 'Add collection title', { subtitle: 'Add or drag & drop an existing link' });
-                      onClose();
-                    }}
-                    className="w-full aspect-square rounded-2xl bg-[#F4F4F5] hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                  >
-                    <LayoutGrid className="w-5 h-5 text-gray-800 stroke-[1.8]" />
-                  </button>
-                  <span className="font-semibold text-[10px] text-gray-700 text-center mt-1.5">Collection</span>
-                </div>
-
-                {/* 2. Link */}
-                <div className="flex flex-col items-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsFocused(true);
-                      if (inputRef.current) inputRef.current.focus();
-                    }}
-                    className="w-full aspect-square rounded-2xl bg-[#F4F4F5] hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                  >
-                    <Link2 className="w-5 h-5 text-gray-800 stroke-[1.8]" />
-                  </button>
-                  <span className="font-semibold text-[10px] text-gray-700 text-center mt-1.5">Link</span>
-                </div>
-
-                {/* 3. Product */}
-                <div className="flex flex-col items-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onAddCard('product', 'Special Product', { price: '$49.00' });
-                      onClose();
-                    }}
-                    className="w-full aspect-square rounded-2xl bg-[#F4F4F5] hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                  >
-                    <Tag className="w-5 h-5 text-gray-800 stroke-[1.8]" />
-                  </button>
-                  <span className="font-semibold text-[10px] text-gray-700 text-center mt-1.5">Product</span>
-                </div>
-
-                {/* 4. Form */}
-                <div className="flex flex-col items-center">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onAddCard('contact_form', 'Contact Form');
-                      onClose();
-                    }}
-                    className="w-full aspect-square rounded-2xl bg-[#F4F4F5] hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer shadow-2xs"
-                  >
-                    <MessageSquare className="w-5 h-5 text-gray-800 stroke-[1.8]" />
-                  </button>
-                  <span className="font-semibold text-[10px] text-gray-700 text-center mt-1.5">Form</span>
-                </div>
-              </div>
-
-              {/* Mobile Suggested Section */}
-              <div className="pt-2 space-y-1">
-                <h3 className="font-bold text-xs text-gray-900 pb-0.5">Suggested</h3>
-                <div className="space-y-0.5">
-                  {categoryItems.suggested.map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => {
-                        if (item.id === 'messaging') {
-                          onAddCard('contact', 'Messaging', {
-                            subtitle: 'Let visitors message you directly from your Linktree',
-                            platform: 'messaging',
-                          });
-                          onClose();
-                        } else if (item.id === 'instagram') {
-                          onAddCard('instagram', 'Instagram', {
-                            url: 'https://instagram.com',
-                            subtitle: 'Display your posts and reels',
-                            platform: 'instagram',
-                          });
-                          onClose();
-                        } else if (item.id === 'tiktok') {
-                          onAddCard('video', 'TikTok', {
-                            url: 'https://tiktok.com',
-                            subtitle: 'Share your TikToks on your Linktree',
-                            platform: 'tiktok',
-                          });
-                          onClose();
-                        } else {
-                          onAddCard(item.type, item.title, {
-                            url: 'https://example.com',
-                            subtitle: item.desc,
-                          });
-                          onClose();
-                        }
-                      }}
-                      className="p-2 rounded-2xl hover:bg-[#F6F6F7] flex items-center justify-between transition-colors cursor-pointer group"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        {item.renderIcon()}
-                        <div className="min-w-0 space-y-0.5">
-                          <div className="font-bold text-xs text-[#111111] leading-snug">
-                            {item.title}
-                          </div>
-                          <div className="text-[11px] text-gray-400 leading-tight truncate">
-                            {item.desc}
-                          </div>
-                        </div>
-                      </div>
-
-                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-black shrink-0 transition-colors" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Desktop Explorer View (Untouched) */}
-            <div className="hidden lg:flex gap-6 pt-1 flex-1 overflow-hidden">
+            {/* Explorer View — shared layout for mobile + desktop */}
+            <div className="flex gap-4 lg:gap-6 pt-1 flex-1 overflow-hidden">
               {/* Left Column: Categories List */}
-              <div className="w-36 space-y-1 shrink-0 overflow-y-auto pr-1">
+              <div className="w-28 sm:w-32 lg:w-40 space-y-0.5 shrink-0 overflow-y-auto no-scrollbar">
                 {categories.map((cat) => {
                   const IconComponent = cat.icon;
                   const isSelected = activeCategory === cat.id;
@@ -718,45 +635,43 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                     <button
                       key={cat.id}
                       onClick={() => setActiveCategory(cat.id)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs font-bold transition-colors cursor-pointer ${
+                      className={`w-full flex items-center gap-2 lg:gap-2.5 px-2 lg:px-3 py-2 lg:py-2.5 rounded-xl text-left text-xs font-semibold transition-colors cursor-pointer ${
                         isSelected
-                          ? 'bg-[#F3F3F1] text-black font-extrabold'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-black'
+                          ? 'bg-[#EFEFEF] text-black font-bold'
+                          : 'text-gray-500 hover:bg-gray-100 hover:text-black'
                       }`}
                     >
-                      <IconComponent className="w-4 h-4 shrink-0 text-gray-700" />
-                      <span>{cat.label}</span>
+                      <IconComponent className={`w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0 ${isSelected ? 'text-black' : 'text-gray-400'}`} />
+                      <span className="truncate">{cat.label}</span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Right Column: 4 Quick Tiles + Scrollable Suggested Integrations */}
-              <div className="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[340px]">
+              {/* Right Column: 4 Quick Tiles + Scrollable Integrations */}
+              <div className="flex-1 overflow-y-auto space-y-3 max-h-[55vh] lg:max-h-[360px] card-scrollbar">
                 {/* 4 Quick Tiles */}
-                <div className="grid grid-cols-4 gap-2.5">
+                <div className="grid grid-cols-4 gap-2">
                   <button
                     onClick={() => {
                       onAddCard('collapsible', 'My Collection');
                       onClose();
                     }}
-                    className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
+                    className="bg-[#F4F4F5] hover:bg-[#E8E8EA] p-2.5 lg:p-3 rounded-2xl flex flex-col justify-between h-[72px] lg:h-[88px] text-left transition-colors cursor-pointer"
                   >
                     <span className="font-bold text-xs text-[#111111]">Collection</span>
-                    <LayoutGrid className="w-4 h-4 text-black stroke-[2.2]" />
+                    <LayoutGrid className="w-4 h-4 lg:w-5 lg:h-5 text-black stroke-[1.8]" />
                   </button>
 
                   <button
                     onClick={() => {
                       setIsFocused(true);
-                      if (inputRef.current) {
-                        inputRef.current.focus();
-                      }
+                      if (inputRef.current) inputRef.current.focus();
                     }}
-                    className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
+                    className="bg-[#F4F4F5] hover:bg-[#E8E8EA] p-2.5 lg:p-3 rounded-2xl flex flex-col justify-between h-[72px] lg:h-[88px] text-left transition-colors cursor-pointer"
                   >
                     <span className="font-bold text-xs text-[#111111]">Link</span>
-                    <Link2 className="w-4 h-4 text-black stroke-[2.2]" />
+                    <Link2 className="w-4 h-4 lg:w-5 lg:h-5 text-black stroke-[1.8]" />
                   </button>
 
                   <button
@@ -764,10 +679,10 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                       onAddCard('product', 'Special Product', { price: '$49.00' });
                       onClose();
                     }}
-                    className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
+                    className="bg-[#F4F4F5] hover:bg-[#E8E8EA] p-2.5 lg:p-3 rounded-2xl flex flex-col justify-between h-[72px] lg:h-[88px] text-left transition-colors cursor-pointer"
                   >
                     <span className="font-bold text-xs text-[#111111]">Product</span>
-                    <Tag className="w-4 h-4 text-black stroke-[2.2]" />
+                    <Tag className="w-4 h-4 lg:w-5 lg:h-5 text-black stroke-[1.8]" />
                   </button>
 
                   <button
@@ -775,16 +690,24 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                       onAddCard('contact_form', 'Contact Form');
                       onClose();
                     }}
-                    className="bg-[#F6F6F7] hover:bg-[#EAEAEA] p-3 rounded-2xl flex flex-col justify-between h-20 text-left transition-colors cursor-pointer"
+                    className="bg-[#F4F4F5] hover:bg-[#E8E8EA] p-2.5 lg:p-3 rounded-2xl flex flex-col justify-between h-[72px] lg:h-[88px] text-left transition-colors cursor-pointer"
                   >
                     <span className="font-bold text-xs text-[#111111]">Form</span>
-                    <MessageSquare className="w-4 h-4 text-black stroke-[2.2]" />
+                    <MessageSquare className="w-4 h-4 lg:w-5 lg:h-5 text-black stroke-[1.8]" />
                   </button>
                 </div>
 
+                {/* View all link */}
+                <button
+                  onClick={() => setActiveCategory('view_all')}
+                  className="text-xs font-semibold text-[#111111] hover:underline cursor-pointer text-left px-0.5"
+                >
+                  View all
+                </button>
+
               {/* Category-specific Integrations */}
-              <div className="space-y-1.5 pt-1">
-                <h4 className="font-bold text-xs text-[#111111]">
+              <div className="space-y-0.5">
+                <h4 className="font-bold text-xs text-[#111111] pb-1">
                   {categories.find((c) => c.id === activeCategory)?.label || 'Suggested'}
                 </h4>
 
@@ -794,8 +717,16 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                       key={item.id}
                       onClick={() => {
                         if (item.id === 'maps') {
-                          setQuery('https://maps.app.goo.gl/41pK4HQY5RHNe7qQA');
-                          setIsFocused(true);
+                          onAddCard('maps', 'Google Maps Location', {
+                            placeName: 'Google Maps Location',
+                            address: 'Store or Office address',
+                            subtitle: 'Store or Office address',
+                            url: 'https://maps.google.com',
+                            layout: 'classic',
+                            hasMapThumbnail: true,
+                            isSettingUp: true,
+                          });
+                          onClose();
                         } else if (item.id === 'whatsapp') {
                           onAddCard('whatsapp', 'WhatsApp Us', {
                             url: 'https://wa.me/1234567890',
@@ -804,9 +735,13 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                           onClose();
                         } else if (item.id === 'reviews') {
                           onAddCard('reviews', 'Google Reviews', {
+                            placeName: 'Google Reviews',
+                            subtitle: '5.0 ★ (48 reviews)',
                             url: 'https://google.com',
                             rating: 5,
-                            reviewsCount: 42,
+                            reviewCount: 48,
+                            reviewsCount: 48,
+                            hasMapThumbnail: true,
                           });
                           onClose();
                         } else if (item.id === 'phone') {
@@ -819,10 +754,26 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                             url: 'mailto:hello@example.com',
                           });
                           onClose();
-                        } else if (item.id === 'restaurant_menu') {
+                        } else if (item.id === 'restaurant_menu' || item.id === 'menu') {
                           onAddCard('menu', 'Restaurant Menu', {
-                            url: 'https://example.com/menu',
+                            url: '',
                             platform: 'menu',
+                            isPdf: true,
+                            pdfName: '',
+                            subtitle: 'PDF Menu · View items & prices',
+                            layout: 'classic',
+                            isSettingUp: true,
+                          });
+                          onClose();
+                        } else if (item.id === 'resume_pdf' || item.id === 'resume') {
+                          onAddCard('menu', 'Resume / CV', {
+                            url: '',
+                            platform: 'menu',
+                            isPdf: true,
+                            pdfName: '',
+                            subtitle: 'PDF Resume · View & download',
+                            layout: 'classic',
+                            isSettingUp: true,
                           });
                           onClose();
                         } else if (item.id === 'gallery') {
@@ -848,15 +799,12 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                           onClose();
                         } else {
                           onAddCard(item.type, item.title, {
-                            url:
-                              item.id === 'tiktok'
-                                ? 'https://tiktok.com'
-                                : 'https://example.com',
+                            url: 'https://example.com',
                           });
                           onClose();
                         }
                       }}
-                      className="p-2.5 rounded-2xl hover:bg-[#F6F6F7] flex items-center justify-between transition-colors cursor-pointer group"
+                      className="py-3 px-2 rounded-xl hover:bg-[#F4F4F5] flex items-center justify-between transition-colors cursor-pointer group"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         {item.renderIcon()}

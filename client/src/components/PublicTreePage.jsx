@@ -3,22 +3,65 @@ import { CardRenderer } from '../cards/CardRenderer.jsx';
 import { PRESET_THEMES } from '../constants/themes.js';
 import { Share2, Check, ArrowLeft, Users } from 'lucide-react';
 import { getPatternSvg, getContrastingPatternColor } from './WallpaperEditor.jsx';
+import { storage } from '../services/storage.js';
 
-export function PublicTreePage({ slug, onBackToAdmin }) {
-  const [treeData, setTreeData] = useState(null);
-  const [loading, setLoading] = useState(true);
+export function PublicTreePage({ slug }) {
+  const [treeData, setTreeData] = useState(() => {
+    try {
+      const allTrees = storage.getTrees();
+      const localTree = (allTrees || []).find(
+        (t) => t.slug?.toLowerCase() === slug.toLowerCase()
+      );
+      if (localTree) {
+        const localCards = storage.getCards(localTree.id);
+        return { tree: localTree, cards: localCards };
+      }
+    } catch {}
+    return null;
+  });
+  const [loading, setLoading] = useState(!treeData);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
+    let localCards = [];
+    try {
+      const allTrees = storage.getTrees();
+      const localTree = (allTrees || []).find(
+        (t) => t.slug?.toLowerCase() === slug.toLowerCase()
+      );
+      if (localTree) {
+        localCards = storage.getCards(localTree.id);
+      }
+    } catch {}
+
+    if (!treeData) setLoading(true);
+
     fetch(`/api/public/trees/${encodeURIComponent(slug)}`)
       .then((res) => {
-        if (!res.ok) throw new Error('Tree not found or unpublished');
+        if (!res.ok) {
+          if (treeData) return null;
+          throw new Error('Tree not found or unpublished');
+        }
         return res.json();
       })
       .then((data) => {
-        setTreeData(data);
+        if (data && data.tree) {
+          setTreeData((prev) => {
+            const finalCards =
+              data.cards && data.cards.length > 0
+                ? data.cards
+                : prev?.cards && prev.cards.length > 0
+                ? prev.cards
+                : localCards && localCards.length > 0
+                ? localCards
+                : [];
+            return {
+              tree: { ...prev?.tree, ...data.tree },
+              cards: finalCards,
+            };
+          });
+        }
         setLoading(false);
 
         // Record first-party cookieless view
@@ -26,7 +69,7 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
           if (navigator.sendBeacon) {
             navigator.sendBeacon(
               '/api/track',
-              JSON.stringify({ treeId: data.tree?.id || 1, eventType: 'view' })
+              JSON.stringify({ treeId: data?.tree?.id || treeData?.tree?.id || 1, eventType: 'view' })
             );
           }
         } catch {
@@ -34,7 +77,9 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
         }
       })
       .catch((err) => {
-        setError(err.message);
+        if (!treeData) {
+          setError(err.message);
+        }
         setLoading(false);
       });
   }, [slug]);
@@ -64,28 +109,28 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
         <p className="text-sm text-gray-500 mb-6 max-w-sm">
           The IndiaTaps page <code className="font-mono bg-gray-200 px-1.5 py-0.5 rounded">/{slug}</code> does not exist or has been unpublished.
         </p>
-        {onBackToAdmin && (
-          <button
-            onClick={onBackToAdmin}
-            className="px-5 py-2.5 rounded-full bg-black text-white text-xs font-bold flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Admin
-          </button>
-        )}
+        <a
+          href="/"
+          className="px-5 py-2.5 rounded-full bg-black text-white text-xs font-bold hover:bg-black/80 transition-colors"
+        >
+          Go to IndiaTaps
+        </a>
       </div>
     );
   }
 
   const { tree, cards } = treeData;
-  const activeTheme =
-    tree.customTheme ||
+  const basePreset =
     PRESET_THEMES.find((p) => p.id === tree.themeId)?.theme ||
     PRESET_THEMES[0].theme;
+  const activeTheme = {
+    ...basePreset,
+    ...(tree.customTheme || {}),
+  };
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-8 transition-colors duration-200 relative overflow-hidden"
+      className="min-h-screen flex flex-col items-center justify-between p-4 sm:p-8 transition-colors duration-200 relative overflow-x-hidden"
       style={{
         color: activeTheme.textColor,
         fontFamily: activeTheme.fontFamily,
@@ -201,31 +246,26 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
           </clipPath>
         </defs>
       </svg>
-      {/* Top Bar for Admin Return & Share */}
-      <div className="relative z-10 w-full max-w-[640px] flex items-center justify-between py-2 mb-4">
-        {onBackToAdmin ? (
-          <button
-            onClick={onBackToAdmin}
-            className="px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold flex items-center gap-1.5 hover:bg-white/30 transition-colors shadow-xs"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Admin Editor
-          </button>
-        ) : (
-          <div />
-        )}
+      {/* Top Bar: Asterisk + Share Icon matching live design */}
+      <div className="relative z-10 w-full max-w-[440px] sm:max-w-[480px] flex items-center justify-between py-2 mb-3">
+        <span className="font-black text-lg select-none drop-shadow-xs" style={{ color: activeTheme?.textColor || '#FFFFFF' }}>
+          ✱
+        </span>
 
         <button
           onClick={handleShare}
-          className="p-2.5 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold hover:bg-white/30 transition-colors shadow-xs"
+          className="p-2 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold hover:bg-white/30 transition-colors shadow-xs"
+          style={{ color: activeTheme?.textColor || '#FFFFFF' }}
           title="Share page"
         >
           {copied ? <Check className="w-4 h-4 text-green-400" /> : <Share2 className="w-4 h-4" />}
         </button>
       </div>
 
-      {/* Main Centered Content (max width 680px per PRD) */}
-      <main className="relative z-10 w-full max-w-[580px] flex flex-col items-center text-center space-y-4 flex-1">
+
+
+      {/* Main Centered Content */}
+      <main className="relative z-10 w-full max-w-[440px] sm:max-w-[480px] flex flex-col items-center text-center space-y-4 flex-1">
         {/* Profile Header matching chosen layout */}
         {(() => {
           const layout = tree.headerLayout || tree.customTheme?.headerLayout || 'classic';
@@ -233,24 +273,34 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
           const logoUrl = tree.logoUrl || tree.customTheme?.logoUrl;
           const titleText = tree.title || `@${tree.slug}`;
           const bioText = tree.bio;
-          const titleColor = tree.titleColor || tree.customTheme?.titleColor || '';
-          const altFontEnabled = tree.altFontEnabled || tree.customTheme?.altFontEnabled || false;
-          const titleFont = altFontEnabled ? (tree.titleFont || tree.customTheme?.titleFont || 'inherit') : 'inherit';
+          const altFontEnabled = tree.altFontEnabled ?? tree.customTheme?.altFontEnabled ?? false;
+          const titleFont = altFontEnabled
+            ? (tree.titleFont || tree.customTheme?.titleFont || 'Manrope')
+            : 'inherit';
+          const titleColor = altFontEnabled
+            ? (tree.titleColor || tree.customTheme?.titleColor || tree.textColor || tree.customTheme?.textColor || '#111111')
+            : (tree.textColor || tree.customTheme?.textColor || '#111111');
 
           const renderTitleBio = (isHero = false) => (
-            <div className="flex flex-col items-center text-center space-y-1">
+            <div className="flex flex-col items-center text-center space-y-1 mt-1">
               {isLogo && logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="max-h-10 max-w-[200px] object-contain my-1" />
+                <img src={logoUrl} alt="Logo" className="max-h-12 max-w-[220px] object-contain mt-2.5 mb-1.5" />
               ) : (
                 <h1
-                  className={`text-xl sm:text-2xl font-black tracking-tight ${isHero ? 'text-white drop-shadow-sm' : ''}`}
-                  style={{ color: isHero ? '#ffffff' : (titleColor || undefined), fontFamily: titleFont }}
+                  className={`font-black text-[28px] sm:text-[32px] tracking-tight leading-tight ${isHero ? 'text-white drop-shadow-xs' : ''}`}
+                  style={{
+                    color: isHero ? '#ffffff' : titleColor,
+                    fontFamily: titleFont !== 'inherit' ? `'${titleFont}', sans-serif` : 'inherit',
+                  }}
                 >
                   {titleText}
                 </h1>
               )}
               {bioText && (
-                <p className={`text-xs sm:text-sm max-w-sm mx-auto leading-relaxed ${isHero ? 'text-white/90 drop-shadow-xs' : 'opacity-80'}`}>
+                <p
+                  className={`text-sm sm:text-[15px] font-medium leading-relaxed max-w-[320px] mt-1 mb-2 ${isHero ? 'text-white/90 drop-shadow-2xs' : 'opacity-80'}`}
+                  style={{ color: isHero ? '#ffffffcc' : (tree.textColor || tree.customTheme?.textColor || '#9CA3AF') }}
+                >
                   {bioText}
                 </p>
               )}
@@ -290,11 +340,11 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
                     <div className="w-full h-full opacity-60 bg-[radial-gradient(#ec4899_1.5px,transparent_1.5px)] [background-size:8px_8px]" />
                   )}
                 </div>
-                <div className="-mt-12 mb-2 relative">
-                  <div className="w-24 h-24 rounded-full bg-white p-1.5 shadow-lg">
-                    <div className="w-full h-full rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden">
+                <div className="-mt-12 mb-2 relative z-10">
+                  <div className="w-24 h-24 aspect-square shrink-0 rounded-full bg-white p-1.5 shadow-lg flex items-center justify-center">
+                    <div className="w-full h-full rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden aspect-square">
                       {tree.avatarUrl ? (
-                        <img src={tree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                        <img src={tree.avatarUrl} alt="Avatar" className="w-full h-full object-cover object-center" />
                       ) : (
                         <Users className="w-10 h-10 text-gray-400" />
                       )}
@@ -346,10 +396,10 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
 
           // Default: Classic
           return (
-            <div className="flex flex-col items-center text-center space-y-3 mb-2">
-              <div className="w-24 h-24 rounded-full bg-[#E5E7EB] text-white flex items-center justify-center shadow-md overflow-hidden ring-4 ring-white/10">
+            <div className="flex flex-col items-center text-center space-y-3 mt-4 mb-2">
+              <div className="w-28 h-28 sm:w-32 sm:h-32 aspect-square rounded-full bg-[#E5E7EB] text-white flex items-center justify-center shadow-md overflow-hidden ring-4 ring-white/10 shrink-0">
                 {tree.avatarUrl ? (
-                  <img src={tree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={tree.avatarUrl} alt="Avatar" className="w-full h-full object-cover object-center" />
                 ) : (
                   <Users className="w-12 h-12 text-gray-400" />
                 )}
@@ -360,15 +410,17 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
         })()}
 
         {/* Cards Stack with generous bottom spacing */}
-        <div className="w-full space-y-3 pt-4 mb-8 sm:mb-10">
+        <div className="w-full space-y-3.5 pt-4 mb-8 sm:mb-10 max-w-[580px]">
           {cards && cards.length > 0 ? (
-            cards.map((card) => (
-              <CardRenderer
-                key={card.id}
-                card={card}
-                theme={activeTheme}
-              />
-            ))
+            cards
+              .filter((c) => c.visible !== false)
+              .map((card) => (
+                <CardRenderer
+                  key={card.id}
+                  card={card}
+                  theme={activeTheme}
+                />
+              ))
           ) : (
             <div className="text-xs opacity-50 py-12">No links available</div>
           )}
@@ -377,9 +429,17 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
 
       {/* Footer Branding */}
       {(tree.footerEnabled !== false && tree.customTheme?.footerEnabled !== false) && (
-        <footer className="relative z-10 w-full max-w-[580px] text-center pt-6 pb-6 space-y-2">
+        <footer className="relative z-10 w-full max-w-[440px] sm:max-w-[480px] text-center pt-6 pb-6 space-y-2.5">
+          {activeTheme?.footerButton && (
+            <button
+              type="button"
+              className="w-full max-w-[210px] py-2 px-4 rounded-full bg-white text-black text-xs font-bold shadow-md hover:scale-[1.02] transition-transform mx-auto block cursor-pointer border border-gray-100"
+            >
+              {activeTheme?.footerText || tree.footerText || 'Get your own IndiaTaps'}
+            </button>
+          )}
           <div className="text-[10px] opacity-40 font-semibold tracking-wider uppercase">
-            {tree.name}
+            {tree.footerText || tree.name}
           </div>
         </footer>
       )}

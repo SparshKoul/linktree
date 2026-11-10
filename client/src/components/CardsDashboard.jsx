@@ -12,6 +12,12 @@ import {
   ArrowRight,
   ShieldCheck,
   Sparkles,
+  Bell,
+  Send,
+  Share2,
+  ChevronRight,
+  ShoppingBag,
+  Palette,
 } from 'lucide-react';
 import { storage } from '../services/storage.js';
 
@@ -22,6 +28,9 @@ export function CardsDashboard({
   onSelectTree,
   onOpenCreateTree,
   onGoToWorkspace,
+  onOpenAddCard,
+  onSelectRail,
+  onSelectTab,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedSlug, setCopiedSlug] = useState(null);
@@ -66,8 +75,210 @@ export function CardsDashboard({
   };
 
   return (
-    <div className="flex-1 bg-[#F9FAFB] overflow-y-auto p-4 sm:p-6 lg:p-8">
-      <div className="max-w-5xl mx-auto space-y-6">
+    <div className="flex-1 bg-white lg:bg-[#F9FAFB] overflow-y-auto p-4 sm:p-6 lg:p-8">
+      {/* 1. MOBILE DASHBOARD VIEW matching uploaded Linktree screenshot */}
+      <div className="lg:hidden flex flex-col space-y-4 max-w-md mx-auto pb-24">
+        {/* Top Bar */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-gray-200 border border-gray-300 flex items-center justify-center overflow-hidden">
+              {currentTree?.avatarUrl ? (
+                <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-4 h-4 text-gray-500" />
+              )}
+            </div>
+            <button className="px-3 py-1 rounded-full border border-gray-300 text-xs font-semibold text-gray-800 bg-white shadow-2xs hover:bg-gray-50 transition-colors">
+              Try Pro free
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 text-gray-700">
+            <button
+              onClick={() => handleCopyUrl(currentTree?.slug || username)}
+              className="p-1 hover:text-black cursor-pointer transition-colors"
+              title="Share"
+            >
+              <Share2 className="w-5 h-5 stroke-[1.8]" />
+            </button>
+            <button className="p-1 hover:text-black cursor-pointer transition-colors relative" title="Notifications">
+              <Bell className="w-5 h-5 stroke-[1.8]" />
+            </button>
+            <button className="p-1 hover:text-black cursor-pointer transition-colors relative" title="Messages">
+              <Send className="w-5 h-5 stroke-[1.8]" />
+              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#7033FF] text-white text-[8px] font-bold flex items-center justify-center shadow-xs">
+                1
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* User Handle & Tree Link */}
+        <div className="space-y-0.5 pt-1 text-left">
+          <h1 className="text-2xl font-black text-[#111111] tracking-tight">
+            {currentTree?.slug || username}
+          </h1>
+          <div className="text-xs text-gray-500 font-medium">
+            indiataps.vercel.app/{currentTree?.slug || username}
+          </div>
+        </div>
+
+        {/* Quick Action Pills: + Add, Products, Design */}
+        <div className="flex items-center gap-2 pt-1 overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => {
+              onGoToWorkspace && onGoToWorkspace(currentTree);
+              onOpenAddCard && onOpenAddCard();
+            }}
+            className="px-4 py-2 rounded-full bg-[#EAEAEA] hover:bg-gray-300 text-xs font-bold text-[#111111] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>Add</span>
+          </button>
+
+          <button
+            onClick={() => {
+              onGoToWorkspace && onGoToWorkspace(currentTree);
+              onSelectTab && onSelectTab('shop');
+            }}
+            className="px-4 py-2 rounded-full bg-[#EAEAEA] hover:bg-gray-300 text-xs font-bold text-[#111111] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+          >
+            <ShoppingBag className="w-3.5 h-3.5 stroke-[2]" />
+            <span>Products</span>
+          </button>
+
+          <button
+            onClick={() => {
+              onGoToWorkspace && onGoToWorkspace(currentTree);
+              onSelectRail && onSelectRail('design');
+            }}
+            className="px-4 py-2 rounded-full bg-[#EAEAEA] hover:bg-gray-300 text-xs font-bold text-[#111111] flex items-center gap-1.5 transition-colors cursor-pointer relative shrink-0"
+          >
+            <Palette className="w-3.5 h-3.5 stroke-[2]" />
+            <span>Design</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 absolute top-2 right-2.5" />
+          </button>
+        </div>
+
+        {/* Big Phone Preview Card matching Reference Image */}
+        <div className="w-full bg-[#4E5049] rounded-[28px] p-5 text-white space-y-4 shadow-lg relative overflow-hidden">
+          {/* Unpublished badge */}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md text-[11px] font-semibold text-white/95">
+            <span className="w-2 h-2 rounded-full bg-amber-400" />
+            <span>Unpublished changes</span>
+          </div>
+
+          {/* Center Avatar Graphic */}
+          <div className="py-7 flex justify-center">
+            <div className="w-28 h-28 rounded-full bg-white/20 backdrop-blur-md border-4 border-white/25 flex items-center justify-center overflow-hidden shadow-inner">
+              {currentTree?.avatarUrl ? (
+                <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-16 h-16 text-white/75" />
+              )}
+            </div>
+          </div>
+
+          {/* Bottom Bar: Tree name, links count, share & Edit buttons */}
+          <div className="flex items-end justify-between pt-1">
+            <div className="text-left">
+              <div className="font-extrabold text-base text-white leading-tight">
+                {currentTree?.slug || username}
+              </div>
+              <div className="text-xs text-white/70 font-medium mt-0.5">
+                {(currentTree?.cards || []).length || 5} links
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleCopyUrl(currentTree?.slug || username)}
+                className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors cursor-pointer"
+                title="Share"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onGoToWorkspace && onGoToWorkspace(currentTree)}
+                className="px-4 py-2 rounded-full bg-[#E5E7EB] hover:bg-white text-black text-xs font-extrabold transition-colors cursor-pointer shadow-xs"
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Section: In the last week */}
+        <div className="pt-2 space-y-2 text-left">
+          <h2 className="text-base font-extrabold text-[#111111]">
+            In the last week
+          </h2>
+
+          {/* Analytics Visitors Card */}
+          <div className="w-full bg-white rounded-3xl p-5 border border-gray-200 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="font-extrabold text-sm text-[#111111]">
+                IndiaTaps visitors
+              </div>
+              <button className="text-xs font-bold text-gray-500 hover:text-black flex items-center gap-1 cursor-pointer">
+                <span>Last 7 days</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="text-xs text-gray-500">
+              No activity during this time
+            </div>
+
+            {/* Visual Progress / Setup Stats & Map graphic */}
+            <div className="flex items-center justify-between pt-2">
+              {/* Circular progress "33% set up" */}
+              <div className="relative w-16 h-16 flex items-center justify-center">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-gray-100"
+                    strokeWidth="3.5"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className="text-[#7033FF]"
+                    strokeDasharray="33, 100"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <div className="absolute text-center leading-none">
+                  <div className="text-[11px] font-black text-gray-900">33%</div>
+                  <div className="text-[7px] text-gray-500 font-bold mt-0.5">set up</div>
+                </div>
+              </div>
+
+              {/* Globe illustration with location pins matching screenshot */}
+              <div className="relative w-24 h-16 flex items-end justify-center opacity-60">
+                <svg className="w-20 h-16 text-gray-300" viewBox="0 0 100 60" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="50" cy="50" r="40" />
+                  <path d="M10 50h80M20 30h60M30 50c0-20 40-20 40 0" />
+                  <g transform="translate(56, 12)">
+                    <circle cx="5" cy="5" r="4" fill="#9CA3AF" />
+                    <path d="M5 9v5" stroke="#9CA3AF" strokeWidth="2" />
+                  </g>
+                  <g transform="translate(38, 28)">
+                    <circle cx="4" cy="4" r="3" fill="#9CA3AF" />
+                  </g>
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. DESKTOP VIEW (hidden on mobile, untouched for desktop managers) */}
+      <div className="hidden lg:block max-w-5xl mx-auto space-y-6">
         {/* Top Header Section: Account ID & Trees Overview */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-gray-200">
           <div>
@@ -80,8 +291,8 @@ export function CardsDashboard({
               </span>
             </div>
             <p className="text-xs text-gray-500 mt-1">
-              Account details and overview of all trees owned by{' '}
-              <span className="font-bold text-black">@{username}</span> ({email})
+              Account details and overview of all digital cards owned by{' '}
+              <span className="font-bold text-black">{email}</span>
             </p>
           </div>
 
@@ -98,7 +309,7 @@ export function CardsDashboard({
               className="px-4 py-2 rounded-xl bg-black hover:bg-neutral-800 text-white text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer shadow-xs"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Create New Tree</span>
+              <span>Create New Card</span>
             </button>
           </div>
         </div>
@@ -113,19 +324,19 @@ export function CardsDashboard({
               </div>
             </div>
             <div className="text-2xl font-black text-gray-900 mt-2">#{accountId}</div>
-            <div className="text-[11px] text-gray-400 mt-0.5">@{username}</div>
+            <div className="text-[11px] text-gray-400 mt-0.5 truncate">{email}</div>
           </div>
 
           <div className="bg-white p-4 rounded-2xl border border-purple-200/80 bg-gradient-to-br from-white to-purple-50/40 shadow-2xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-purple-900">Total Trees</span>
+              <span className="text-xs font-bold text-purple-900">Total Digital Cards</span>
               <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
                 <Layers className="w-4 h-4" />
               </div>
             </div>
             <div className="text-2xl font-black text-purple-950 mt-2">{totalTrees}</div>
             <div className="text-[11px] text-purple-700 font-semibold mt-0.5">
-              Configured on this ID
+              Created under this account
             </div>
           </div>
 
