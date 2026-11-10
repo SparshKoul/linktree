@@ -820,7 +820,7 @@ export function App() {
 
     // Default: 'classic'
     return (
-      <div className="flex flex-col items-center text-center mt-3.5 sm:mt-4 mb-3 shrink-0">
+      <div className="flex flex-col items-center text-center mt-7 sm:mt-8 mb-3 shrink-0">
         <div className="w-28 h-28 sm:w-30 sm:h-30 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3.5 shadow-lg ring-1 ring-white/15 shrink-0">
           {currentTree?.avatarUrl ? (
             <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />

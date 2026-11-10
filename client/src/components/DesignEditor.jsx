@@ -888,7 +888,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
               ref={previewScrollRef}
               className="flex-1 overflow-y-auto px-4 sm:px-5 py-2 flex flex-col items-center no-scrollbar [&::-webkit-scrollbar]:hidden"
             >
-              <div className="w-full max-w-[440px] flex flex-col items-center flex-1">
+              <div className="w-full max-w-[440px] flex flex-col items-center flex-1 pt-2 sm:pt-3">
                 {/* Header Layout Rendering */}
                 {currentHeaderLayout === 'hero' ? (
                   <div className="w-full h-44 sm:h-48 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600 mb-2 shrink-0">
@@ -922,7 +922,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
                   </div>
                 ) : (
                   /* Classic Avatar matching Image */
-                  <div className="w-28 h-28 sm:w-30 sm:h-30 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mt-3.5 sm:mt-4 mb-3.5 shadow-lg ring-1 ring-white/15 shrink-0">
+                  <div className="w-28 h-28 sm:w-30 sm:h-30 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mt-7 sm:mt-8 mb-3.5 shadow-lg ring-1 ring-white/15 shrink-0">
                     {current.avatarUrl || currentTree?.avatarUrl ? (
                       <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
