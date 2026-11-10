@@ -50,6 +50,7 @@ import {
   Key,
   ChevronLeft,
   Paintbrush,
+  Upload,
 } from 'lucide-react';
 import { TreeSwitcher } from './components/TreeSwitcher.jsx';
 import { CreateTreeModal } from './components/CreateTreeModal.jsx';
@@ -95,6 +96,7 @@ export function App() {
   const undoIntervalRef = useRef(null);
   const [filterHiddenOnly, setFilterHiddenOnly] = useState(false);
   const [isReordering, setIsReordering] = useState(false);
+  const [isMobileMoreMenuOpen, setIsMobileMoreMenuOpen] = useState(false);
   const [treePendingDelete, setTreePendingDelete] = useState(null);
   const [lastDeletedTreeData, setLastDeletedTreeData] = useState(null);
   const [treeUndoToast, setTreeUndoToast] = useState(false);
@@ -387,6 +389,20 @@ export function App() {
       if (!defaultSettings.url || defaultSettings.url === '' || defaultSettings.url === 'https://') {
         setActiveCardDetail(savedCard);
       }
+    }
+  };
+
+  const handleAddSocialQuick = (platform) => {
+    if (platform === 'instagram') {
+      handleAddCard('instagram', 'Instagram', { url: 'https://instagram.com/' });
+    } else if (platform === 'tiktok') {
+      handleAddCard('link', 'TikTok', { url: 'https://tiktok.com/@' });
+    } else if (platform === 'whatsapp') {
+      handleAddCard('phone', 'WhatsApp', { url: 'https://wa.me/' });
+    } else if (platform === 'mail') {
+      handleAddCard('email', 'Email', { url: 'mailto:' });
+    } else {
+      setIsAddCardOpen(true);
     }
   };
 
@@ -949,10 +965,18 @@ export function App() {
 
       {/* 2. Main Body Container */}
       <div className="flex-1 flex overflow-hidden relative">
+        {/* Mobile Backdrop for Sidebar */}
+        {isSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+
         {/* Left Side: Either Expanded Sidebar (Image 0 & 1) OR Compact Icon Dock (Image 2) */}
         {isSidebarOpen ? (
           /* EXPANDED SIDEBAR matching Image 0 & Image 1 */
-          <aside className="w-64 bg-white border-r border-gray-200 flex flex-col justify-between p-4 shrink-0 overflow-y-auto z-20 shadow-2xs">
+          <aside className="fixed inset-y-0 left-0 z-50 w-72 lg:static lg:z-20 lg:w-64 bg-white border-r border-gray-200 flex flex-col justify-between p-4 shrink-0 overflow-y-auto shadow-2xl lg:shadow-2xs">
             <div className="space-y-4">
               {/* Top row: User pill button + Bell notification */}
               <div className="flex items-center justify-between pb-2 border-b border-gray-100">
@@ -972,9 +996,18 @@ export function App() {
                   <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ${sidebarMenuMode === 'account' ? 'rotate-180' : ''}`} />
                 </button>
 
-                <button className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                  <Bell className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                    <Bell className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setIsSidebarOpen(false)}
+                    className="lg:hidden text-gray-400 hover:text-black p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer text-sm font-bold"
+                    title="Close sidebar"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
               {/* View 1: Main Navigation (Minimal: Workspace & Cards Dashboard) */}
@@ -984,6 +1017,7 @@ export function App() {
                     onClick={() => {
                       setCurrentView('workspace');
                       setActiveRail('content');
+                      if (window.innerWidth < 1024) setIsSidebarOpen(false);
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${
                       currentView === 'workspace'
@@ -996,7 +1030,10 @@ export function App() {
                   </button>
 
                   <button
-                    onClick={() => setCurrentView('dashboard')}
+                    onClick={() => {
+                      setCurrentView('dashboard');
+                      if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                    }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${
                       currentView === 'dashboard'
                         ? 'bg-[#F3F3F1] text-black font-extrabold shadow-2xs'
@@ -1308,13 +1345,83 @@ export function App() {
                   </button>
 
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="w-9 h-9 rounded-full bg-[#F3F4F6] hover:bg-gray-200 flex items-center justify-center text-gray-800 transition-colors cursor-pointer"
-                      title="More"
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setIsMobileMoreMenuOpen(!isMobileMoreMenuOpen)}
+                        className="w-9 h-9 rounded-full bg-[#F3F4F6] hover:bg-gray-200 flex items-center justify-center text-gray-800 transition-colors cursor-pointer"
+                        title="More options"
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </button>
+
+                      {/* Dropdown with desktop content header features */}
+                      {isMobileMoreMenuOpen && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setIsMobileMoreMenuOpen(false)}
+                          />
+                          <div className="absolute right-0 top-11 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 p-1.5 z-50 text-xs font-semibold space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsMobileMoreMenuOpen(false);
+                                setIsReordering(!isReordering);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-700 hover:text-black hover:bg-[#F6F6F7] text-left transition-colors cursor-pointer"
+                            >
+                              <ArrowUpDown className="w-4 h-4 text-purple-600" />
+                              <span>{isReordering ? 'Done reordering' : 'Reorder links'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsMobileMoreMenuOpen(false);
+                                setFilterHiddenOnly(!filterHiddenOnly);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-gray-700 hover:text-black hover:bg-[#F6F6F7] text-left transition-colors cursor-pointer"
+                            >
+                              <EyeOff className="w-4 h-4 text-gray-600" />
+                              <span>{filterHiddenOnly ? 'Show all links' : 'View hidden only'}</span>
+                            </button>
+
+                            <div className="my-1 border-t border-gray-100" />
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsMobileMoreMenuOpen(false);
+                                const targetCards = filterHiddenOnly
+                                  ? (currentTree?.cards || []).filter((c) => c.visible === false)
+                                  : currentTree?.cards || [];
+
+                                if (targetCards.length === 0) {
+                                  setTopToast({
+                                    title: 'Nothing to delete',
+                                    subtitle: filterHiddenOnly ? 'No hidden links found' : 'Tree has no links',
+                                  });
+                                  setTimeout(() => setTopToast(null), 3000);
+                                  return;
+                                }
+
+                                setCardPendingDelete({
+                                  title: filterHiddenOnly ? 'all hidden links' : 'all links',
+                                  isBulk: true,
+                                  count: targetCards.length,
+                                  cards: targetCards,
+                                });
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-red-600 hover:bg-red-50 text-left transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              <span>{filterHiddenOnly ? 'Delete hidden' : 'Delete all links'}</span>
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
 
                     <button
                       type="button"
@@ -1324,7 +1431,7 @@ export function App() {
                       {copiedUrl ? (
                         <Check className="w-3.5 h-3.5 text-green-600" />
                       ) : (
-                        <Share2 className="w-3.5 h-3.5 text-gray-800" />
+                        <Upload className="w-3.5 h-3.5 stroke-[2.2] text-gray-800" />
                       )}
                       <span>{copiedUrl ? 'Copied' : 'Copy link'}</span>
                     </button>
@@ -1349,14 +1456,15 @@ export function App() {
 
                     <div className="flex flex-col gap-1.5 overflow-hidden flex-1">
                       {/* @riyast */}
-                      <span className="font-extrabold text-xs text-gray-900 truncate">@{currentSlug}</span>
+                      <span className="font-extrabold text-[13px] text-gray-900 truncate">@{currentSlug}</span>
 
                       {/* Social Action Circles Row with + Badge */}
                       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
                         <button
                           type="button"
-                          onClick={() => setIsAddCardOpen(true)}
-                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs"
+                          onClick={() => handleAddSocialQuick('instagram')}
+                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
+                          title="Add Instagram"
                         >
                           <Instagram className="w-3.5 h-3.5 stroke-[1.8]" />
                           <span className="w-3 h-3 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
@@ -1366,10 +1474,13 @@ export function App() {
 
                         <button
                           type="button"
-                          onClick={() => setIsAddCardOpen(true)}
-                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs"
+                          onClick={() => handleAddSocialQuick('tiktok')}
+                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
+                          title="Add TikTok"
                         >
-                          <Video className="w-3 h-3 stroke-[1.8]" />
+                          <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c1.61-1.42 2.39-3.2 2.39-5.75v-5.2a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.43-.57z"/>
+                          </svg>
                           <span className="w-3 h-3 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
                             +
                           </span>
@@ -1377,10 +1488,13 @@ export function App() {
 
                         <button
                           type="button"
-                          onClick={() => setIsAddCardOpen(true)}
-                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs"
+                          onClick={() => handleAddSocialQuick('whatsapp')}
+                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
+                          title="Add WhatsApp"
                         >
-                          <MessageCircle className="w-3.5 h-3.5 stroke-[1.8]" />
+                          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                            <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.36c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.4-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.35-.77-1.85-.2-.49-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.87.85-.87 2.08s.89 2.42 1.01 2.59c.13.17 1.75 2.67 4.24 3.75.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3z"/>
+                          </svg>
                           <span className="w-3 h-3 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
                             +
                           </span>
@@ -1388,8 +1502,9 @@ export function App() {
 
                         <button
                           type="button"
-                          onClick={() => setIsAddCardOpen(true)}
-                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs"
+                          onClick={() => handleAddSocialQuick('mail')}
+                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
+                          title="Add Email"
                         >
                           <Mail className="w-3.5 h-3.5 stroke-[1.8]" />
                           <span className="w-3 h-3 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
@@ -1400,7 +1515,8 @@ export function App() {
                         <button
                           type="button"
                           onClick={() => setIsAddCardOpen(true)}
-                          className="w-7 h-7 rounded-full border border-gray-200 bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 shrink-0 shadow-2xs"
+                          className="w-7 h-7 rounded-full border border-gray-200 bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 shrink-0 shadow-2xs cursor-pointer"
+                          title="Add More"
                         >
                           <Plus className="w-3.5 h-3.5 stroke-[2]" />
                         </button>
@@ -1412,9 +1528,16 @@ export function App() {
                   <div className="pt-2">
                     <button
                       type="button"
+                      onClick={() => {
+                        setTopToast({
+                          title: 'Followers',
+                          subtitle: 'Total follower count display enabled',
+                        });
+                        setTimeout(() => setTopToast(null), 3000);
+                      }}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F3F4F6] hover:bg-gray-200 text-[11px] font-semibold text-gray-700 transition-colors cursor-pointer"
                     >
-                      <Users className="w-3 h-3 text-gray-500" />
+                      <Users className="w-3.5 h-3.5 text-gray-500" />
                       <span>Show total followers</span>
                     </button>
                   </div>
@@ -1580,7 +1703,7 @@ export function App() {
                 {/* Action Buttons Row: [ ⊞ Add collection ] and [ + Add ] matching Reference */}
                 <div className="flex items-center gap-2.5">
                   <button
-                    onClick={() => handleAddCard('collapsible', 'New Collection')}
+                    onClick={() => handleAddCard('collapsible', 'Add collection title', { subtitle: 'Add or drag & drop an existing link' })}
                     className="flex-1 py-2.5 px-4 rounded-full bg-[#EAEAE8] hover:bg-[#E2E2E0] text-xs font-semibold text-[#111111] flex items-center justify-center gap-2 transition-colors cursor-pointer"
                   >
                     {/* Collection grid icon */}
@@ -1669,12 +1792,17 @@ export function App() {
                       }
 
                       return displayedCards.map((card, index) => {
-                        const isSetupNeeded = Boolean(card.settings?.needsSetup && (!card.url || card.url.trim() === ''));
+                        const isSetupNeeded = Boolean(
+                          (!card.url || card.url.trim() === '' || card.url === 'https://' || card.settings?.needsSetup) &&
+                          card.type !== 'collapsible'
+                        );
                         const isHidden = card.visible === false;
                         const isDragging = draggedCardIndex === index;
-                        const displaySubtitle = card.url
-                          ? card.url.replace(/^https?:\/\//, '').split('/')[0]
-                          : (card.subtitle || 'link');
+                        const displaySubtitle = card.type === 'collapsible'
+                          ? (card.subtitle || 'Add or drag & drop an existing link')
+                          : card.url
+                            ? card.url.replace(/^https?:\/\//, '').split('/')[0]
+                            : (card.subtitle || '');
 
                         return (
                           <div
@@ -1710,12 +1838,42 @@ export function App() {
                             <div className="flex items-center gap-2.5 min-w-0">
                               {/* Drag Handle: shown only when Reorder mode is enabled */}
                               {isReordering && !filterHiddenOnly && (
-                                <div
-                                  className="cursor-grab active:cursor-grabbing text-purple-600 hover:text-purple-800 -ml-1 transition-colors shrink-0"
-                                  title="Drag to reorder"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <GripVertical className="w-4 h-4" />
+                                <div className="flex items-center gap-1 shrink-0 -ml-1">
+                                  <div
+                                    className="cursor-grab active:cursor-grabbing text-purple-600 hover:text-purple-800 transition-colors p-1"
+                                    title="Drag to reorder"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <GripVertical className="w-4 h-4" />
+                                  </div>
+                                  <div className="lg:hidden flex flex-col gap-0.5">
+                                    {index > 0 && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleMoveCard(index, -1);
+                                        }}
+                                        className="p-0.5 text-gray-500 hover:text-purple-600 bg-gray-100 rounded cursor-pointer"
+                                        title="Move up"
+                                      >
+                                        <ArrowUp className="w-2.5 h-2.5" />
+                                      </button>
+                                    )}
+                                    {index < displayedCards.length - 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleMoveCard(index, 1);
+                                        }}
+                                        className="p-0.5 text-gray-500 hover:text-purple-600 bg-gray-100 rounded cursor-pointer"
+                                        title="Move down"
+                                      >
+                                        <ArrowDown className="w-2.5 h-2.5" />
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               )}
 
@@ -1736,9 +1894,19 @@ export function App() {
                                   )}
                                 </div>
                                 <div className={`text-[10px] truncate flex items-center gap-1.5 ${isHidden ? 'text-gray-400' : 'text-gray-500'}`}>
-                                  <span>{card.clicks || 0} clicks</span>
-                                  <span>•</span>
-                                  <span className="truncate">{displaySubtitle}</span>
+                                  {card.type === 'collapsible' ? (
+                                    <span className="truncate">{displaySubtitle}</span>
+                                  ) : (
+                                    <>
+                                      <span>{card.clicks || 0} clicks</span>
+                                      {displaySubtitle && (
+                                        <>
+                                          <span>·</span>
+                                          <span className="truncate">{displaySubtitle}</span>
+                                        </>
+                                      )}
+                                    </>
+                                  )}
                                 </div>
                               </div>
                             </div>

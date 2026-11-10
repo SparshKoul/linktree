@@ -16,6 +16,7 @@ import {
   FileText,
   Star,
   Utensils,
+  Folder,
 } from 'lucide-react';
 
 export function FaviconIcon({ card, className = 'w-5 h-5', containerClassName = 'w-10 h-10' }) {
@@ -36,6 +37,24 @@ export function FaviconIcon({ card, className = 'w-5 h-5', containerClassName = 
           className="w-full h-full object-cover"
           onError={() => setImgError(true)}
         />
+      </div>
+    );
+  }
+
+  // 1b. Collapsible / Collection Folder
+  if (type === 'collapsible' || type === 'collection' || type === 'folder') {
+    return (
+      <div className={`${containerClassName} rounded-xl bg-gray-200 text-gray-500 flex items-center justify-center shrink-0 shadow-2xs`}>
+        <Folder className={className} />
+      </div>
+    );
+  }
+
+  // 1c. Header or Aa text card
+  if (type === 'header' || type === 'text' || card?.title?.toLowerCase() === 'my link') {
+    return (
+      <div className={`${containerClassName} rounded-xl bg-gray-100 text-gray-800 flex items-center justify-center shrink-0 border border-gray-200 font-bold text-xs select-none`}>
+        Aa
       </div>
     );
   }
