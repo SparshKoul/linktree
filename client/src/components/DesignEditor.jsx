@@ -785,7 +785,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
       </div>
 
       {/* 2. MOBILE VIEW (Visible ONLY on mobile screens < lg, matches user screenshots) */}
-      <div className="lg:hidden fixed inset-0 z-40 flex flex-col h-[100dvh] w-full bg-[#2E3033] select-none overflow-hidden">
+      <div className="lg:hidden fixed inset-0 z-40 flex flex-col h-[100dvh] w-full bg-white select-none overflow-hidden">
         {/* Mobile Top Action Bar */}
         <div className="h-13 bg-white px-3 flex items-center justify-between border-b border-gray-200 shrink-0 z-20 shadow-2xs">
           {/* Back button returns to Content rail */}
@@ -848,7 +848,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
 
         {/* Center Mobile Phone Preview Area */}
         <div
-          className={`flex-1 flex ${
+          className={`flex-1 flex bg-white ${
             activeSubview ? 'items-start justify-center pt-2 max-h-[46dvh] px-2' : 'items-stretch p-0'
           } overflow-hidden relative transition-all duration-300`}
         >
