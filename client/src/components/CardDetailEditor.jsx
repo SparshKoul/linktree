@@ -19,6 +19,8 @@ import {
   Upload,
   X,
   Utensils,
+  Plus,
+  Play,
 } from 'lucide-react';
 import { FaviconIcon } from './FaviconIcon.jsx';
 
@@ -40,6 +42,12 @@ export function CardDetailEditor({
     Boolean(card?.settings?.isPdf) ||
     Boolean(card?.url && /\.pdf($|\?)/i.test(card.url));
 
+  const isGallery =
+    card?.type === 'gallery' ||
+    card?.settings?.platform === 'gallery' ||
+    Boolean(card?.settings?.images && card.settings.images.length > 0) ||
+    (card?.title || '').toLowerCase().includes('gallery');
+
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'powerups' | 'insights'
   const [title, setTitle] = useState(card?.title ?? '');
   const [subtitle, setSubtitle] = useState(card?.subtitle ?? card?.settings?.address ?? '');
@@ -49,6 +57,7 @@ export function CardDetailEditor({
   const [showMenu, setShowMenu] = useState(false);
   const fileInputRef = useRef(null);
   const pdfInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
 
   useEffect(() => {
     if (card) {
@@ -207,7 +216,76 @@ export function CardDetailEditor({
     e.target.value = '';
   };
 
-  const pageTitle = isMaps ? 'Maps' : (title || 'Link');
+  const handleGallerySelect = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const rawDataUrl = event.target?.result;
+        if (typeof rawDataUrl === 'string') {
+          const currentImages = card.settings?.images || [];
+          const updated = [...currentImages, rawDataUrl];
+          const newSubtitle = `Gallery · ${updated.length} items`;
+          setSubtitle(newSubtitle);
+
+          onUpdateCard(card.id, {
+            subtitle: newSubtitle,
+            thumbnailUrl: card.thumbnailUrl || rawDataUrl,
+            settings: {
+              ...(card.settings || {}),
+              images: updated,
+              needsSetup: false,
+            },
+          });
+
+          // Upload to Supabase Storage CDN in background
+          fetch('/api/admin/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ file: rawDataUrl, filename: file.name, folder: 'gallery' }),
+          })
+            .then((res) => res.json())
+            .then((res) => {
+              if (res?.url) {
+                const latest = card.settings?.images || updated;
+                const replaced = latest.map((u) => (u === rawDataUrl ? res.url : u));
+                onUpdateCard(card.id, {
+                  thumbnailUrl: card.thumbnailUrl === rawDataUrl ? res.url : (card.thumbnailUrl || res.url),
+                  settings: {
+                    ...(card.settings || {}),
+                    images: replaced,
+                    needsSetup: false,
+                  },
+                });
+              }
+            })
+            .catch(() => {});
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const handleRemoveGalleryItem = (indexToRemove) => {
+    const currentImages = card.settings?.images || [];
+    const updated = currentImages.filter((_, idx) => idx !== indexToRemove);
+    const newSubtitle = updated.length > 0 ? `Gallery · ${updated.length} items` : 'Gallery · 0 items';
+    setSubtitle(newSubtitle);
+    onUpdateCard(card.id, {
+      subtitle: newSubtitle,
+      thumbnailUrl: updated[0] || '',
+      settings: {
+        ...(card.settings || {}),
+        images: updated,
+      },
+    });
+  };
+
+  const pageTitle = isMaps ? 'Maps' : isGallery ? 'Gallery' : (title || 'Link');
 
   return (
     <div className="bg-white rounded-[32px] p-6 sm:p-8 border border-gray-100 shadow-2xs space-y-6 animate-in fade-in duration-150">
@@ -353,6 +431,23 @@ export function CardDetailEditor({
             </div>
           )}
 
+          {/* Info Banner for Gallery */}
+          {isGallery && (
+            <div className="bg-[#EFF6FF] border border-blue-200 rounded-2xl p-3.5 flex items-start gap-3">
+              <div className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                <ImageIcon className="w-3.5 h-3.5 text-[#2563EB]" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="font-extrabold text-xs text-[#1E40AF]">
+                  Photo & Video Gallery
+                </div>
+                <div className="text-[11px] text-[#3B82F6]">
+                  Upload pictures and videos from your device. In your profile, tapping this card smoothly expands them in full view.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Section: Title & Content */}
           <div className="space-y-3">
             <h3 className="font-extrabold text-sm text-[#111111]">
@@ -402,6 +497,95 @@ export function CardDetailEditor({
                 </div>
               </div>
             </div>
+
+            {/* Dedicated Gallery Upload for Photos & Videos */}
+            {isGallery && (
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-[11px] font-semibold text-gray-500">
+                    Gallery Items ({card.settings?.images?.length || 0})
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
+                  >
+                    + Add Photos / Videos
+                  </button>
+                </div>
+
+                <input
+                  type="file"
+                  ref={galleryInputRef}
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={handleGallerySelect}
+                  className="hidden"
+                />
+
+                {/* Grid of uploaded items */}
+                {card.settings?.images && card.settings.images.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {card.settings.images.map((itemUrl, idx) => {
+                        const isVid = /\.(mp4|webm|mov|ogg)($|\?)/i.test(itemUrl) || itemUrl.startsWith('data:video');
+                        return (
+                          <div
+                            key={idx}
+                            className="aspect-square rounded-xl overflow-hidden relative group border border-gray-200 bg-gray-50 shadow-2xs"
+                          >
+                            {isVid ? (
+                              <div className="w-full h-full bg-black flex items-center justify-center text-white">
+                                <Play className="w-5 h-5 opacity-80" />
+                              </div>
+                            ) : (
+                              <img
+                                src={itemUrl}
+                                alt={`Gallery item ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveGalleryItem(idx)}
+                              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+                              title="Delete"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => galleryInputRef.current?.click()}
+                      className="w-full py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-blue-500 bg-blue-50/30 hover:bg-blue-50 text-xs font-bold text-blue-600 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add more pictures / videos</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="w-full p-4 rounded-2xl border-2 border-dashed border-gray-300 hover:border-blue-500 bg-gray-50/60 hover:bg-blue-50/30 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer group"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 group-hover:text-blue-600 shadow-2xs transition-colors">
+                      <ImageIcon className="w-4 h-4" />
+                    </div>
+                    <div className="font-bold text-xs text-gray-700 group-hover:text-black">
+                      Upload Photos & Videos
+                    </div>
+                    <div className="text-[10px] text-gray-400">
+                      Select images or video clips from your computer or phone
+                    </div>
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Dedicated PDF Menu Upload for Restaurant Menu & Catalogs */}
             {isMenu && (

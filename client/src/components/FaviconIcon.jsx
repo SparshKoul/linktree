@@ -17,6 +17,7 @@ import {
   Star,
   Utensils,
   Folder,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 export function FaviconIcon({ card, className = 'w-5 h-5', containerClassName = 'w-10 h-10' }) {
@@ -101,6 +102,15 @@ export function FaviconIcon({ card, className = 'w-5 h-5', containerClassName = 
             PDF
           </span>
         )}
+      </div>
+    );
+  }
+
+  // 4b. Image & Video Gallery type
+  if (type === 'gallery' || card?.settings?.platform === 'gallery' || (card?.title || '').toLowerCase().includes('gallery')) {
+    return (
+      <div className={`${containerClassName} ${radius} bg-[#3B82F6] text-white flex items-center justify-center shrink-0 shadow-2xs`}>
+        <ImageIcon className={className} />
       </div>
     );
   }

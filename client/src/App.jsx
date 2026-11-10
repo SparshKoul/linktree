@@ -1818,17 +1818,21 @@ export function App() {
                       }
 
                       return displayedCards.map((card, index) => {
+                        const isGallery = card.type === 'gallery' || card.settings?.platform === 'gallery' || Boolean(card.settings?.images);
                         const isSetupNeeded = Boolean(
                           (!card.url || card.url.trim() === '' || card.url === 'https://' || card.settings?.needsSetup) &&
-                          card.type !== 'collapsible'
+                          card.type !== 'collapsible' &&
+                          !isGallery
                         );
                         const isHidden = card.visible === false;
                         const isDragging = draggedCardIndex === index;
                         const displaySubtitle = card.type === 'collapsible'
                           ? (card.subtitle || 'Add or drag & drop an existing link')
-                          : card.url
-                            ? card.url.replace(/^https?:\/\//, '').split('/')[0]
-                            : (card.subtitle || '');
+                          : isGallery
+                            ? (card.subtitle || `Gallery · ${card.settings?.images?.length || 0} items`)
+                            : card.url
+                              ? card.url.replace(/^https?:\/\//, '').split('/')[0]
+                              : (card.subtitle || '');
 
                         return (
                           <div

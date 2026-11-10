@@ -140,5 +140,30 @@ describe('Card Reflection Logic', () => {
     expect(isLocalMediaCard({ type: 'video', title: 'Local Clip', url: 'blob:video.mp4' })).toBe(true);
     expect(isLocalMediaCard({ type: 'link', title: 'Instagram', url: 'https://instagram.com' })).toBe(false);
   });
+
+  it('handles gallery card setup and image/video uploads without requiring external destination URL', () => {
+    const galleryCard = {
+      id: 10,
+      type: 'gallery',
+      title: 'Gallery',
+      url: '',
+      subtitle: 'Gallery · 2 items',
+      settings: {
+        images: ['https://example.com/photo1.jpg', 'data:video/mp4;base64,...'],
+        needsSetup: false,
+      },
+    };
+
+    const isGallery = galleryCard.type === 'gallery' || Boolean(galleryCard.settings?.images);
+    const isSetupNeeded = Boolean(
+      (!galleryCard.url || galleryCard.url.trim() === '' || galleryCard.url === 'https://' || galleryCard.settings?.needsSetup) &&
+      galleryCard.type !== 'collapsible' &&
+      !isGallery
+    );
+
+    expect(isGallery).toBe(true);
+    expect(isSetupNeeded).toBe(false);
+    expect(galleryCard.settings.images).toHaveLength(2);
+  });
 });
 

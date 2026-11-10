@@ -825,6 +825,15 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                             platform: 'menu',
                           });
                           onClose();
+                        } else if (item.id === 'gallery') {
+                          onAddCard('gallery', 'Gallery', {
+                            url: '',
+                            platform: 'gallery',
+                            subtitle: 'Gallery · 0 items',
+                            images: [],
+                            layout: 'classic',
+                          });
+                          onClose();
                         } else if (item.id === 'youtube') {
                           onAddCard('video', 'YouTube', {
                             url: 'https://youtube.com',

@@ -952,19 +952,31 @@ export function CardRenderer({ card, theme, isPreview = false }) {
           <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {isGallery && (
               <>
-                {galleryImages.map((imgUrl, idx) => (
-                  <div
-                    key={idx}
-                    className="w-full rounded-[20px] sm:rounded-[22px] overflow-hidden bg-gray-100 shadow-xs border border-black/5"
-                  >
-                    <img
-                      src={imgUrl}
-                      alt={`${card.title || 'Gallery'} ${idx + 1}`}
-                      className="w-full h-auto object-cover block"
-                      loading="lazy"
-                    />
-                  </div>
-                ))}
+                {galleryImages.map((itemUrl, idx) => {
+                  const isVid = /\.(mp4|webm|mov|ogg)($|\?)/i.test(itemUrl) || itemUrl.startsWith('data:video');
+                  return (
+                    <div
+                      key={idx}
+                      className="w-full rounded-[20px] sm:rounded-[22px] overflow-hidden bg-gray-100 shadow-xs border border-black/5"
+                    >
+                      {isVid ? (
+                        <video
+                          src={itemUrl}
+                          controls
+                          playsInline
+                          className="w-full h-auto aspect-video object-contain bg-black block"
+                        />
+                      ) : (
+                        <img
+                          src={itemUrl}
+                          alt={`${card.title || 'Gallery'} ${idx + 1}`}
+                          className="w-full h-auto object-cover block"
+                          loading="lazy"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </>
             )}
 
