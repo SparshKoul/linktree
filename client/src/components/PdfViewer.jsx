@@ -34,22 +34,25 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isPinching, setIsPinching] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [isGestureActive, setIsGestureActive] = useState(false);
 
   const containerRef = useRef(null);
   const contentRef = useRef(null);
 
-  // Pinch / Pan gesture tracking refs
-  const zoomRef = useRef(zoom);
-  zoomRef.current = zoom;
-  const panRef = useRef(pan);
-  panRef.current = pan;
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+  const posRef = useRef(pos);
+  posRef.current = pos;
 
-  const initialDistanceRef = useRef(0);
-  const initialZoomRef = useRef(1);
-  const lastTouchRef = useRef({ x: 0, y: 0 });
+  const gestureStartRef = useRef({
+    dist: 0,
+    scale: 1,
+    center: { x: 0, y: 0 },
+    pos: { x: 0, y: 0 },
+    lastTouch: { x: 0, y: 0 },
+  });
   const lastTapRef = useRef(0);
 
   useEffect(() => {
@@ -87,7 +90,7 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
         const maxPagesToRender = isThumbnail ? 1 : Math.min(pdf.numPages, 30);
         const renderedPages = [];
 
-        // Higher render scale (2.2x) so zoomed-in images stay razor sharp
+        // High 2.2x resolution render so zoomed in pages stay razor sharp
         const renderScale = isThumbnail ? 1.0 : 2.2;
 
         for (let pageNum = 1; pageNum <= maxPagesToRender; pageNum++) {
@@ -128,7 +131,7 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
     };
   }, [url, isThumbnail]);
 
-  // Touch gesture listeners for fluid pinch-to-zoom and pan on mobile
+  // Touch gesture listeners for fluid pinch-to-zoom and full 2D left/right/up/down panning
   useEffect(() => {
     if (isThumbnail) return;
     const target = containerRef.current;
@@ -136,55 +139,103 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
 
     const handleTouchStart = (e) => {
       if (e.touches.length === 2) {
-        // Multi-touch pinch start
-        const dist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        initialDistanceRef.current = dist;
-        initialZoomRef.current = zoomRef.current;
-        setIsPinching(true);
+        // Multi-touch pinch start: calculate distance and center
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        const center = {
+          x: (t1.clientX + t2.clientX) / 2,
+          y: (t1.clientY + t2.clientY) / 2,
+        };
+
+        gestureStartRef.current = {
+          dist,
+          scale: scaleRef.current,
+          center,
+          pos: { ...posRef.current },
+          lastTouch: { x: center.x, y: center.y },
+        };
+        setIsGestureActive(true);
       } else if (e.touches.length === 1) {
-        // Double-tap zoom toggle
+        const t = e.touches[0];
         const now = Date.now();
-        if (now - lastTapRef.current < 320) {
+
+        // Double-tap zoom toggle
+        if (now - lastTapRef.current < 300) {
           e.preventDefault();
-          if (zoomRef.current > 1.2) {
-            setZoom(1);
-            setPan({ x: 0, y: 0 });
+          if (scaleRef.current > 1.1) {
+            setScale(1);
+            setPos({ x: 0, y: 0 });
           } else {
-            setZoom(2.2);
+            setScale(2.2);
+            const rect = containerRef.current?.getBoundingClientRect();
+            if (rect) {
+              const tapX = t.clientX - rect.left - rect.width / 2;
+              const tapY = t.clientY - rect.top - rect.height / 2;
+              setPos({ x: -tapX * 0.7, y: -tapY * 0.7 });
+            }
           }
           lastTapRef.current = 0;
           return;
         }
+
         lastTapRef.current = now;
-        lastTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        gestureStartRef.current.lastTouch = { x: t.clientX, y: t.clientY };
+        if (scaleRef.current > 1.05) {
+          setIsGestureActive(true);
+        }
       }
     };
 
     const handleTouchMove = (e) => {
-      if (e.touches.length === 2 && initialDistanceRef.current > 0) {
-        // Two-finger pinch: scale document
+      if (e.touches.length === 2) {
+        // Two fingers: zoom in/out AND move left/right/up/down simultaneously
         e.preventDefault();
-        const dist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        const factor = dist / initialDistanceRef.current;
-        const newZoom = Math.min(Math.max(1, initialZoomRef.current * factor), 4.5);
-        setZoom(Number(newZoom.toFixed(2)));
-      } else if (e.touches.length === 1 && zoomRef.current > 1.05) {
-        // One-finger pan when zoomed in
+        const t1 = e.touches[0];
+        const t2 = e.touches[1];
+        const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+        const center = {
+          x: (t1.clientX + t2.clientX) / 2,
+          y: (t1.clientY + t2.clientY) / 2,
+        };
+
+        const start = gestureStartRef.current;
+        if (start.dist > 0) {
+          const factor = dist / start.dist;
+          const newScale = Math.min(Math.max(1, start.scale * factor), 4.5);
+
+          // 2-finger translation (move left/right/up/down while pinching)
+          const deltaX = center.x - start.center.x;
+          const deltaY = center.y - start.center.y;
+
+          const containerW = containerRef.current?.clientWidth || 360;
+          const contentH = contentRef.current?.clientHeight || 600;
+
+          const maxPanX = (containerW * (newScale - 1)) / 2 + 100;
+          const maxPanY = (contentH * (newScale - 1)) / 2 + 150;
+
+          const nextX = Math.min(Math.max(-maxPanX, start.pos.x + deltaX), maxPanX);
+          const nextY = Math.min(Math.max(-maxPanY, start.pos.y + deltaY), maxPanY);
+
+          setScale(Number(newScale.toFixed(2)));
+          setPos({ x: nextX, y: nextY });
+        }
+      } else if (e.touches.length === 1 && scaleRef.current > 1.05) {
+        // One finger: move left/right and up/down freely across zoomed image
         e.preventDefault();
-        const deltaX = e.touches[0].clientX - lastTouchRef.current.x;
-        const deltaY = e.touches[0].clientY - lastTouchRef.current.y;
-        lastTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        const t = e.touches[0];
+        const deltaX = t.clientX - gestureStartRef.current.lastTouch.x;
+        const deltaY = t.clientY - gestureStartRef.current.lastTouch.y;
+        gestureStartRef.current.lastTouch = { x: t.clientX, y: t.clientY };
 
-        const maxPanX = 260 * (zoomRef.current - 1);
-        const maxPanY = 480 * (zoomRef.current - 1);
+        const currentScale = scaleRef.current;
+        const containerW = containerRef.current?.clientWidth || 360;
+        const contentH = contentRef.current?.clientHeight || 600;
 
-        setPan((prev) => ({
+        const maxPanX = (containerW * (currentScale - 1)) / 2 + 100;
+        const maxPanY = (contentH * (currentScale - 1)) / 2 + 180;
+
+        setPos((prev) => ({
           x: Math.min(Math.max(-maxPanX, prev.x + deltaX), maxPanX),
           y: Math.min(Math.max(-maxPanY, prev.y + deltaY), maxPanY),
         }));
@@ -192,17 +243,23 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
     };
 
     const handleTouchEnd = (e) => {
-      if (e.touches.length < 2) {
-        initialDistanceRef.current = 0;
-        setIsPinching(false);
-        if (zoomRef.current < 1.05) {
-          setZoom(1);
-          setPan({ x: 0, y: 0 });
+      if (e.touches.length === 0) {
+        setIsGestureActive(false);
+        gestureStartRef.current.dist = 0;
+        if (scaleRef.current <= 1.05) {
+          setScale(1);
+          setPos({ x: 0, y: 0 });
         }
+      } else if (e.touches.length === 1) {
+        // Seamless transition when lifting one of two fingers
+        gestureStartRef.current.lastTouch = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+        };
+        gestureStartRef.current.dist = 0;
       }
     };
 
-    // Use non-passive touch listeners to allow preventDefault during pinch
     target.addEventListener('touchstart', handleTouchStart, { passive: false });
     target.addEventListener('touchmove', handleTouchMove, { passive: false });
     target.addEventListener('touchend', handleTouchEnd, { passive: true });
@@ -255,22 +312,24 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
     <div
       ref={containerRef}
       data-lenis-prevent
-      className={`relative w-full h-full overflow-y-auto overflow-x-hidden bg-gray-100 rounded-2xl select-none overscroll-contain ${className}`}
+      className={`relative w-full h-full bg-gray-100 rounded-2xl select-none overscroll-contain ${
+        scale > 1.05 ? 'overflow-hidden' : 'overflow-y-auto'
+      } ${className}`}
       style={{
         WebkitOverflowScrolling: 'touch',
-        touchAction: zoom > 1.05 ? 'none' : 'pan-y',
+        touchAction: scale > 1.05 ? 'none' : 'pan-y',
       }}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Zoomable Content Layer */}
+      {/* Zoomable & Pannable Document Content Layer */}
       <div
         ref={contentRef}
-        className={`w-full p-2 sm:p-3 space-y-3.5 origin-top ${
-          isPinching ? 'transition-none' : 'transition-transform duration-150 ease-out'
+        className={`w-full p-2 sm:p-3 space-y-3.5 origin-center ${
+          isGestureActive ? 'transition-none' : 'transition-transform duration-200 ease-out'
         }`}
         style={{
-          transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
-          transformOrigin: 'top center',
+          transform: `translate3d(${pos.x}px, ${pos.y}px, 0) scale(${scale})`,
+          transformOrigin: 'center center',
           willChange: 'transform',
         }}
       >
@@ -298,9 +357,9 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
         <button
           type="button"
           onClick={() => {
-            setZoom((z) => {
-              const next = Math.max(1, Number((z - 0.35).toFixed(2)));
-              if (next <= 1.05) setPan({ x: 0, y: 0 });
+            setScale((s) => {
+              const next = Math.max(1, Number((s - 0.35).toFixed(2)));
+              if (next <= 1.05) setPos({ x: 0, y: 0 });
               return next;
             });
           }}
@@ -312,13 +371,13 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
         </button>
 
         <span className="text-[11px] font-mono font-bold px-1.5 min-w-[38px] text-center">
-          {Math.round(zoom * 100)}%
+          {Math.round(scale * 100)}%
         </span>
 
         <button
           type="button"
           onClick={() => {
-            setZoom((z) => Math.min(4.5, Number((z + 0.35).toFixed(2))));
+            setScale((s) => Math.min(4.5, Number((s + 0.35).toFixed(2))));
           }}
           className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center transition-all cursor-pointer"
           title="Zoom in"
@@ -327,12 +386,12 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
           <ZoomIn className="w-3.5 h-3.5 pointer-events-none" />
         </button>
 
-        {zoom > 1.05 && (
+        {scale > 1.05 && (
           <button
             type="button"
             onClick={() => {
-              setZoom(1);
-              setPan({ x: 0, y: 0 });
+              setScale(1);
+              setPos({ x: 0, y: 0 });
             }}
             className="ml-1 px-2 py-1 rounded-full bg-white/20 hover:bg-white/30 text-[10px] font-bold tracking-tight transition-all cursor-pointer flex items-center gap-1"
             title="Reset zoom"
