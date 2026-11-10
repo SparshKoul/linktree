@@ -1190,7 +1190,21 @@ app.delete('/api/admin/assets', async (req, res) => {
   res.json({ success });
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
-});
+// Health check endpoint
+app.get('/api/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
+app.get('/api', (req, res) => res.json({ message: 'IndiaTaps API running', status: 'ok' }));
+
+const isDirectRun = process.argv[1] && (
+  process.argv[1].endsWith('server/src/index.js') ||
+  process.argv[1].endsWith('src/index.js')
+);
+
+if (isDirectRun && !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Backend server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
+export { app };
 
