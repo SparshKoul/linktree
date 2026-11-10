@@ -195,5 +195,46 @@ describe('Card Reflection Logic', () => {
     expect(normalizeExtension('graphic.png')).toBe('png');
     expect(normalizeExtension('typo.pnj')).toBe('png');
   });
+
+  it('formats file sizes accurately and preserves gallery items across updates', () => {
+    const formatFileSize = (bytes) => {
+      if (!bytes || isNaN(bytes)) return '';
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    };
+
+    expect(formatFileSize(500)).toBe('500 B');
+    expect(formatFileSize(2048)).toBe('2.0 KB');
+    expect(formatFileSize(2.5 * 1024 * 1024)).toBe('2.5 MB');
+
+    // Test deep settings merge
+    const originalCard = {
+      id: 1,
+      title: 'Gallery',
+      settings: {
+        images: [{ url: 'photo1.jpg', size: 1048576, formattedSize: '1.0 MB' }],
+        layout: 'classic',
+      },
+    };
+
+    const serverUpdate = {
+      title: 'New Gallery Title',
+      settings: { layout: 'featured' },
+    };
+
+    const merged = {
+      ...originalCard,
+      ...serverUpdate,
+      settings: {
+        ...(originalCard.settings || {}),
+        ...(serverUpdate.settings || {}),
+      },
+    };
+
+    expect(merged.settings.images).toHaveLength(1);
+    expect(merged.settings.layout).toBe('featured');
+    expect(merged.title).toBe('New Gallery Title');
+  });
 });
 

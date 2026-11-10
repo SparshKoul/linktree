@@ -84,12 +84,22 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80',
   ];
 
-  const galleryImages =
+  const galleryItems =
     Array.isArray(card.settings?.images) && card.settings.images.length > 0
-      ? card.settings.images
-      : card.thumbnailUrl
-      ? [card.thumbnailUrl, ...defaultGalleryImages.slice(1)]
-      : defaultGalleryImages;
+      ? card.settings.images.map((it) =>
+          typeof it === 'string'
+            ? { url: it, isVid: isVideoMedia(it), formattedSize: '' }
+            : {
+                url: it.url || '',
+                isVid: it.type === 'video' || isVideoMedia(it.url),
+                formattedSize: it.formattedSize || '',
+              }
+        )
+      : (card.thumbnailUrl ? [card.thumbnailUrl, ...defaultGalleryImages.slice(1)] : defaultGalleryImages).map(
+          (url) => ({ url, isVid: isVideoMedia(url), formattedSize: '' })
+        );
+
+  const galleryImages = galleryItems.map((it) => it.url);
 
   const btnRadius =
     theme?.buttonRadius == null || theme?.buttonRadius >= 24
@@ -942,7 +952,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
               {isGallery ? (
                 <>
                   <ImageIcon className="w-3.5 h-3.5 text-gray-400" />
-                  <span>Gallery · {galleryImages.length} {galleryImages.length === 1 ? 'photo' : 'photos'}</span>
+                  <span>Gallery · {galleryItems.length} {galleryItems.length === 1 ? 'item' : 'items'}</span>
                 </>
               ) : isPdfOrMenu ? (
                 <>
@@ -962,31 +972,33 @@ export function CardRenderer({ card, theme, isPreview = false }) {
           <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {isGallery && (
               <>
-                {galleryImages.map((itemUrl, idx) => {
-                  const isVid = isVideoMedia(itemUrl);
-                  return (
-                    <div
-                      key={idx}
-                      className="w-full rounded-[20px] sm:rounded-[22px] overflow-hidden bg-gray-100 shadow-xs border border-black/5"
-                    >
-                      {isVid ? (
-                        <video
-                          src={itemUrl}
-                          controls
-                          playsInline
-                          className="w-full h-auto aspect-video object-contain bg-black block"
-                        />
-                      ) : (
-                        <img
-                          src={itemUrl}
-                          alt={`${card.title || 'Gallery'} ${idx + 1}`}
-                          className="w-full h-auto object-cover block"
-                          loading="lazy"
-                        />
-                      )}
-                    </div>
-                  );
-                })}
+                {galleryItems.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="w-full rounded-[20px] sm:rounded-[22px] overflow-hidden bg-gray-100 shadow-xs border border-black/5 relative group"
+                  >
+                    {item.isVid ? (
+                      <video
+                        src={item.url}
+                        controls
+                        playsInline
+                        className="w-full h-auto aspect-video object-contain bg-black block"
+                      />
+                    ) : (
+                      <img
+                        src={item.url}
+                        alt={`${card.title || 'Gallery'} ${idx + 1}`}
+                        className="w-full h-auto object-cover block"
+                        loading="lazy"
+                      />
+                    )}
+                    {item.formattedSize && (
+                      <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-[10px] font-mono font-bold text-white shadow-xs">
+                        {item.formattedSize}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </>
             )}
 

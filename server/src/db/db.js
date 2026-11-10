@@ -494,7 +494,19 @@ export const db = {
         payload.lock_value = updates.lockValue || updates.lock_value;
       }
       if (updates.settings !== undefined) {
-        const settings = { ...updates.settings };
+        let existingSettings = {};
+        try {
+          const { data: cur } = await supabase
+            .from('cards')
+            .select('settings')
+            .eq('id', id)
+            .maybeSingle();
+          if (cur?.settings && typeof cur.settings === 'object') {
+            existingSettings = cur.settings;
+          }
+        } catch {}
+
+        const settings = { ...existingSettings, ...updates.settings };
         if (typeof settings.image === 'string' && settings.image.startsWith('data:image')) {
           const cdnImg = await this.uploadAsset({
             base64Data: settings.image,

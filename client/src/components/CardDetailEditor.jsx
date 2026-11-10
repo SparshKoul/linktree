@@ -24,6 +24,37 @@ import {
 } from 'lucide-react';
 import { FaviconIcon } from './FaviconIcon.jsx';
 
+export const formatFileSize = (bytes) => {
+  if (!bytes || isNaN(bytes)) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+export const normalizeGalleryItem = (item) => {
+  if (!item) return null;
+  if (typeof item === 'string') {
+    const isVid =
+      /\.(mp4|webm|mov|ogg)($|\?)/i.test(item) ||
+      item.startsWith('data:video') ||
+      item.includes('video/mp4');
+    return {
+      url: item,
+      name: item.split('/').pop()?.split('?')[0] || (isVid ? 'video.mp4' : 'image.jpg'),
+      size: null,
+      formattedSize: '',
+      type: isVid ? 'video' : 'image',
+    };
+  }
+  return {
+    url: item.url || '',
+    name: item.name || '',
+    size: item.size || null,
+    formattedSize: item.formattedSize || (item.size ? formatFileSize(item.size) : ''),
+    type: item.type || (/\.(mp4|webm|mov|ogg)($|\?)/i.test(item.url || '') ? 'video' : 'image'),
+  };
+};
+
 export function CardDetailEditor({
   card,
   onBack,
@@ -58,6 +89,8 @@ export function CardDetailEditor({
   const fileInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const galleryInputRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
 
   useEffect(() => {
     if (card) {
@@ -216,71 +249,104 @@ export function CardDetailEditor({
     e.target.value = '';
   };
 
-  const handleGallerySelect = (e) => {
+  const handleGallerySelect = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const rawDataUrl = event.target?.result;
-        if (typeof rawDataUrl === 'string') {
-          const currentImages = card.settings?.images || [];
-          const updated = [...currentImages, rawDataUrl];
-          const newSubtitle = `Gallery · ${updated.length} items`;
-          setSubtitle(newSubtitle);
+    setIsUploading(true);
+    setUploadStatus(`Preparing ${files.length} ${files.length === 1 ? 'file' : 'files'}...`);
 
-          onUpdateCard(card.id, {
-            subtitle: newSubtitle,
-            thumbnailUrl: card.thumbnailUrl || rawDataUrl,
-            settings: {
-              ...(card.settings || {}),
-              images: updated,
-              needsSetup: false,
-            },
-          });
+    const readAsDataUrl = (file) =>
+      new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+      });
 
-          // Upload to Supabase Storage CDN in background
-          fetch('/api/admin/upload', {
+    try {
+      const newItems = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const isVid = file.type.startsWith('video/') || /\.(mp4|webm|mov|ogg)$/i.test(file.name);
+        setUploadStatus(`Uploading ${i + 1} of ${files.length}: ${file.name} (${formatFileSize(file.size)})...`);
+
+        const dataUrl = await readAsDataUrl(file);
+        if (!dataUrl) continue;
+
+        let finalUrl = dataUrl;
+        // Upload to backend Supabase storage CDN
+        try {
+          const res = await fetch('/api/admin/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ file: rawDataUrl, filename: file.name, folder: 'gallery' }),
-          })
-            .then((res) => res.json())
-            .then((res) => {
-              if (res?.url) {
-                const latest = card.settings?.images || updated;
-                const replaced = latest.map((u) => (u === rawDataUrl ? res.url : u));
-                onUpdateCard(card.id, {
-                  thumbnailUrl: card.thumbnailUrl === rawDataUrl ? res.url : (card.thumbnailUrl || res.url),
-                  settings: {
-                    ...(card.settings || {}),
-                    images: replaced,
-                    needsSetup: false,
-                  },
-                });
-              }
-            })
-            .catch(() => {});
+            body: JSON.stringify({
+              file: dataUrl,
+              filename: file.name,
+              folder: 'gallery',
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.url) {
+              finalUrl = data.url;
+            }
+          }
+        } catch (uploadErr) {
+          console.warn('Upload fallback to dataUrl', uploadErr);
         }
-      };
-      reader.readAsDataURL(file);
-    });
-    e.target.value = '';
+
+        newItems.push({
+          url: finalUrl,
+          name: file.name,
+          size: file.size,
+          formattedSize: formatFileSize(file.size),
+          type: isVid ? 'video' : 'image',
+        });
+      }
+
+      if (newItems.length > 0) {
+        const existing = (card.settings?.images || []).map(normalizeGalleryItem).filter(Boolean);
+        const combined = [...existing, ...newItems];
+        const totalSize = combined.reduce((acc, it) => acc + (it.size || 0), 0);
+        const sizeTag = totalSize > 0 ? ` · ${formatFileSize(totalSize)}` : '';
+        const newSubtitle = `Gallery · ${combined.length} items${sizeTag}`;
+
+        setSubtitle(newSubtitle);
+        onUpdateCard(card.id, {
+          subtitle: newSubtitle,
+          thumbnailUrl: card.thumbnailUrl || combined[0]?.url,
+          settings: {
+            ...(card.settings || {}),
+            images: combined,
+            totalSizeBytes: totalSize,
+            needsSetup: false,
+          },
+        });
+      }
+    } finally {
+      setIsUploading(false);
+      setUploadStatus('');
+      if (e.target) e.target.value = '';
+    }
   };
 
   const handleRemoveGalleryItem = (indexToRemove) => {
-    const currentImages = card.settings?.images || [];
-    const updated = currentImages.filter((_, idx) => idx !== indexToRemove);
-    const newSubtitle = updated.length > 0 ? `Gallery · ${updated.length} items` : 'Gallery · 0 items';
+    const existing = (card.settings?.images || []).map(normalizeGalleryItem).filter(Boolean);
+    const updated = existing.filter((_, idx) => idx !== indexToRemove);
+    const totalSize = updated.reduce((acc, it) => acc + (it.size || 0), 0);
+    const sizeTag = totalSize > 0 ? ` · ${formatFileSize(totalSize)}` : '';
+    const newSubtitle = updated.length > 0 ? `Gallery · ${updated.length} items${sizeTag}` : 'Gallery · 0 items';
+
     setSubtitle(newSubtitle);
     onUpdateCard(card.id, {
       subtitle: newSubtitle,
-      thumbnailUrl: updated[0] || '',
+      thumbnailUrl: updated[0]?.url || '',
       settings: {
         ...(card.settings || {}),
         images: updated,
+        totalSizeBytes: totalSize,
       },
     });
   };
@@ -523,55 +589,83 @@ export function CardDetailEditor({
                   className="hidden"
                 />
 
-                {/* Grid of uploaded items */}
+                {/* Uploading progress banner & animation */}
+                {isUploading && (
+                  <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 flex items-center gap-3 text-blue-700 animate-pulse shadow-2xs">
+                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-bold text-xs">Uploading Media...</div>
+                      <div className="text-[11px] text-blue-600 truncate">{uploadStatus}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Grid of uploaded items with MB size indicators */}
                 {card.settings?.images && card.settings.images.length > 0 ? (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                      {card.settings.images.map((itemUrl, idx) => {
-                        const isVid = /\.(mp4|webm|mov|ogg)($|\?)/i.test(itemUrl) || itemUrl.startsWith('data:video');
-                        return (
-                          <div
-                            key={idx}
-                            className="aspect-square rounded-xl overflow-hidden relative group border border-gray-200 bg-gray-50 shadow-2xs"
-                          >
-                            {isVid ? (
-                              <div className="w-full h-full bg-black flex items-center justify-center text-white">
-                                <Play className="w-5 h-5 opacity-80" />
+                  <div className="space-y-2.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                      {(card.settings.images || []).map(normalizeGalleryItem).filter(Boolean).map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="rounded-xl overflow-hidden relative group border border-gray-200 bg-white shadow-2xs flex flex-col"
+                        >
+                          <div className="aspect-[4/3] w-full relative bg-black/5 overflow-hidden">
+                            {item.type === 'video' ? (
+                              <div className="w-full h-full bg-black flex items-center justify-center text-white relative">
+                                <Play className="w-6 h-6 opacity-80" />
+                                <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/75 text-[9px] font-bold text-white uppercase tracking-wider">
+                                  Video
+                                </span>
                               </div>
                             ) : (
                               <img
-                                src={itemUrl}
-                                alt={`Gallery item ${idx + 1}`}
+                                src={item.url}
+                                alt={item.name || `Gallery ${idx + 1}`}
                                 className="w-full h-full object-cover"
                               />
                             )}
+
                             <button
                               type="button"
                               onClick={() => handleRemoveGalleryItem(idx)}
-                              className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 hover:bg-black text-white flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+                              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/75 hover:bg-black text-white flex items-center justify-center transition-colors cursor-pointer shadow-sm"
                               title="Delete"
                             >
-                              <X className="w-3.5 h-3.5" />
+                              <X className="w-3.5 h-3.5 stroke-[2.5]" />
                             </button>
                           </div>
-                        );
-                      })}
+
+                          {/* File info footer with MB badge */}
+                          <div className="p-2 bg-white flex items-center justify-between gap-1 text-[11px] border-t border-gray-100">
+                            <span className="font-semibold text-gray-800 truncate" title={item.name}>
+                              {item.name || `Item ${idx + 1}`}
+                            </span>
+                            {item.formattedSize && (
+                              <span className="shrink-0 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px] font-mono font-bold">
+                                {item.formattedSize}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
                     <button
                       type="button"
+                      disabled={isUploading}
                       onClick={() => galleryInputRef.current?.click()}
-                      className="w-full py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-blue-500 bg-blue-50/30 hover:bg-blue-50 text-xs font-bold text-blue-600 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      className="w-full py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-blue-500 bg-blue-50/30 hover:bg-blue-50 text-xs font-bold text-blue-600 flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Add more pictures / videos</span>
+                      <span>Add more pictures / videos (.png, .jpg, .mp4)</span>
                     </button>
                   </div>
                 ) : (
                   <button
                     type="button"
+                    disabled={isUploading}
                     onClick={() => galleryInputRef.current?.click()}
-                    className="w-full p-4 rounded-2xl border-2 border-dashed border-gray-300 hover:border-blue-500 bg-gray-50/60 hover:bg-blue-50/30 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer group"
+                    className="w-full p-4 rounded-2xl border-2 border-dashed border-gray-300 hover:border-blue-500 bg-gray-50/60 hover:bg-blue-50/30 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer group disabled:opacity-50"
                   >
                     <div className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 group-hover:text-blue-600 shadow-2xs transition-colors">
                       <ImageIcon className="w-4 h-4" />

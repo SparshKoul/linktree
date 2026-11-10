@@ -441,7 +441,18 @@ export function App() {
             prev
               ? {
                   ...prev,
-                  cards: (prev.cards || []).map((c) => (c.id === cardId ? { ...c, ...updatedDb } : c)),
+                  cards: (prev.cards || []).map((c) =>
+                    c.id === cardId
+                      ? {
+                          ...c,
+                          ...updatedDb,
+                          settings: {
+                            ...(c.settings || {}),
+                            ...(updatedDb.settings || {}),
+                          },
+                        }
+                      : c
+                  ),
                 }
               : prev
           );
