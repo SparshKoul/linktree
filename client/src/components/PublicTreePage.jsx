@@ -3,76 +3,48 @@ import { CardRenderer } from '../cards/CardRenderer.jsx';
 import { PRESET_THEMES } from '../constants/themes.js';
 import { Share2, Check, ArrowLeft, Users } from 'lucide-react';
 import { getPatternSvg, getContrastingPatternColor } from './WallpaperEditor.jsx';
-import { storage } from '../services/storage.js';
+import { TreeSkeleton } from './TreeSkeleton.jsx';
 
 export function PublicTreePage({ slug }) {
-  const [treeData, setTreeData] = useState(() => {
-    try {
-      const allTrees = storage.getTrees();
-      const localTree = (allTrees || []).find(
-        (t) => t.slug?.toLowerCase() === slug.toLowerCase()
-      );
-      if (localTree) {
-        const localCards = storage.getCards(localTree.id);
-        return { tree: localTree, cards: localCards };
-      }
-    } catch {}
-    return null;
-  });
-  const [loading, setLoading] = useState(!treeData);
+  const [treeData, setTreeData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockedMessage, setBlockedMessage] = useState('');
 
   useEffect(() => {
-    let localCards = [];
-    try {
-      const allTrees = storage.getTrees();
-      const localTree = (allTrees || []).find(
-        (t) => t.slug?.toLowerCase() === slug.toLowerCase()
-      );
-      if (localTree) {
-        localCards = storage.getCards(localTree.id);
-      }
-    } catch {}
-
-    if (!treeData) setLoading(true);
+    let isMounted = true;
+    setLoading(true);
+    setError(null);
+    setIsBlocked(false);
 
     fetch(`/api/public/trees/${encodeURIComponent(slug)}`)
       .then(async (res) => {
         if (res.status === 403) {
           const data = await res.json().catch(() => ({}));
+          if (!isMounted) return null;
           setIsBlocked(true);
-          setBlockedMessage(data.message || 'This digital card is temporarily unavailable because the account has been locked.');
+          setBlockedMessage(
+            data.message ||
+              'This digital card is temporarily unavailable because the account has been locked.'
+          );
           setTreeData(null);
           setLoading(false);
           return null;
         }
         if (!res.ok) {
-          if (treeData) return null;
           throw new Error('Tree not found or unpublished');
         }
         return res.json();
       })
       .then((data) => {
-        setLoading(false);
-        if (!data) return;
+        if (!isMounted || !data) return;
         setIsBlocked(false);
         if (data && data.tree) {
-          setTreeData((prev) => {
-            const finalCards =
-              data.cards && data.cards.length > 0
-                ? data.cards
-                : prev?.cards && prev.cards.length > 0
-                ? prev.cards
-                : localCards && localCards.length > 0
-                ? localCards
-                : [];
-            return {
-              tree: { ...prev?.tree, ...data.tree },
-              cards: finalCards,
-            };
+          setTreeData({
+            tree: data.tree,
+            cards: Array.isArray(data.cards) ? data.cards : [],
           });
         }
         setLoading(false);
@@ -82,7 +54,7 @@ export function PublicTreePage({ slug }) {
           if (navigator.sendBeacon) {
             navigator.sendBeacon(
               '/api/track',
-              JSON.stringify({ treeId: data?.tree?.id || treeData?.tree?.id || 1, eventType: 'view' })
+              JSON.stringify({ treeId: data?.tree?.id || 1, eventType: 'view' })
             );
           }
         } catch {
@@ -90,11 +62,14 @@ export function PublicTreePage({ slug }) {
         }
       })
       .catch((err) => {
-        if (!treeData) {
-          setError(err.message);
-        }
+        if (!isMounted) return;
+        setError(err.message || 'Page not found');
         setLoading(false);
       });
+
+    return () => {
+      isMounted = false;
+    };
   }, [slug]);
 
   const handleShare = () => {
@@ -182,12 +157,8 @@ export function PublicTreePage({ slug }) {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F3F3F1] flex items-center justify-center p-4">
-        <div className="w-8 h-8 rounded-full border-2 border-black border-t-transparent animate-spin" />
-      </div>
-    );
+  if (loading || (!treeData && !error && !isBlocked)) {
+    return <TreeSkeleton />;
   }
 
   if (error || !treeData) {

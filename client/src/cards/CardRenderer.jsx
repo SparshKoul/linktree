@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   ExternalLink,
   ShoppingBag,
@@ -203,15 +204,11 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   };
 
   const handleCloseExpanded = (e) => {
-    if (e) {
-      e.preventDefault();
+    if (e && typeof e.stopPropagation === 'function') {
       e.stopPropagation();
     }
-    setIsClosing(true);
-    setTimeout(() => {
-      setIsExpanded(false);
-      setIsClosing(false);
-    }, 220);
+    setIsClosing(false);
+    setIsExpanded(false);
   };
 
   const handleOpenPage = (e) => {
@@ -929,9 +926,19 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   function renderCardPageModal() {
     if (!isPageOpen) return null;
 
-    return (
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-        <div className="bg-white rounded-t-[32px] sm:rounded-[32px] w-full max-w-sm max-h-[85vh] overflow-y-auto p-6 space-y-5 text-[#111111] shadow-2xl relative animate-in slide-in-from-bottom duration-200">
+    const modalContent = (
+      <div
+        className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+        onClick={() => setIsPageOpen(false)}
+        onTouchEnd={(e) => {
+          if (e.target === e.currentTarget) setIsPageOpen(false);
+        }}
+      >
+        <div
+          className="bg-white rounded-t-[32px] sm:rounded-[32px] w-full max-w-sm max-h-[85vh] overflow-y-auto p-6 space-y-5 text-[#111111] shadow-2xl relative animate-in slide-in-from-bottom duration-200"
+          onClick={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+        >
           {/* Header Bar */}
           <div className="flex items-center justify-between pb-2 border-b border-gray-100">
             <div className="font-extrabold text-xs uppercase tracking-wider text-gray-400">
@@ -940,9 +947,14 @@ export function CardRenderer({ card, theme, isPreview = false }) {
             <button
               type="button"
               onClick={() => setIsPageOpen(false)}
-              className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition-colors cursor-pointer"
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                setIsPageOpen(false);
+              }}
+              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center text-gray-600 transition-colors cursor-pointer"
+              aria-label="Close"
             >
-              <X className="w-3.5 h-3.5 stroke-[2.5]" />
+              <X className="w-4 h-4 stroke-[2.5] pointer-events-none" />
             </button>
           </div>
 
@@ -1013,6 +1025,10 @@ export function CardRenderer({ card, theme, isPreview = false }) {
             <button
               type="button"
               onClick={handleCopyLink}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                handleCopyLink(e);
+              }}
               className="w-full py-2.5 rounded-full border border-gray-200 text-xs font-bold hover:bg-gray-50 transition-colors flex items-center justify-center gap-1.5 text-gray-700 cursor-pointer"
             >
               {isCopied ? (
@@ -1036,28 +1052,48 @@ export function CardRenderer({ card, theme, isPreview = false }) {
         </div>
       </div>
     );
+
+    if (typeof document !== 'undefined' && document.body) {
+      return createPortal(modalContent, document.body);
+    }
+    return modalContent;
   }
 
   // Helper: In-page Expanded Viewer Modal matching Image 5 (Linktree native media/gallery/menu sheet)
   function renderExpandedLocalMediaModal() {
     if (!isExpanded) return null;
 
-    return (
+    const modalContent = (
       <div
-        className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-3 sm:p-5 bg-black/65 backdrop-blur-xs transition-opacity duration-200 select-none ${
-          isClosing ? 'opacity-0' : 'opacity-100'
-        }`}
+        className="fixed inset-0 z-[9999] flex flex-col items-center justify-center p-3 sm:p-5 bg-black/65 backdrop-blur-xs select-none touch-manipulation animate-in fade-in duration-150"
         onClick={handleCloseExpanded}
+        onTouchEnd={(e) => {
+          if (e.target === e.currentTarget) {
+            handleCloseExpanded(e);
+          }
+        }}
       >
         <div
-          className={`w-full max-w-[420px] h-[86vh] max-h-[820px] bg-white rounded-[32px] sm:rounded-[36px] shadow-2xl relative flex flex-col overflow-hidden text-[#111111] transition-all duration-300 ease-out transform ${
-            isClosing ? 'scale-90 opacity-0 translate-y-4' : 'scale-100 opacity-100 translate-y-0'
-          }`}
+          className="w-full max-w-[420px] h-[86vh] max-h-[820px] bg-white rounded-[32px] sm:rounded-[36px] shadow-2xl relative flex flex-col overflow-hidden text-[#111111] animate-in zoom-in-95 duration-150"
           onClick={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
         >
-          {/* Header Bar matching Image 5 */}
-          <div className="pt-6 pb-3 px-6 text-center shrink-0 border-b border-gray-100/80 bg-white">
-            <h3 className="font-extrabold text-base sm:text-lg text-[#111111] tracking-tight truncate">
+          {/* Header Bar matching Image 5 with prominent Top-Right Close Button */}
+          <div className="relative pt-5 pb-3 px-6 text-center shrink-0 border-b border-gray-100/80 bg-white">
+            <button
+              type="button"
+              onClick={handleCloseExpanded}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                handleCloseExpanded(e);
+              }}
+              className="absolute right-4 top-4 w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 flex items-center justify-center transition-colors cursor-pointer z-30 shadow-xs"
+              aria-label="Close"
+              title="Close"
+            >
+              <X className="w-5 h-5 stroke-[2.5] pointer-events-none" />
+            </button>
+            <h3 className="font-extrabold text-base sm:text-lg text-[#111111] tracking-tight truncate pr-10 pl-2">
               {card.title || (isGallery ? 'Gallery' : isPdfOrMenu ? 'Document' : 'Video')}
             </h3>
             <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500 font-medium mt-0.5">
@@ -1121,7 +1157,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
               <div className="space-y-4">
                 {pdfUrl ? (
                   <div
-                    className="w-full h-[60vh] max-h-[560px] rounded-[20px] overflow-hidden border border-gray-200 bg-gray-50 shadow-inner flex flex-col"
+                    className="w-full h-[68vh] max-h-[660px] rounded-[20px] overflow-hidden border border-gray-200 bg-gray-50 shadow-inner flex flex-col relative"
                     data-lenis-prevent
                   >
                     <PdfViewer
@@ -1140,31 +1176,6 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                     <div className="text-xs text-gray-500 max-w-xs">
                       Upload a PDF document or resume in the editor to display it here.
                     </div>
-                  </div>
-                )}
-
-                {pdfUrl && (
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={pdfUrl}
-                      download={card.settings?.pdfName || 'document.pdf'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 py-3 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>Download PDF</span>
-                    </a>
-                    <a
-                      href={pdfUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-[#111111] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                      title="Open in new window"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      <span>Open</span>
-                    </a>
                   </div>
                 )}
               </div>
@@ -1215,20 +1226,29 @@ export function CardRenderer({ card, theme, isPreview = false }) {
             <button
               type="button"
               onClick={handleCopyLink}
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                handleCopyLink(e);
+              }}
               className="w-11 h-11 rounded-full bg-white shadow-xl border border-gray-100 flex items-center justify-center text-gray-800 hover:scale-105 active:scale-95 transition-all cursor-pointer"
               title="Share"
             >
-              {isCopied ? <Check className="w-5 h-5 text-green-600" /> : <Share2 className="w-5 h-5" />}
+              {isCopied ? <Check className="w-5 h-5 text-green-600 pointer-events-none" /> : <Share2 className="w-5 h-5 pointer-events-none" />}
             </button>
 
             {/* Close Button */}
             <button
               type="button"
               onClick={handleCloseExpanded}
-              className="w-11 h-11 rounded-full bg-white shadow-xl border border-gray-100 flex items-center justify-center text-gray-800 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              onTouchEnd={(e) => {
+                e.stopPropagation();
+                handleCloseExpanded(e);
+              }}
+              className="w-11 h-11 rounded-full bg-white shadow-xl border border-gray-100 flex items-center justify-center text-gray-800 hover:scale-105 active:scale-95 transition-all cursor-pointer z-30"
               title="Close"
+              aria-label="Close"
             >
-              <X className="w-5 h-5 stroke-[2.5]" />
+              <X className="w-5 h-5 stroke-[2.5] pointer-events-none" />
             </button>
           </div>
         </div>
@@ -1239,5 +1259,10 @@ export function CardRenderer({ card, theme, isPreview = false }) {
         </div>
       </div>
     );
+
+    if (typeof document !== 'undefined' && document.body) {
+      return createPortal(modalContent, document.body);
+    }
+    return modalContent;
   }
 }

@@ -63,3 +63,68 @@ body {
 .card-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(107, 114, 128, 0.65);
 }
+
+/* Hero Floating & Living Breathing Animations */
+@keyframes heroFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-9px) rotate(0.4deg);
+  }
+}
+
+@keyframes heroGlowPulse {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes soundwave {
+  0%, 100% {
+    height: 4px;
+  }
+  50% {
+    height: 14px;
+  }
+}
+
+.animate-hero-float {
+  animation: heroFloat 4.5s ease-in-out infinite;
+}
+
+.animate-hero-glow {
+  animation: heroGlowPulse 4s ease-in-out infinite;
+}
+
+.animate-soundwave-1 {
+  animation: soundwave 0.9s ease-in-out infinite 0.1s;
+}
+
+.animate-soundwave-2 {
+  animation: soundwave 0.9s ease-in-out infinite 0.35s;
+}
+
+.animate-soundwave-3 {
+  animation: soundwave 0.9s ease-in-out infinite 0.2s;
+}
+
+/* Skeleton Loading Shimmer */
+@keyframes skeletonShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: skeletonShimmer 1.8s ease-in-out infinite;
+}
+
