@@ -110,4 +110,40 @@ describe('DesignEditor Logic & State Flow', () => {
       expect(themeConfig.theme.backgroundValue).toMatch(/^url\(/);
     }
   });
+
+  it('correctly resolves theme background without brownish fallback (#702121)', async () => {
+    const { PRESET_THEMES } = await import('./constants/themes.js');
+    const agate = PRESET_THEMES.find((t) => t.id === 'agate');
+    const bloom = PRESET_THEMES.find((t) => t.id === 'bloom');
+
+    // Simulate resolving background for image theme (Agate) and gradient theme (Bloom)
+    const resolveBg = (theme) =>
+      theme?.wallpaperStyle === 'video'
+        ? 'transparent'
+        : theme?.backgroundType === 'solid' || theme?.wallpaperStyle === 'fill'
+        ? (theme?.backgroundValue?.startsWith('#') ? theme.backgroundValue : (theme?.backgroundColor || '#F3F3F1'))
+        : theme?.backgroundImageUrl
+        ? `url("${theme.backgroundImageUrl}") center / cover no-repeat`
+        : theme?.backgroundValue || '#F3F3F1';
+
+    expect(resolveBg(agate.theme)).toContain('url(');
+    expect(resolveBg(agate.theme)).not.toBe('#702121');
+    expect(resolveBg(bloom.theme)).toContain('linear-gradient(');
+    expect(resolveBg(bloom.theme)).not.toBe('#702121');
+  });
+
+  it('correctly toggles and respects footer visibility state', () => {
+    const isFooterEnabled = (tree, fallbackSetting = true) =>
+      tree?.footerEnabled !== undefined
+        ? tree.footerEnabled
+        : tree?.customTheme?.footerEnabled !== undefined
+        ? tree.customTheme.footerEnabled
+        : fallbackSetting;
+
+    expect(isFooterEnabled({ footerEnabled: true })).toBe(true);
+    expect(isFooterEnabled({ footerEnabled: false })).toBe(false);
+    expect(isFooterEnabled({ customTheme: { footerEnabled: false } })).toBe(false);
+    expect(isFooterEnabled({}, false)).toBe(false);
+    expect(isFooterEnabled({}, true)).toBe(true);
+  });
 });

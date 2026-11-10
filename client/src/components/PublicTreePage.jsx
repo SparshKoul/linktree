@@ -97,17 +97,17 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
         <div
           className="w-full h-full absolute inset-0"
           style={{
-            backgroundColor: activeTheme?.backgroundColor || '#638873',
-            backgroundImage:
-              activeTheme?.wallpaperStyle === 'fill' || activeTheme?.wallpaperStyle === 'video'
-                ? 'none'
+            background:
+              activeTheme?.wallpaperStyle === 'video'
+                ? 'transparent'
+                : activeTheme?.backgroundType === 'solid' || activeTheme?.wallpaperStyle === 'fill'
+                ? (activeTheme?.backgroundValue?.startsWith('#') ? activeTheme.backgroundValue : (activeTheme?.backgroundColor || '#F3F3F1'))
                 : activeTheme?.backgroundImageUrl
-                ? `url("${activeTheme.backgroundImageUrl}")`
-                : activeTheme?.backgroundValue?.includes('url(')
-                ? activeTheme.backgroundValue
-                : activeTheme?.backgroundValue || 'none',
+                ? `url("${activeTheme.backgroundImageUrl}") center / cover no-repeat`
+                : activeTheme?.backgroundValue || '#F3F3F1',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
             filter:
               activeTheme?.wallpaperStyle === 'blur'
                 ? 'blur(20px)'
@@ -376,11 +376,13 @@ export function PublicTreePage({ slug, onBackToAdmin }) {
       </main>
 
       {/* Footer Branding */}
-      <footer className="relative z-10 w-full max-w-[580px] text-center pt-6 pb-6 space-y-2">
-        <div className="text-[10px] opacity-40 font-semibold tracking-wider uppercase">
-          {tree.name}
-        </div>
-      </footer>
+      {(tree.footerEnabled !== false && tree.customTheme?.footerEnabled !== false) && (
+        <footer className="relative z-10 w-full max-w-[580px] text-center pt-6 pb-6 space-y-2">
+          <div className="text-[10px] opacity-40 font-semibold tracking-wider uppercase">
+            {tree.name}
+          </div>
+        </footer>
+      )}
 
       {/* Guaranteed Bottom Spacer */}
       <div className="w-full h-12 sm:h-16 shrink-0 pointer-events-none" aria-hidden="true" />

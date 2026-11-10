@@ -8,11 +8,11 @@ export function ColorsEditor({ current, commitChange, onBack }) {
   // Resolve current colors with defaults matching Linktree reference
   const backgroundColor =
     current.backgroundColor ||
-    (current.backgroundValue?.startsWith('#') ? current.backgroundValue : '#702121');
+    (current.backgroundValue?.startsWith('#') ? current.backgroundValue : '#F3F3F1');
   const buttonColor = current.buttonColor || '#FFFFFF';
-  const buttonTextColor = current.buttonTextColor || '#BD6D6D';
-  const pageTextColor = current.textColor || '#CC7272';
-  const titleColor = current.titleColor || '#FFFFFF';
+  const buttonTextColor = current.buttonTextColor || '#111111';
+  const pageTextColor = current.textColor || '#111111';
+  const titleColor = current.titleColor || '#111111';
 
   const colorItems = [
     {

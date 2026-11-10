@@ -667,6 +667,13 @@ export function App() {
     PRESET_THEMES.find((p) => p.id === currentTree?.themeId)?.theme ||
     PRESET_THEMES[0].theme;
 
+  const isFooterEnabled =
+    currentTree?.footerEnabled !== undefined
+      ? currentTree.footerEnabled
+      : currentTree?.customTheme?.footerEnabled !== undefined
+      ? currentTree.customTheme.footerEnabled
+      : footerEnabled;
+
   const currentSlug = currentTree?.slug || currentUser?.username || 'riyast';
   const currentHeaderLayout = currentTree?.headerLayout || currentTree?.customTheme?.headerLayout || 'classic';
 
@@ -1712,17 +1719,26 @@ export function App() {
                           <button
                             type="button"
                             onClick={() => {
-                              const next = !footerEnabled;
+                              const next = !isFooterEnabled;
                               setFooterEnabled(next);
                               storage.saveSettings({ footerEnabled: next });
+                              if (currentTree) {
+                                handleUpdateTree({
+                                  footerEnabled: next,
+                                  customTheme: {
+                                    ...(currentTree.customTheme || {}),
+                                    footerEnabled: next,
+                                  },
+                                });
+                              }
                             }}
                             className={`w-9 h-5 rounded-full transition-colors relative p-0.5 cursor-pointer ${
-                              footerEnabled ? 'bg-[#10B981]' : 'bg-gray-200'
+                              isFooterEnabled ? 'bg-[#10B981]' : 'bg-gray-200'
                             }`}
                           >
                             <span
                               className={`w-4 h-4 rounded-full bg-white block shadow-sm transition-transform ${
-                                footerEnabled ? 'translate-x-4' : 'translate-x-0'
+                                isFooterEnabled ? 'translate-x-4' : 'translate-x-0'
                               }`}
                             />
                           </button>
@@ -1796,21 +1812,17 @@ export function App() {
                 <div
                   className="w-full h-full absolute inset-0"
                   style={{
-                    backgroundColor:
-                      activeTheme?.backgroundColor ||
-                      (activeTheme?.backgroundValue?.startsWith('#') ? activeTheme.backgroundValue : '#702121'),
-                    backgroundImage:
-                      activeTheme?.backgroundType === 'solid' ||
-                      activeTheme?.wallpaperStyle === 'fill' ||
+                    background:
                       activeTheme?.wallpaperStyle === 'video'
-                        ? 'none'
+                        ? 'transparent'
+                        : activeTheme?.backgroundType === 'solid' || activeTheme?.wallpaperStyle === 'fill'
+                        ? (activeTheme?.backgroundValue?.startsWith('#') ? activeTheme.backgroundValue : (activeTheme?.backgroundColor || '#F3F3F1'))
                         : activeTheme?.backgroundImageUrl
-                        ? `url("${activeTheme.backgroundImageUrl}")`
-                        : activeTheme?.backgroundValue?.includes('url(') || activeTheme?.backgroundValue?.includes('gradient')
-                        ? activeTheme.backgroundValue
-                        : 'none',
+                        ? `url("${activeTheme.backgroundImageUrl}") center / cover no-repeat`
+                        : activeTheme?.backgroundValue || '#F3F3F1',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
                     filter:
                       activeTheme?.wallpaperStyle === 'blur'
                         ? 'blur(20px)'
@@ -1943,7 +1955,7 @@ export function App() {
                 </div>
 
                 {/* Bottom Footer Section inside Phone matching Reference */}
-                {(activeTheme?.footerEnabled ?? footerEnabled) && (
+                {isFooterEnabled && (
                   <div className="mt-auto pt-4 pb-4 space-y-2.5 w-full shrink-0">
                     {activeTheme?.footerButton && (
                       <button

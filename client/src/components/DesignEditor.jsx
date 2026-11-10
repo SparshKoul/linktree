@@ -46,7 +46,7 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
       altFontEnabled: custom.altFontEnabled ?? tree?.altFontEnabled ?? false,
       titleFont: custom.titleFont || tree?.titleFont || 'Manrope',
       titleColor: custom.titleColor || tree?.titleColor || '#111111',
-      footerEnabled: custom.footerEnabled !== false,
+      footerEnabled: tree?.footerEnabled !== undefined ? tree.footerEnabled : custom.footerEnabled !== false,
       footerText: custom.footerText || 'Get your own Linktree',
       stickers: custom.stickers || [],
       ...custom,
@@ -85,6 +85,7 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
     onUpdateTree({
       ...(patch.themeId ? { themeId: patch.themeId } : {}),
       customTheme: customThemeUpdate,
+      ...(patch.footerEnabled !== undefined ? { footerEnabled: patch.footerEnabled } : {}),
       ...(patch.fontFamily ? { fontFamily: patch.fontFamily } : {}),
       ...(patch.textColor ? { textColor: patch.textColor } : {}),
       ...(patch.altFontEnabled !== undefined ? { altFontEnabled: patch.altFontEnabled } : {}),
@@ -137,21 +138,34 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
     setTimeout(() => setSavedToast(false), 2500);
   };
 
+  const applyPresetTheme = (themeObj) => {
+    commitChange({
+      themeId: themeObj.id,
+      backgroundType: themeObj.theme.backgroundType,
+      backgroundValue: themeObj.theme.backgroundValue,
+      backgroundColor: themeObj.theme.backgroundType === 'solid' ? themeObj.theme.backgroundValue : null,
+      backgroundImageUrl: null,
+      wallpaperVideoUrl: null,
+      wallpaperStyle: themeObj.theme.backgroundType === 'solid' ? 'fill' : null,
+      effect: 'none',
+      tint: 0,
+      noise: false,
+      patternType: null,
+      buttonStyle: themeObj.theme.buttonStyle,
+      buttonColor: themeObj.theme.buttonColor,
+      buttonTextColor: themeObj.theme.buttonTextColor,
+      buttonRadius: themeObj.theme.buttonRadius,
+      fontFamily: themeObj.theme.fontFamily,
+      textColor: themeObj.theme.textColor,
+      footerText: themeObj.theme.footerText || 'Get your own Linktree',
+    });
+  };
+
   const handleShuffleTheme = () => {
     const list = PRESET_THEMES.filter((p) => p.id !== 'classic-light');
     const randomTheme = list[Math.floor(Math.random() * list.length)];
     if (randomTheme) {
-      commitChange({
-        themeId: randomTheme.id,
-        backgroundType: randomTheme.theme.backgroundType,
-        backgroundValue: randomTheme.theme.backgroundValue,
-        buttonStyle: randomTheme.theme.buttonStyle,
-        buttonColor: randomTheme.theme.buttonColor,
-        buttonTextColor: randomTheme.theme.buttonTextColor,
-        buttonRadius: randomTheme.theme.buttonRadius,
-        fontFamily: randomTheme.theme.fontFamily,
-        textColor: randomTheme.theme.textColor,
-      });
+      applyPresetTheme(randomTheme);
     }
   };
 
@@ -547,20 +561,7 @@ export function DesignEditor({ currentTree, onUpdateTree }) {
                 <div key={pt.id} className="flex flex-col items-center">
                   <button
                     type="button"
-                    onClick={() => {
-                      commitChange({
-                        themeId: pt.id,
-                        backgroundType: pt.theme.backgroundType,
-                        backgroundValue: pt.theme.backgroundValue,
-                        buttonStyle: pt.theme.buttonStyle,
-                        buttonColor: pt.theme.buttonColor,
-                        buttonTextColor: pt.theme.buttonTextColor,
-                        buttonRadius: pt.theme.buttonRadius,
-                        fontFamily: pt.theme.fontFamily,
-                        textColor: pt.theme.textColor,
-                        footerText: pt.theme.footerText || 'Get your own Linktree',
-                      });
-                    }}
+                    onClick={() => applyPresetTheme(pt)}
                     className={`w-full h-[106px] sm:h-[112px] rounded-[18px] sm:rounded-[20px] p-2.5 flex flex-col justify-between overflow-hidden relative transition-all cursor-pointer shadow-2xs ${
                       isSelected
                         ? 'border-2 border-black ring-1 ring-black/10'
