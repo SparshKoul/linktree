@@ -1314,7 +1314,7 @@ export function App() {
                   <HeaderEditor currentTree={currentTree} onUpdateTree={handleUpdateTree} />
                 </div>
                 {/* Mobile: Unified mobile customizer with Header drawer open */}
-                <div className="lg:hidden w-full h-full">
+                <div className="lg:hidden w-full h-full pb-20">
                   <DesignEditor
                     currentTree={currentTree}
                     onUpdateTree={handleUpdateTree}
@@ -1324,7 +1324,7 @@ export function App() {
                 </div>
               </>
             ) : activeRail === 'design' ? (
-              <div className="w-full h-full lg:bg-white lg:rounded-[28px] lg:xl:rounded-[32px] lg:px-6 lg:sm:px-10 lg:py-6 lg:sm:py-8 lg:border lg:border-gray-200/80 lg:shadow-2xs flex-1 overflow-y-auto card-scrollbar">
+              <div className="w-full h-full lg:bg-white lg:rounded-[28px] lg:xl:rounded-[32px] lg:px-6 lg:sm:px-10 lg:py-6 lg:sm:py-8 lg:border lg:border-gray-200/80 lg:shadow-2xs flex-1 overflow-y-auto card-scrollbar pb-20 lg:pb-0">
                 <DesignEditor
                   currentTree={currentTree}
                   onUpdateTree={handleUpdateTree}
@@ -2118,61 +2118,90 @@ export function App() {
                     </div>
                   </div>
                 )}
-
-                {/* Mobile Floating Bottom Dock */}
-                <div className="lg:hidden fixed bottom-3 inset-x-0 z-30 flex justify-center pointer-events-none px-4">
-                  {/* Floating Pill Dock with 4 buttons */}
-                  <div className="h-12 px-5 bg-white/95 backdrop-blur-md rounded-full shadow-2xl border border-gray-200/90 flex items-center gap-6 pointer-events-auto shrink-0">
-                    {/* 1. Add */}
-                    <button
-                      type="button"
-                      onClick={() => setIsAddCardOpen(true)}
-                      className="flex flex-col items-center gap-0.5 text-gray-700 hover:text-black cursor-pointer group transition-colors"
-                    >
-                      <Plus className="w-4 h-4 stroke-[2.2] group-hover:scale-110 transition-transform" />
-                      <span className="text-[9px] font-bold">Add</span>
-                    </button>
-
-                    {/* 2. Preview */}
-                    <button
-                      type="button"
-                      onClick={() => setPreviewPhoneView(true)}
-                      className="flex flex-col items-center gap-0.5 text-gray-700 hover:text-black cursor-pointer group transition-colors"
-                    >
-                      <svg className="w-4 h-4 stroke-[2] group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="8" cy="12" r="4" />
-                        <circle cx="16" cy="12" r="4" />
-                      </svg>
-                      <span className="text-[9px] font-bold">Preview</span>
-                    </button>
-
-                    {/* 3. Design (with orange notification badge dot) */}
-                    <button
-                      type="button"
-                      onClick={() => setActiveRail('design')}
-                      className="flex flex-col items-center gap-0.5 text-gray-700 hover:text-black cursor-pointer group transition-colors relative"
-                    >
-                      <div className="relative">
-                        <Paintbrush className="w-4 h-4 stroke-[2] group-hover:scale-110 transition-transform" />
-                        <span className="w-2 h-2 rounded-full bg-[#F97316] absolute -top-0.5 -right-0.5 ring-1 ring-white" />
-                      </div>
-                      <span className="text-[9px] font-bold">Design</span>
-                    </button>
-
-                    {/* 4. Enhance */}
-                    <button
-                      type="button"
-                      onClick={() => setActiveRail('enhance')}
-                      className="flex flex-col items-center gap-0.5 text-gray-700 hover:text-black cursor-pointer group transition-colors"
-                    >
-                      <Sparkles className="w-4 h-4 stroke-[2] group-hover:scale-110 transition-transform" />
-                      <span className="text-[9px] font-bold">Enhance</span>
-                    </button>
-                  </div>
-                </div>
               </div>
             )}
           </div>
+
+          {/* Mobile Floating Bottom Dock matching Desktop navigation */}
+          {!activeCardDetail && (
+            <div className="lg:hidden fixed bottom-3 inset-x-0 z-30 flex justify-center pointer-events-none px-4">
+              <div className="h-12 px-6 bg-white/95 backdrop-blur-md rounded-full shadow-2xl border border-gray-200/90 flex items-center gap-7 pointer-events-auto shrink-0">
+                {/* 1. Content */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentView('workspace');
+                    setActiveRail('content');
+                    setActiveTab('links');
+                  }}
+                  className={`flex flex-col items-center gap-0.5 cursor-pointer group transition-colors ${
+                    currentView === 'workspace' && activeRail === 'content'
+                      ? 'text-black font-extrabold'
+                      : 'text-gray-500 hover:text-black'
+                  }`}
+                >
+                  <svg className="w-4 h-4 stroke-[2.2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="7" y="3" width="13" height="13" rx="2" />
+                    <path d="M4 8v11a2 2 0 0 0 2 2h11" />
+                  </svg>
+                  <span className="text-[9px] font-bold">Content</span>
+                </button>
+
+                {/* 2. Header */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentView('workspace');
+                    setActiveRail('header');
+                  }}
+                  className={`flex flex-col items-center gap-0.5 cursor-pointer group transition-colors ${
+                    currentView === 'workspace' && activeRail === 'header'
+                      ? 'text-black font-extrabold'
+                      : 'text-gray-500 hover:text-black'
+                  }`}
+                >
+                  <svg className="w-4 h-4 stroke-[2]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="16" rx="3" />
+                    <circle cx="9" cy="10" r="2" />
+                    <line x1="15" y1="9" x2="17" y2="9" />
+                    <line x1="15" y1="13" x2="17" y2="13" />
+                    <path d="M6 16c0-1.5 1.5-2.5 3-2.5s3 1 3 2.5" />
+                  </svg>
+                  <span className="text-[9px] font-bold">Header</span>
+                </button>
+
+                {/* 3. Design */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentView('workspace');
+                    setActiveRail('design');
+                  }}
+                  className={`flex flex-col items-center gap-0.5 cursor-pointer group transition-colors ${
+                    currentView === 'workspace' && activeRail === 'design'
+                      ? 'text-black font-extrabold'
+                      : 'text-gray-500 hover:text-black'
+                  }`}
+                >
+                  <Palette className="w-4 h-4 stroke-[2]" />
+                  <span className="text-[9px] font-bold">Design</span>
+                </button>
+
+                {/* 4. Settings */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthModalMode(currentUser ? 'switch' : 'login');
+                    setIsAuthModalOpen(true);
+                  }}
+                  className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-black cursor-pointer group transition-colors"
+                >
+                  <Settings className="w-4 h-4 stroke-[2]" />
+                  <span className="text-[9px] font-bold">Settings</span>
+                </button>
+              </div>
+            </div>
+          )}
         </main>
         )}
 
