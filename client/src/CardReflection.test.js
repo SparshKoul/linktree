@@ -109,5 +109,10 @@ describe('Card Reflection Logic', () => {
     expect(headerLayout).toBe('banner');
     expect(bannerImage).toBe('https://qbnrhcllnuwdeivpxxoj.supabase.co/storage/v1/object/public/linktree-assets/banners/neon-city.png');
   });
+
+  it('exports PhonePreview as the single source of truth for desktop and mobile preview', async () => {
+    const { PhonePreview } = await import('./components/PhonePreview.jsx');
+    expect(typeof PhonePreview).toBe('function');
+  });
 });
 

@@ -24,6 +24,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { CardRenderer } from '../cards/CardRenderer.jsx';
+import { PhonePreview } from './PhonePreview.jsx';
 import { PRESET_THEMES } from '../constants/themes.js';
 import { WallpaperEditor } from './WallpaperEditor.jsx';
 import { ButtonEditor } from './ButtonEditor.jsx';
@@ -844,127 +845,30 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
             activeSubview ? 'items-start pt-2 max-h-[46dvh] px-2' : 'items-stretch p-0'
           } justify-center overflow-hidden relative transition-all duration-200`}
         >
-          <div
-            className={`w-full h-full ${
-              activeSubview
-                ? 'max-w-[440px] origin-top scale-[0.88] rounded-[24px] border border-white/10'
-                : 'rounded-none border-0'
-            } shadow-2xl relative overflow-hidden flex flex-col transition-all duration-200`}
-            style={{
-              background: current.backgroundValue || '#111111',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
+          <PhonePreview
+            tree={{
+              ...currentTree,
+              title: current.title ?? currentTree?.title,
+              bio: current.bio ?? currentTree?.bio,
+              avatarUrl: current.avatarUrl || currentTree?.avatarUrl,
+              bannerUrl: current.bannerUrl || currentTree?.bannerUrl,
+              heroUrl: current.heroUrl || currentTree?.heroUrl,
+              headerLayout: current.headerLayout || currentTree?.headerLayout,
+              titleStyle: current.titleStyle || currentTree?.titleStyle,
+              logoUrl: current.logoUrl || currentTree?.logoUrl,
+              altFontEnabled: current.altFontEnabled ?? currentTree?.altFontEnabled,
+              titleFont: current.titleFont || currentTree?.titleFont,
+              titleColor: current.titleColor || currentTree?.titleColor,
             }}
-          >
-            {/* Top Phone Frame Bar */}
-            <div
-              className="px-4 pt-3.5 pb-1 flex items-center justify-between text-xs shrink-0 z-10"
-              style={{ color: current.textColor || '#FFFFFF' }}
-            >
-              <span className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white text-xs font-black shadow-xs">
-                ✱
-              </span>
-              <button
-                type="button"
-                className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white shadow-xs hover:bg-black/40 transition-colors cursor-pointer"
-                title="Share"
-              >
-                <Share2 className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Phone Body Scroll Area */}
-            <div className="flex-1 overflow-y-auto px-4 py-2 flex flex-col items-center no-scrollbar [&::-webkit-scrollbar]:hidden">
-              {/* Header Layout Rendering */}
-              {currentHeaderLayout === 'hero' ? (
-                <div className="w-full h-44 sm:h-48 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600 mb-2 shrink-0">
-                  <img
-                    src={current.heroUrl || currentTree?.heroUrl || current.avatarUrl || currentTree?.avatarUrl || demoGirlImg}
-                    alt="Hero"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                </div>
-              ) : currentHeaderLayout === 'banner' ? (
-                <div className="w-full flex flex-col items-center mb-2 shrink-0">
-                  <div className="w-full h-28 sm:h-32 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA]">
-                    {current.bannerUrl || currentTree?.bannerUrl ? (
-                      <img src={current.bannerUrl || currentTree.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full opacity-90 bg-gradient-to-r from-[#FF007A] via-[#A855F7] to-[#7928CA]" />
-                    )}
-                  </div>
-                  <div className="-mt-11 mb-2 relative ring-4 ring-white rounded-full shadow-md w-22 h-22 overflow-hidden bg-white flex items-center justify-center">
-                    {current.avatarUrl || currentTree?.avatarUrl ? (
-                      <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-12 h-12 text-gray-400" />
-                    )}
-                  </div>
-                </div>
-              ) : currentHeaderLayout === 'cutout' ? (
-                <div className="w-24 h-28 rounded-t-full overflow-hidden filter drop-shadow-xs mb-2 shrink-0">
-                  <img src={current.avatarUrl || currentTree?.avatarUrl || demoGirlImg} alt="Cutout" className="w-full h-full object-cover" />
-                </div>
-              ) : currentHeaderLayout === 'shape' ? (
-                <div
-                  className="w-24 h-20 relative flex items-center justify-center overflow-hidden mb-2 shrink-0 shadow-2xs"
-                  style={{ clipPath: 'url(#linktree-organic-shape)' }}
-                >
-                  <img src={current.avatarUrl || currentTree?.avatarUrl || demoGirlImg} alt="Shape" className="w-full h-full object-cover" />
-                </div>
-              ) : (
-                /* Classic Avatar - little big matching Image */
-                <div className="w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3 shadow-md ring-2 ring-white/10 shrink-0">
-                  {current.avatarUrl || currentTree?.avatarUrl ? (
-                    <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="w-14 h-14 text-white" />
-                  )}
-                </div>
-              )}
-
-              {/* Title */}
-              {isLogo && logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="max-h-8 max-w-[170px] object-contain my-0.5" />
-              ) : (
-                <h2
-                  className="font-black text-2xl xs:text-[28px] leading-tight text-center tracking-tight"
-                  style={{
-                    color: titleColor,
-                    fontFamily: titleFont !== 'inherit' ? `'${titleFont}', sans-serif` : 'inherit',
-                  }}
-                >
-                  {current.title ?? titleText}
-                </h2>
-              )}
-
-              {/* Bio */}
-              {(current.bio ?? bioText) && (
-                <p
-                  className="text-xs sm:text-[13px] font-medium leading-relaxed max-w-[280px] text-gray-300 mt-1 mb-3 text-center"
-                  style={{ color: current.textColor ? `${current.textColor}cc` : '#D1D5DB' }}
-                >
-                  {current.bio ?? bioText}
-                </p>
-              )}
-
-              {/* Links List */}
-              <div className="w-full space-y-3 my-2 flex-1 px-1">
-                {visibleCards.map((card) => (
-                  <CardRenderer key={card.id} card={card} theme={previewTheme} isPreview />
-                ))}
-              </div>
-
-              {/* Footer */}
-              {current.footerEnabled !== false && (
-                <div className="mt-auto pt-6 pb-6 text-center text-[10px] text-gray-400 leading-tight shrink-0">
-                  <div>Cookie Preferences • Report • Privacy</div>
-                  <div className="mt-0.5">More from Linktree</div>
-                </div>
-              )}
-            </div>
-          </div>
+            theme={previewTheme}
+            containerClassName={`w-full h-full ${
+              activeSubview
+                ? 'max-w-[440px] origin-top scale-[0.88] rounded-[24px] border border-white/10 shadow-2xl'
+                : 'rounded-none border-0 shadow-none'
+            }`}
+            onShare={handleSave}
+            headerLayoutOverride={current.headerLayout}
+          />
         </div>
 
         {/* Mobile Bottom Toolbar (Image 1: When drawer is closed) */}
