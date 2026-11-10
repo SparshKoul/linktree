@@ -7,6 +7,17 @@
   color-scheme: light;
 }
 
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -19,7 +30,7 @@ body {
 /* Custom Linktree card scrollbar */
 .card-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #D1D5DB transparent;
+  scrollbar-color: rgba(156, 163, 175, 0.45) transparent;
 }
 
 .no-scrollbar {
@@ -34,20 +45,21 @@ body {
 }
 
 .card-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
 }
 
 .card-scrollbar::-webkit-scrollbar-track {
   background: transparent;
-  margin-top: 14px;
-  margin-bottom: 14px;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
 .card-scrollbar::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
+  background: rgba(156, 163, 175, 0.4);
   border-radius: 9999px;
+  transition: background 0.2s ease;
 }
 
 .card-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: rgba(107, 114, 128, 0.65);
 }
