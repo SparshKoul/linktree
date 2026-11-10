@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Menu,
   X,
   Mail,
   Sparkles,
@@ -25,6 +26,7 @@ import {
 export function ContactPage({ onNavigate, onOpenAuth, currentUser }) {
   const [copied, setCopied] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const contactEmail = 'sparshkoul6@gmail.com';
 
   const handleCopyEmail = () => {
@@ -149,11 +151,11 @@ export function ContactPage({ onNavigate, onOpenAuth, currentUser }) {
           </div>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {currentUser ? (
               <button
                 onClick={() => onNavigate('/dashboard')}
-                className="px-4 sm:px-5 py-2.5 rounded-full bg-[#1E2330] hover:bg-black text-white text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                className="hidden sm:flex px-4 sm:px-5 py-2.5 rounded-full bg-[#1E2330] hover:bg-black text-white text-xs sm:text-sm font-bold transition-all shadow-xs cursor-pointer items-center gap-1.5"
               >
                 <span>Dashboard ({currentUser.email ? (currentUser.email.length > 18 ? currentUser.email.substring(0, 16) + '...' : currentUser.email) : 'account'})</span>
               </button>
@@ -161,20 +163,103 @@ export function ContactPage({ onNavigate, onOpenAuth, currentUser }) {
               <>
                 <button
                   onClick={() => (onOpenAuth ? onOpenAuth('login') : onNavigate('/dashboard'))}
-                  className="text-xs sm:text-sm font-bold text-gray-800 hover:text-black transition-colors px-2.5 py-1.5 cursor-pointer"
+                  className="hidden sm:inline-block text-xs sm:text-sm font-bold text-gray-800 hover:text-black transition-colors px-2.5 py-1.5 cursor-pointer"
                 >
                   Log in
                 </button>
                 <a
                   href="#pricing"
-                  className="px-5 sm:px-6 py-2.5 rounded-full bg-[#1E2330] hover:bg-black text-white text-xs sm:text-sm font-bold transition-all shadow-xs hover:shadow-md cursor-pointer"
+                  className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-full bg-[#1E2330] hover:bg-black text-[#D2E823] text-xs sm:text-sm font-bold transition-all shadow-xs hover:shadow-md cursor-pointer"
                 >
                   Get Subscription
                 </a>
               </>
             )}
+
+            {/* Mobile Hamburger Toggle */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-full hover:bg-gray-100 text-gray-700 hover:text-black transition-colors cursor-pointer"
+              aria-label="Toggle navigation menu"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </header>
+
+        {/* Mobile Dropdown Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden mt-2 p-4 bg-white/95 backdrop-blur-md rounded-3xl shadow-xl border border-black/10 animate-in fade-in slide-in-from-top-2 duration-200 space-y-3">
+            <nav className="flex flex-col space-y-1 text-sm font-bold text-gray-800">
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  onNavigate('/');
+                }}
+                className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <span>Home Page</span>
+                <span className="text-xs text-gray-400">← Back</span>
+              </button>
+              <a
+                href="#features"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <span>Features</span>
+                <span className="text-[11px] text-purple-700 font-extrabold bg-purple-50 px-2 py-0.5 rounded-full">All Unlocked</span>
+              </a>
+              <a
+                href="#solutions"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <span>Why Us vs L*nkT*ee</span>
+                <span className="text-[11px] text-gray-500 font-medium">Comparison</span>
+              </a>
+              <a
+                href="#pricing"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full text-left px-3.5 py-2.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-950 font-extrabold transition-colors flex items-center justify-between cursor-pointer border border-purple-200/60"
+              >
+                <span>Subscription & Pricing</span>
+                <span className="text-xs text-emerald-600 font-extrabold">Best Value</span>
+              </a>
+              <a
+                href="#faq"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="w-full text-left px-3.5 py-2.5 rounded-xl hover:bg-gray-100 transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <span>Frequently Asked Questions</span>
+                <span className="text-xs text-gray-400">FAQ</span>
+              </a>
+            </nav>
+
+            <div className="pt-2 border-t border-gray-100 flex flex-col gap-2">
+              {currentUser ? (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onNavigate('/dashboard');
+                  }}
+                  className="w-full py-2.5 rounded-full bg-[#1E2330] hover:bg-black text-white font-bold text-xs text-center cursor-pointer"
+                >
+                  Go to Dashboard ({currentUser.email})
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onOpenAuth ? onOpenAuth('login') : onNavigate('/dashboard');
+                  }}
+                  className="w-full py-2.5 rounded-full border border-gray-300 text-gray-800 font-bold text-xs text-center hover:bg-gray-50 cursor-pointer"
+                >
+                  Sign In to Client Portal
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 3. Hero Section: Lime Green Hero Style */}
