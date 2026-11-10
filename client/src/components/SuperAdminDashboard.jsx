@@ -5,6 +5,7 @@ import {
   Layers,
   Lock,
   Unlock,
+  KeyRound,
   Plus,
   Trash2,
   ExternalLink,
@@ -38,6 +39,13 @@ export function SuperAdminDashboard({
   const [provisionLoading, setProvisionLoading] = useState(false);
   const [provisionError, setProvisionError] = useState('');
   const [provisionSuccess, setProvisionSuccess] = useState(null);
+
+  // Change Password Modal State (Super Admin Only)
+  const [changePasswordUser, setChangePasswordUser] = useState(null);
+  const [updatePasswordVal, setUpdatePasswordVal] = useState('');
+  const [updatePasswordLoading, setUpdatePasswordLoading] = useState(false);
+  const [updatePasswordError, setUpdatePasswordError] = useState('');
+  const [updatePasswordSuccess, setUpdatePasswordSuccess] = useState('');
 
   // Copied state
   const [copiedKey, setCopiedKey] = useState(null);
@@ -162,6 +170,36 @@ export function SuperAdminDashboard({
       setProvisionError(err.message);
     } finally {
       setProvisionLoading(false);
+    }
+  };
+
+  const handleUpdatePasswordSubmit = async (e) => {
+    e.preventDefault();
+    if (!changePasswordUser) return;
+    setUpdatePasswordError('');
+    setUpdatePasswordSuccess('');
+    setUpdatePasswordLoading(true);
+
+    try {
+      const res = await fetch(`/api/admin/users/${changePasswordUser.id}/password`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ newPassword: updatePasswordVal.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update password');
+
+      setUpdatePasswordSuccess(`Password successfully updated for ${changePasswordUser.email}`);
+      setTimeout(() => {
+        setChangePasswordUser(null);
+        setUpdatePasswordVal('');
+        setUpdatePasswordSuccess('');
+      }, 1500);
+    } catch (err) {
+      setUpdatePasswordError(err.message);
+    } finally {
+      setUpdatePasswordLoading(false);
     }
   };
 
@@ -485,47 +523,61 @@ export function SuperAdminDashboard({
 
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
-                        {isSparsh ? (
-                          <span className="text-[11px] text-gray-400 italic font-semibold">
-                            Primary Super Admin
-                          </span>
-                        ) : (
-                          <div className="flex items-center justify-end gap-1.5">
-                            {/* Lock / Unlock Toggle */}
-                            <button
-                              type="button"
-                              onClick={() => handleToggleBlock(u)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
-                                u.isBlocked
-                                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
-                                  : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
-                              }`}
-                              title={u.isBlocked ? 'Unlock client access' : 'Lock client account'}
-                            >
-                              {u.isBlocked ? (
-                                <>
-                                  <Unlock className="w-3.5 h-3.5" />
-                                  <span>Unlock</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Lock className="w-3.5 h-3.5" />
-                                  <span>Lock</span>
-                                </>
-                              )}
-                            </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Change Password (Super Admin Only Capability) */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setChangePasswordUser(u);
+                              setUpdatePasswordVal('');
+                              setUpdatePasswordError('');
+                              setUpdatePasswordSuccess('');
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200 hover:border-gray-300"
+                            title={`Change password for ${u.email}`}
+                          >
+                            <KeyRound className="w-3.5 h-3.5 text-gray-600" />
+                            <span className="hidden sm:inline">Password</span>
+                          </button>
 
-                            {/* Delete Client */}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteUser(u)}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer border border-transparent hover:border-red-200"
-                              title="Delete Client Account"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        )}
+                          {!isSparsh && (
+                            <>
+                              {/* Lock / Unlock Toggle */}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleBlock(u)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                                  u.isBlocked
+                                    ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    : 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
+                                }`}
+                                title={u.isBlocked ? 'Unlock client access' : 'Lock client account'}
+                              >
+                                {u.isBlocked ? (
+                                  <>
+                                    <Unlock className="w-3.5 h-3.5" />
+                                    <span>Unlock</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Lock className="w-3.5 h-3.5" />
+                                    <span>Lock</span>
+                                  </>
+                                )}
+                              </button>
+
+                              {/* Delete Client */}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteUser(u)}
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer border border-transparent hover:border-red-200"
+                                title="Delete Client Account"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -659,6 +711,103 @@ export function SuperAdminDashboard({
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 6. Change / Update User Password Modal (Super Admin ONLY) */}
+      {changePasswordUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-[32px] max-w-md w-full p-6 sm:p-7 shadow-2xl border border-gray-100 relative space-y-4 animate-in zoom-in-95 duration-200">
+            <button
+              onClick={() => {
+                setChangePasswordUser(null);
+                setUpdatePasswordVal('');
+                setUpdatePasswordError('');
+                setUpdatePasswordSuccess('');
+              }}
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-black transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200 inline-flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-purple-700" />
+                Super Admin Privilege
+              </span>
+              <h2 className="text-xl font-extrabold text-gray-950 mt-1.5">
+                Update Account Password
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Directly overwrite the password for <span className="font-bold text-gray-900">{changePasswordUser.email}</span>.
+              </p>
+            </div>
+
+            {updatePasswordError && (
+              <div className="p-3 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                <span>{updatePasswordError}</span>
+              </div>
+            )}
+
+            {updatePasswordSuccess && (
+              <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+                <Check className="w-4 h-4 shrink-0 text-emerald-600" />
+                <span>{updatePasswordSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUpdatePasswordSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  New Password
+                </label>
+                <div className="flex items-center px-3.5 py-2.5 rounded-2xl bg-[#F6F6F7] border border-gray-200 text-xs">
+                  <Lock className="w-4 h-4 text-gray-400 mr-2 shrink-0" />
+                  <input
+                    type="text"
+                    required
+                    value={updatePasswordVal}
+                    onChange={(e) => setUpdatePasswordVal(e.target.value)}
+                    placeholder="Enter new password (min 6 characters)"
+                    className="w-full bg-transparent focus:outline-none text-black font-medium"
+                    minLength={6}
+                    autoFocus
+                  />
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Plaintext visible so you can verify and securely share with the client.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChangePasswordUser(null);
+                    setUpdatePasswordVal('');
+                    setUpdatePasswordError('');
+                    setUpdatePasswordSuccess('');
+                  }}
+                  className="flex-1 py-2.5 rounded-full border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-700 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatePasswordLoading || !updatePasswordVal.trim()}
+                  className="flex-1 py-2.5 rounded-full bg-[#1E2330] hover:bg-black text-[#D2E823] font-bold text-xs transition-all shadow-sm disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  {updatePasswordLoading ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <KeyRound className="w-3.5 h-3.5 text-[#00E575]" />
+                  )}
+                  <span>{updatePasswordLoading ? 'Updating...' : 'Set Password'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

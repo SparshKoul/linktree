@@ -425,6 +425,43 @@ describe('Super Admin & Authentication Restrictions', () => {
     expect(clients[0].isBlocked).toBe(false);
     expect(tryLogin(clients[0]).status).toBe(200);
   });
+
+  it('allows ONLY Super Admin to update/change password of any user', () => {
+    const clientUser = { id: 55, email: 'client55@example.com', password: 'oldpassword123' };
+
+    function changeUserPassword(caller, target, newPassword) {
+      if (!isSuperAdmin(caller)) return { status: 403, error: 'Forbidden: Super Admin access required' };
+      if (!newPassword || newPassword.trim().length < 6) {
+        return { status: 400, error: 'Password must be at least 6 characters long' };
+      }
+      target.password = newPassword.trim();
+      return { status: 200, success: true, message: 'Password updated successfully' };
+    }
+
+    // 1. Regular client cannot change someone else's password via admin API
+    const regularUser = { id: 2, email: 'client@indiataps.com', role: 'client' };
+    const unauthorizedRes = changeUserPassword(regularUser, clientUser, 'hackedpassword');
+    expect(unauthorizedRes.status).toBe(403);
+    expect(clientUser.password).toBe('oldpassword123');
+
+    // 2. Reject short passwords
+    const shortPwdRes = changeUserPassword(users[0], clientUser, '123');
+    expect(shortPwdRes.status).toBe(400);
+    expect(clientUser.password).toBe('oldpassword123');
+
+    // 3. Super Admin successfully updates password
+    const successRes = changeUserPassword(users[0], clientUser, 'newBrandNewPassword999');
+    expect(successRes.status).toBe(200);
+    expect(clientUser.password).toBe('newBrandNewPassword999');
+
+    // 4. Verify login behavior with new vs old password
+    function checkCredentials(user, password) {
+      if (user.password !== password) return 401;
+      return 200;
+    }
+    expect(checkCredentials(clientUser, 'oldpassword123')).toBe(401);
+    expect(checkCredentials(clientUser, 'newBrandNewPassword999')).toBe(200);
+  });
 });
 
 

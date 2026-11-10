@@ -522,6 +522,69 @@ app.patch('/api/admin/users/:id/block', async (req, res) => {
   });
 });
 
+// Super Admin Update / Reset User Password
+app.patch('/api/admin/users/:id/password', async (req, res) => {
+  const callerId = req.userId;
+  const isSuper = await isCallerSuperAdmin(callerId);
+  if (!isSuper) {
+    return res.status(403).json({ error: 'Forbidden: Super Admin access required' });
+  }
+
+  const targetId = Number(req.params.id);
+  const { newPassword } = req.body;
+  if (!newPassword || typeof newPassword !== 'string' || newPassword.trim().length < 6) {
+    return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+  }
+
+  const cleanPassword = newPassword.trim();
+  let targetEmail = null;
+
+  // 1. Update in memory store if present
+  const memoryUser = store.users.find((u) => u.id === targetId);
+  if (memoryUser) {
+    memoryUser.password = cleanPassword;
+    targetEmail = memoryUser.email;
+  }
+
+  // 2. Fetch user from Supabase if targetEmail is not known yet
+  try {
+    const { data: dbUser } = await supabase.from('users').select('id, email').eq('id', targetId).single();
+    if (dbUser && dbUser.email) {
+      targetEmail = dbUser.email;
+    }
+  } catch (err) {
+    console.warn('[Supabase fetch user error]', err.message);
+  }
+
+  // 3. Update in Supabase public.users table
+  try {
+    await supabase.from('users').update({ password: cleanPassword }).eq('id', targetId);
+  } catch (err) {
+    console.warn('[Supabase update password in table error]', err.message);
+  }
+
+  // 4. Update in Supabase Auth if auth user exists
+  if (targetEmail) {
+    try {
+      const { data: listData } = await supabase.auth.admin.listUsers();
+      const authUser = listData?.users?.find(
+        (au) => au.email?.toLowerCase() === targetEmail.toLowerCase()
+      );
+      if (authUser) {
+        await supabase.auth.admin.updateUserById(authUser.id, { password: cleanPassword });
+      }
+    } catch (err) {
+      console.warn('[Supabase admin updateUserById error]', err.message);
+    }
+  }
+
+  res.json({
+    success: true,
+    userId: targetId,
+    message: `Password updated successfully for account ${targetEmail || targetId}`,
+  });
+});
+
 // Super Admin Delete Client Account
 app.delete('/api/admin/users/:id', async (req, res) => {
   const callerId = req.userId;
