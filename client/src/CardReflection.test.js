@@ -109,5 +109,36 @@ describe('Card Reflection Logic', () => {
     expect(headerLayout).toBe('banner');
     expect(bannerImage).toBe('https://qbnrhcllnuwdeivpxxoj.supabase.co/storage/v1/object/public/linktree-assets/banners/neon-city.png');
   });
+
+  it('identifies local device media cards (gallery, menu/pdf, video) for in-page expansion', () => {
+    const isLocalMediaCard = (card) => {
+      const isGallery =
+        card.type === 'gallery' ||
+        card.settings?.platform === 'gallery' ||
+        Boolean(card.settings?.images && card.settings.images.length > 0) ||
+        (card.title || '').toLowerCase().includes('gallery');
+
+      const isPdfOrMenu =
+        card.type === 'menu' ||
+        card.settings?.platform === 'menu' ||
+        Boolean(card.settings?.isPdf) ||
+        Boolean(card.settings?.pdfName) ||
+        Boolean(card.url && /\.pdf($|\?)/i.test(card.url)) ||
+        Boolean(card.url && card.url.startsWith('data:application/pdf')) ||
+        (card.title || '').toLowerCase().includes('menu');
+
+      const isLocalVideo =
+        card.type === 'video' ||
+        Boolean(card.url && /\.(mp4|webm|mov|ogg)($|\?)/i.test(card.url)) ||
+        Boolean(card.url && card.url.startsWith('data:video'));
+
+      return isGallery || isPdfOrMenu || isLocalVideo;
+    };
+
+    expect(isLocalMediaCard({ type: 'gallery', title: 'Gallery' })).toBe(true);
+    expect(isLocalMediaCard({ type: 'menu', title: 'Restaurant Menu', settings: { isPdf: true } })).toBe(true);
+    expect(isLocalMediaCard({ type: 'video', title: 'Local Clip', url: 'blob:video.mp4' })).toBe(true);
+    expect(isLocalMediaCard({ type: 'link', title: 'Instagram', url: 'https://instagram.com' })).toBe(false);
+  });
 });
 

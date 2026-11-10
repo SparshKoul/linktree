@@ -20,6 +20,8 @@ import {
   MoreVertical,
   X,
   Navigation,
+  ImageIcon,
+  FileText,
 } from 'lucide-react';
 import { FaviconIcon } from '../components/FaviconIcon.jsx';
 
@@ -41,6 +43,43 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   // Standalone Card Page Sheet state
   const [isPageOpen, setIsPageOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const isGallery =
+    card.type === 'gallery' ||
+    card.settings?.platform === 'gallery' ||
+    Boolean(card.settings?.images && card.settings.images.length > 0) ||
+    (card.title || '').toLowerCase().includes('gallery');
+
+  const isPdfOrMenu =
+    card.type === 'menu' ||
+    card.settings?.platform === 'menu' ||
+    Boolean(card.settings?.isPdf) ||
+    Boolean(card.settings?.pdfName) ||
+    Boolean(card.url && /\.pdf($|\?)/i.test(card.url)) ||
+    Boolean(card.url && card.url.startsWith('data:application/pdf')) ||
+    (card.title || '').toLowerCase().includes('menu');
+
+  const isLocalVideo =
+    card.type === 'video' ||
+    Boolean(card.url && /\.(mp4|webm|mov|ogg)($|\?)/i.test(card.url)) ||
+    Boolean(card.url && card.url.startsWith('data:video'));
+
+  const isLocalMedia = isGallery || isPdfOrMenu || isLocalVideo;
+
+  const defaultGalleryImages = [
+    'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80',
+    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80',
+  ];
+
+  const galleryImages =
+    Array.isArray(card.settings?.images) && card.settings.images.length > 0
+      ? card.settings.images
+      : card.thumbnailUrl
+      ? [card.thumbnailUrl, ...defaultGalleryImages.slice(1)]
+      : defaultGalleryImages;
 
   const btnRadius =
     theme?.buttonRadius == null || theme?.buttonRadius >= 24
@@ -96,10 +135,29 @@ export function CardRenderer({ card, theme, isPreview = false }) {
       setShowLockModal(true);
       return;
     }
+    // For local device media (gallery, PDF menu, local video), expand in-page rather than redirecting to a new tab
+    if (isLocalMedia) {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsExpanded(true);
+      return;
+    }
     // Record click analytics in Supabase
     if (card?.id) {
       fetch(`/api/public/cards/${card.id}/click`, { method: 'POST' }).catch(() => {});
     }
+  };
+
+  const handleCloseExpanded = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsExpanded(false);
+      setIsClosing(false);
+    }, 220);
   };
 
   const handleOpenPage = (e) => {
@@ -189,22 +247,30 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   // 3. Embedded Video Card
   if (card.type === 'video') {
     return (
-      <div
-        className={`w-full overflow-hidden p-2 sm:p-2.5 text-left shadow-2xs hover:scale-[1.01] transition-transform ${animClass}`}
-        style={{ ...buttonStyleObj, borderRadius: '22px' }}
-      >
-        <div className="relative aspect-[16/10] sm:aspect-video rounded-[18px] sm:rounded-2xl overflow-hidden bg-black flex items-center justify-center">
-          {card.thumbnailUrl ? (
-            <img src={card.thumbnailUrl} alt={card.title} className="w-full h-full object-cover" />
-          ) : null}
-          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:scale-105 cursor-pointer transition-transform shadow-md">
-            <Play className="w-5 h-5 ml-0.5 fill-white text-white" />
+      <>
+        <div
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsExpanded(true);
+          }}
+          className={`w-full overflow-hidden p-2 sm:p-2.5 text-left shadow-2xs hover:scale-[1.01] transition-transform cursor-pointer ${animClass}`}
+          style={{ ...buttonStyleObj, borderRadius: '22px' }}
+        >
+          <div className="relative aspect-[16/10] sm:aspect-video rounded-[18px] sm:rounded-2xl overflow-hidden bg-black flex items-center justify-center">
+            {card.thumbnailUrl ? (
+              <img src={card.thumbnailUrl} alt={card.title} className="w-full h-full object-cover" />
+            ) : null}
+            <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:scale-105 cursor-pointer transition-transform shadow-md">
+              <Play className="w-5 h-5 ml-0.5 fill-white text-white" />
+            </div>
+          </div>
+          <div className="font-semibold text-xs truncate px-1.5 pt-1.5 pb-0.5 opacity-80">
+            {card.title || 'Video'}
           </div>
         </div>
-        <div className="font-semibold text-xs truncate px-1.5 pt-1.5 pb-0.5 opacity-80">
-          {card.title || 'YouTube'}
-        </div>
-      </div>
+        {renderExpandedLocalMediaModal()}
+      </>
     );
   }
 
@@ -473,7 +539,16 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     return (
       <>
         <div
-          className={`w-full overflow-hidden p-3 sm:p-3.5 text-center shadow-2xs transition-all hover:scale-[1.01] relative group ${animClass}`}
+          onClick={(e) => {
+            if (isLocalMedia && !isMap) {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsExpanded(true);
+            }
+          }}
+          className={`w-full overflow-hidden p-3 sm:p-3.5 text-center shadow-2xs transition-all hover:scale-[1.01] relative group ${
+            isLocalMedia && !isMap ? 'cursor-pointer' : ''
+          } ${animClass}`}
           style={{ ...buttonStyleObj, borderRadius: '32px' }}
         >
           {/* Top Media / Realistic Street Map covering the card top */}
@@ -566,6 +641,9 @@ export function CardRenderer({ card, theme, isPreview = false }) {
 
         {/* Standalone Card Page Modal */}
         {renderCardPageModal()}
+
+        {/* In-page Expanded Media Sheet for Local Media */}
+        {renderExpandedLocalMediaModal()}
       </>
     );
   }
@@ -632,6 +710,9 @@ export function CardRenderer({ card, theme, isPreview = false }) {
 
       {/* Standalone Card Page Modal */}
       {renderCardPageModal()}
+
+      {/* In-page Expanded Media Sheet for Local Media */}
+      {renderExpandedLocalMediaModal()}
 
       {/* Lock Gate Modal */}
       {showLockModal && (
@@ -820,6 +901,188 @@ export function CardRenderer({ card, theme, isPreview = false }) {
           <div className="pt-2 text-center text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
             IndiaTaps Card Page
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Helper: In-page Expanded Viewer Modal matching Image 5 (Linktree native media/gallery/menu sheet)
+  function renderExpandedLocalMediaModal() {
+    if (!isExpanded) return null;
+
+    return (
+      <div
+        className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-3 sm:p-5 bg-black/65 backdrop-blur-xs transition-opacity duration-200 select-none ${
+          isClosing ? 'opacity-0' : 'opacity-100'
+        }`}
+        onClick={handleCloseExpanded}
+      >
+        <div
+          className={`w-full max-w-[420px] h-[86vh] max-h-[820px] bg-white rounded-[32px] sm:rounded-[36px] shadow-2xl relative flex flex-col overflow-hidden text-[#111111] transition-all duration-300 ease-out transform ${
+            isClosing ? 'scale-90 opacity-0 translate-y-4' : 'scale-100 opacity-100 translate-y-0'
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header Bar matching Image 5 */}
+          <div className="pt-6 pb-3 px-6 text-center shrink-0 border-b border-gray-100/80 bg-white">
+            <h3 className="font-extrabold text-base sm:text-lg text-[#111111] tracking-tight truncate">
+              {card.title || (isGallery ? 'Gallery' : isPdfOrMenu ? 'Menu' : 'Video')}
+            </h3>
+            <div className="flex items-center justify-center gap-1.5 text-xs text-gray-500 font-medium mt-0.5">
+              {isGallery ? (
+                <>
+                  <ImageIcon className="w-3.5 h-3.5 text-gray-400" />
+                  <span>Gallery · {galleryImages.length} {galleryImages.length === 1 ? 'photo' : 'photos'}</span>
+                </>
+              ) : isPdfOrMenu ? (
+                <>
+                  <FileText className="w-3.5 h-3.5 text-gray-400" />
+                  <span>Menu · {card.settings?.pdfName || 'Catalog'}</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5 text-gray-400" />
+                  <span>Video Player</span>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Scrollable Media Body */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {isGallery && (
+              <>
+                {galleryImages.map((imgUrl, idx) => (
+                  <div
+                    key={idx}
+                    className="w-full rounded-[20px] sm:rounded-[22px] overflow-hidden bg-gray-100 shadow-xs border border-black/5"
+                  >
+                    <img
+                      src={imgUrl}
+                      alt={`${card.title || 'Gallery'} ${idx + 1}`}
+                      className="w-full h-auto object-cover block"
+                      loading="lazy"
+                    />
+                  </div>
+                ))}
+              </>
+            )}
+
+            {isPdfOrMenu && !isGallery && (
+              <div className="space-y-4">
+                {card.url && (card.url.startsWith('data:application/pdf') || card.url.endsWith('.pdf')) ? (
+                  <div className="w-full rounded-[20px] overflow-hidden border border-gray-200 bg-gray-50 shadow-inner">
+                    <iframe
+                      src={card.url}
+                      title={card.settings?.pdfName || 'Menu PDF'}
+                      className="w-full h-[58vh] border-0"
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <div className="w-full rounded-[20px] overflow-hidden bg-gray-100 shadow-xs border border-black/5">
+                      <img
+                        src={card.thumbnailUrl || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80'}
+                        alt={card.title || 'Menu'}
+                        className="w-full h-auto object-cover block"
+                      />
+                    </div>
+                    {galleryImages.slice(1).map((imgUrl, idx) => (
+                      <div
+                        key={idx}
+                        className="w-full rounded-[20px] overflow-hidden bg-gray-100 shadow-xs border border-black/5"
+                      >
+                        <img
+                          src={imgUrl}
+                          alt={`Menu page ${idx + 2}`}
+                          className="w-full h-auto object-cover block"
+                        />
+                      </div>
+                    ))}
+                  </>
+                )}
+
+                {card.url && (
+                  <a
+                    href={card.url}
+                    download={card.settings?.pdfName || 'menu.pdf'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download Menu</span>
+                  </a>
+                )}
+              </div>
+            )}
+
+            {isLocalVideo && !isGallery && !isPdfOrMenu && (
+              <div className="w-full space-y-4">
+                <div className="w-full rounded-[20px] overflow-hidden bg-black shadow-lg">
+                  {card.url && (card.url.startsWith('data:video') || /\.(mp4|webm|mov|ogg)($|\?)/i.test(card.url)) ? (
+                    <video
+                      src={card.url}
+                      controls
+                      autoPlay
+                      className="w-full h-auto aspect-video object-contain"
+                    />
+                  ) : card.url && /youtube\.com|youtu\.be/i.test(card.url) ? (
+                    <div className="aspect-video w-full">
+                      <iframe
+                        src={
+                          card.url.includes('embed/')
+                            ? card.url
+                            : `https://www.youtube.com/embed/${card.url.split('v=')[1]?.split('&')[0] || card.url.split('/').pop()}`
+                        }
+                        title={card.title || 'Video'}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full border-0"
+                      />
+                    </div>
+                  ) : (
+                    <div className="aspect-video w-full flex items-center justify-center bg-gray-900 text-white">
+                      <Play className="w-10 h-10 opacity-70" />
+                    </div>
+                  )}
+                </div>
+                {card.subtitle && (
+                  <p className="text-xs text-gray-600 px-1 leading-relaxed">
+                    {card.subtitle}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Floating Action Buttons in Bottom Right matching Image 5 */}
+          <div className="absolute right-4 bottom-4 z-20 flex items-center gap-2">
+            {/* Share Button */}
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="w-11 h-11 rounded-full bg-white shadow-xl border border-gray-100 flex items-center justify-center text-gray-800 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              title="Share"
+            >
+              {isCopied ? <Check className="w-5 h-5 text-green-600" /> : <Share2 className="w-5 h-5" />}
+            </button>
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={handleCloseExpanded}
+              className="w-11 h-11 rounded-full bg-white shadow-xl border border-gray-100 flex items-center justify-center text-gray-800 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              title="Close"
+            >
+              <X className="w-5 h-5 stroke-[2.5]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Footer Linktree text matching Image 5 */}
+        <div className="mt-3 text-center text-[12px] text-white/70 font-medium tracking-tight select-none">
+          Get your own Linktree
         </div>
       </div>
     );
