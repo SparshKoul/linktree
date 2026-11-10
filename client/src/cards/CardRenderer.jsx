@@ -449,31 +449,62 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     Boolean(card.url && /\.pdf($|\?)/i.test(card.url));
   const isPdf = Boolean(card.settings?.isPdf || card.settings?.pdfName || (card.url && /\.pdf($|\?)/i.test(card.url)));
   const subtitle = card.subtitle || card.settings?.address || card.settings?.subtitle || (isPdf ? 'PDF Menu' : '');
-  const hasThumbnail = Boolean(card.thumbnailUrl || isMap || card.type === 'reviews' || card.url);
 
-  // 12. Featured Layout Card (Hero Media Layout)
-  if (layout === 'featured') {
+  // Card 2 in Image 0 (Instagram.com): plain links with no custom thumbnail render as clean centered text pills
+  const hasCustomThumbnail = Boolean(card.thumbnailUrl);
+  const isGitHub = (card.url || '').toLowerCase().includes('github.com');
+  const isSimpleCenteredLink =
+    card.type === 'link' &&
+    !hasCustomThumbnail &&
+    !card.settings?.showIcon &&
+    ((card.title || '').toLowerCase() === 'instagram.com' ||
+      (card.title || '').toLowerCase().includes('instagram.com') ||
+      (!card.subtitle || card.subtitle === card.title));
+
+  const showThumbnail = Boolean(
+    hasCustomThumbnail ||
+    (card.type === 'link' && !isSimpleCenteredLink && (isGitHub || (card.subtitle && card.subtitle !== card.title))) ||
+    card.type === 'reviews'
+  );
+
+  // 12. Featured Layout Card (Hero Media Layout) OR Maps Card (matching Image 0)
+  if (isMap || layout === 'featured') {
     const isVideo = card.type === 'video' || (card.url && /youtube\.com|youtu\.be|vimeo\.com/i.test(card.url));
     return (
       <>
         <div
-          className={`w-full overflow-hidden p-2 sm:p-2.5 text-left shadow-2xs transition-all hover:scale-[1.01] ${animClass}`}
-          style={{ ...buttonStyleObj, borderRadius: '22px' }}
+          className={`w-full overflow-hidden p-2.5 sm:p-3 text-center shadow-2xs transition-all hover:scale-[1.01] relative group ${animClass}`}
+          style={{ ...buttonStyleObj, borderRadius: '24px' }}
         >
-          {/* Top Media covering most of the card */}
-          <div className="relative w-full aspect-[16/10] sm:aspect-video rounded-[18px] sm:rounded-2xl overflow-hidden bg-black flex items-center justify-center">
+          {/* Top Media / Realistic Street Map covering the card top */}
+          <div className="relative w-full aspect-[16/10] sm:aspect-video rounded-[18px] overflow-hidden bg-[#FAF6EE] border border-black/5 flex items-center justify-center shadow-inner">
             {isMap ? (
-              <div className="w-full h-full bg-[#E5E3DF] relative flex items-center justify-center">
-                <svg className="w-full h-full" viewBox="0 0 200 120" fill="none" preserveAspectRatio="none">
-                  <rect width="200" height="120" fill="#E8ECEF" />
-                  <path d="M0 30h200M0 70h200M0 100h200M40 0v120M100 0v120M160 0v120" stroke="#FFFFFF" strokeWidth="4" />
-                  <path d="M0 60l200 -30M60 0l40 120" stroke="#FDE68A" strokeWidth="3" />
-                  <rect x="70" y="20" width="40" height="25" rx="3" fill="#BBF7D0" />
-                  <rect x="15" y="70" width="35" height="20" rx="3" fill="#BBF7D0" />
-                  <circle cx="100" cy="55" r="12" fill="#EF4444" />
-                  <circle cx="100" cy="55" r="4" fill="#FFFFFF" />
-                </svg>
-              </div>
+              <svg className="w-full h-full" viewBox="0 0 320 200" fill="none" preserveAspectRatio="none">
+                {/* Background terrain */}
+                <rect width="320" height="200" fill="#FAF6EE" />
+                {/* Green Park blocks */}
+                <rect x="25" y="30" width="80" height="60" rx="6" fill="#E8F4DE" />
+                <rect x="220" y="20" width="75" height="50" rx="6" fill="#E8F4DE" />
+                <rect x="180" y="130" width="110" height="45" rx="6" fill="#E8F4DE" />
+                <rect x="20" y="135" width="60" height="45" rx="6" fill="#E8F4DE" />
+                {/* Secondary roads (white grid) */}
+                <path d="M0 55h320M0 105h320M0 160h320M55 0v200M145 0v200M235 0v200" stroke="#FFFFFF" strokeWidth="6" />
+                <path d="M0 55h320M0 105h320M0 160h320M55 0v200M145 0v200M235 0v200" stroke="#E6DEC9" strokeWidth="1" />
+                {/* Main Arterial Road (warm yellow) */}
+                <path d="M0 120 C 100 110, 180 80, 320 60" stroke="#FFE494" strokeWidth="7" />
+                <path d="M0 120 C 100 110, 180 80, 320 60" stroke="#F6D365" strokeWidth="1" />
+                <path d="M110 0 C 120 70, 140 140, 170 200" stroke="#FFE494" strokeWidth="7" />
+                {/* Secondary diagonal street */}
+                <path d="M0 30 L 160 170" stroke="#FFFFFF" strokeWidth="4" />
+                {/* Red Map Pin with drop shadow */}
+                <g transform="translate(148, 88) scale(1.15)">
+                  <ellipse cx="12" cy="27" rx="5" ry="2" fill="rgba(0,0,0,0.2)" />
+                  <path d="M12 2C7.03 2 3 6.03 3 11c0 6.2 9 15 9 15s9-8.8 9-15c0-4.97-4.03-9-9-9z" fill="#EA4335" />
+                  <circle cx="12" cy="11" r="3.5" fill="#FFFFFF" />
+                </g>
+                {/* Subtle map watermark */}
+                <text x="312" y="193" textAnchor="end" fill="#9CA3AF" fontSize="7" fontFamily="sans-serif">Map data ©</text>
+              </svg>
             ) : card.thumbnailUrl ? (
               <img
                 src={card.thumbnailUrl}
@@ -483,8 +514,9 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-black/40 flex items-center justify-center">
-                <FaviconIcon card={card} className="w-8 h-8" containerClassName="w-14 h-14" />
+              <div className="w-full h-full bg-gradient-to-tr from-purple-900/60 via-pink-900/40 to-black/60 flex flex-col items-center justify-center text-white/80 p-4 text-center">
+                <span className="text-2xl mb-1">🖼️</span>
+                <span className="font-bold text-xs">{card.title || 'Featured item'}</span>
               </div>
             )}
 
@@ -495,31 +527,41 @@ export function CardRenderer({ card, theme, isPreview = false }) {
             )}
           </div>
 
-          {/* Compact text & details footer below media */}
-          <div className="pt-1.5 pb-0.5 px-1.5 flex items-center justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="font-semibold text-xs truncate leading-snug">
-                {card.title || (isVideo ? 'YouTube' : '')}
-              </div>
-              {subtitle && (
-                <div className="text-[10px] truncate flex items-center gap-1 mt-0.5 font-normal opacity-70">
-                  {isMap && <span>📍</span>}
-                  <span className="truncate">{subtitle}</span>
-                </div>
-              )}
+          {/* Details below media */}
+          <div className="pt-3 pb-1 px-1 flex flex-col items-center justify-center">
+            <div className="font-bold text-xs sm:text-sm text-center leading-snug">
+              {card.title}
             </div>
+            {subtitle && (
+              <div className="text-[10px] sm:text-[11px] text-center flex items-center justify-center gap-1 mt-1 opacity-75 font-normal max-w-[90%]">
+                <span className="text-red-500">📍</span>
+                <span className="truncate">{subtitle}</span>
+              </div>
+            )}
 
-            <div className="flex items-center gap-1 shrink-0 opacity-80 hover:opacity-100">
-              <button
-                type="button"
-                onClick={handleOpenPage}
-                className="p-1 rounded-full hover:bg-black/5 transition-colors"
-                title="Open details"
+            {/* "Get directions" button */}
+            <div className="mt-2.5 mb-0.5">
+              <a
+                href={card.url || `https://maps.google.com/?q=${encodeURIComponent(subtitle || card.title)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-[11px] font-semibold text-white/95 transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
               >
-                <MoreVertical className="w-3.5 h-3.5" />
-              </button>
+                Get directions
+              </a>
             </div>
           </div>
+
+          {/* Three dots menu */}
+          <button
+            type="button"
+            onClick={handleOpenPage}
+            className="absolute right-3 bottom-3 p-1 rounded-full opacity-60 hover:opacity-100 hover:bg-black/10 transition-all cursor-pointer"
+            title="Open details"
+          >
+            <MoreVertical className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* Standalone Card Page Modal */}
@@ -528,7 +570,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     );
   }
 
-  // 13. Classic Layout Card
+  // 13. Classic Layout Card (matching Image 0: centered pill for plain links, circular badge for rich links)
   return (
     <>
       <a
@@ -536,29 +578,32 @@ export function CardRenderer({ card, theme, isPreview = false }) {
         onClick={handleLinkClick}
         target={isLocked ? '_self' : '_blank'}
         rel="noopener noreferrer"
-        className={`w-full p-1.5 sm:p-2 text-xs font-semibold transition-all hover:scale-[1.01] active:scale-[0.99] shadow-2xs flex items-center justify-between relative group ${animClass}`}
+        className={`w-full ${
+          showThumbnail ? 'py-2 px-3' : 'py-3.5 px-4'
+        } text-xs font-semibold transition-all hover:scale-[1.01] active:scale-[0.99] shadow-2xs flex items-center justify-between relative group ${animClass}`}
         style={buttonStyleObj}
       >
-        {/* Left Side: Thumbnail / Icon + Title & Subtitle */}
-        {hasThumbnail || subtitle ? (
-          <div className="flex items-center gap-2.5 min-w-0 pr-2">
-            <FaviconIcon card={card} className="w-5 h-5" containerClassName="w-11 h-11 sm:w-12 sm:h-12 rounded-xl" />
+        {/* Left Side: Circular White Badge Thumbnail / Icon + Title & Subtitle */}
+        {showThumbnail ? (
+          <div className="flex items-center gap-3 min-w-0 pr-2 flex-1">
+            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 shadow-xs overflow-hidden p-1.5">
+              <FaviconIcon card={card} className="w-5 h-5 text-[#111111]" containerClassName="w-full h-full flex items-center justify-center rounded-full" />
+            </div>
 
-            <div className="min-w-0 text-left py-0.5">
-              <div className="font-bold text-xs truncate leading-tight">{card.title}</div>
+            <div className="min-w-0 text-left py-0.5 flex-1">
+              <div className="font-bold text-xs truncate leading-snug">{card.title}</div>
               {subtitle && (
                 <div
-                  className="text-[10px] truncate flex items-center gap-1 mt-0.5 font-normal opacity-70"
+                  className="text-[10px] truncate mt-0.5 font-normal opacity-70 leading-tight"
                   style={{ color: 'currentColor' }}
                 >
-                  {isMap && <span className="opacity-80">📍</span>}
                   <span className="truncate">{subtitle}</span>
                 </div>
               )}
             </div>
           </div>
         ) : (
-          <div className="flex-1 text-center font-bold text-xs truncate leading-snug py-2 px-3">
+          <div className="flex-1 text-center font-bold text-xs sm:text-sm truncate leading-snug py-0.5 px-3">
             {card.title}
           </div>
         )}
@@ -576,7 +621,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
             <button
               type="button"
               onClick={handleOpenPage}
-              className="p-1 rounded-full hover:bg-black/5 transition-colors"
+              className="p-1 rounded-full hover:bg-black/10 transition-colors cursor-pointer"
               title="Open card page"
             >
               <MoreVertical className="w-3.5 h-3.5" />
