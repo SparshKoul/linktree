@@ -1157,7 +1157,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
               <div className="space-y-4">
                 {pdfUrl ? (
                   <div
-                    className="w-full h-[60vh] max-h-[560px] rounded-[20px] overflow-hidden border border-gray-200 bg-gray-50 shadow-inner flex flex-col"
+                    className="w-full h-[68vh] max-h-[660px] rounded-[20px] overflow-hidden border border-gray-200 bg-gray-50 shadow-inner flex flex-col relative"
                     data-lenis-prevent
                   >
                     <PdfViewer
@@ -1176,31 +1176,6 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                     <div className="text-xs text-gray-500 max-w-xs">
                       Upload a PDF document or resume in the editor to display it here.
                     </div>
-                  </div>
-                )}
-
-                {pdfUrl && (
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={pdfUrl}
-                      download={card.settings?.pdfName || 'document.pdf'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 py-3 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors shadow-sm cursor-pointer"
-                    >
-                      <Download className="w-4 h-4 pointer-events-none" />
-                      <span>Download PDF</span>
-                    </a>
-                    <a
-                      href={pdfUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-[#111111] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                      title="Open in new window"
-                    >
-                      <ExternalLink className="w-4 h-4 pointer-events-none" />
-                      <span>Open</span>
-                    </a>
                   </div>
                 )}
               </div>
