@@ -44,6 +44,14 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
     }
   }, [initialSubview]);
 
+  const previewScrollRef = useRef(null);
+
+  useEffect(() => {
+    if (activeSubview && previewScrollRef.current) {
+      previewScrollRef.current.scrollTop = 0;
+    }
+  }, [activeSubview]);
+
   // Snapshot of tree design state for undo / redo / cancel
   const extractSnapshot = (tree) => {
     const custom = tree?.customTheme || {};
@@ -841,15 +849,15 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
         {/* Center Mobile Phone Preview Area */}
         <div
           className={`flex-1 flex ${
-            activeSubview ? 'items-start pt-2 max-h-[46dvh] px-2' : 'items-stretch p-0'
-          } justify-center overflow-hidden relative transition-all duration-200`}
+            activeSubview ? 'items-start justify-center pt-2 max-h-[46dvh] px-2' : 'items-stretch p-0'
+          } overflow-hidden relative transition-all duration-300`}
         >
           <div
-            className={`w-full h-full ${
+            className={`transition-all duration-300 select-none ${
               activeSubview
-                ? 'max-w-[440px] origin-top scale-[0.88] rounded-[32px] border border-white/10'
-                : 'max-w-[440px] rounded-none border-0'
-            } shadow-2xl relative overflow-hidden flex flex-col transition-all duration-200 select-none mx-auto`}
+                ? 'w-[410px] h-[820px] origin-top scale-[0.45] sm:scale-[0.5] rounded-[48px] border-[6px] border-[#1C1C1E] shadow-2xl shrink-0 -mb-[430px]'
+                : 'w-full h-full max-w-[440px] rounded-none border-0 shadow-none mx-auto'
+            } relative overflow-hidden flex flex-col`}
             style={{
               background: current.backgroundValue || current.backgroundColor || '#111111',
               backgroundSize: 'cover',
@@ -876,7 +884,10 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
             </div>
 
             {/* Scroll Area */}
-            <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-2 flex flex-col items-center no-scrollbar [&::-webkit-scrollbar]:hidden">
+            <div
+              ref={previewScrollRef}
+              className="flex-1 overflow-y-auto px-4 sm:px-5 py-2 flex flex-col items-center no-scrollbar [&::-webkit-scrollbar]:hidden"
+            >
               <div className="w-full max-w-[440px] flex flex-col items-center flex-1">
                 {/* Header Layout Rendering */}
                 {currentHeaderLayout === 'hero' ? (
