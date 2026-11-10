@@ -161,10 +161,10 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
         const t = e.touches[0];
         const now = Date.now();
 
-        // Double-tap zoom toggle (within 350ms and within 30px radius)
+        // Double-tap zoom toggle (within 350ms and within 40px radius)
         if (
           now - lastTapRef.current < 350 &&
-          Math.hypot(t.clientX - lastTapPosRef.current.x, t.clientY - lastTapPosRef.current.y) < 30
+          Math.hypot(t.clientX - lastTapPosRef.current.x, t.clientY - lastTapPosRef.current.y) < 40
         ) {
           e.preventDefault();
           if (scaleRef.current > 1.15) {
@@ -211,7 +211,7 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
         const start = gestureStartRef.current;
         if (start.dist > 0) {
           const factor = dist / start.dist;
-          const newScale = Math.min(Math.max(0.85, start.scale * factor), 4.8);
+          const newScale = Math.min(Math.max(0.85, start.scale * factor), 5.0);
 
           // 2-finger translation (move left/right/up/down while pinching)
           const deltaX = center.x - start.center.x;
@@ -220,8 +220,8 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
           const containerW = containerRef.current?.clientWidth || 360;
           const contentH = contentRef.current?.clientHeight || 600;
 
-          const maxPanX = (containerW * (Math.max(1, newScale) - 1)) / 2 + 120;
-          const maxPanY = (contentH * (Math.max(1, newScale) - 1)) / 2 + 180;
+          const maxPanX = (containerW * (Math.max(1, newScale) - 1)) / 2 + 150;
+          const maxPanY = (contentH * (Math.max(1, newScale) - 1)) / 2 + 250;
 
           const nextX = Math.min(Math.max(-maxPanX, start.pos.x + deltaX), maxPanX);
           const nextY = Math.min(Math.max(-maxPanY, start.pos.y + deltaY), maxPanY);
@@ -241,8 +241,8 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
         const containerW = containerRef.current?.clientWidth || 360;
         const contentH = contentRef.current?.clientHeight || 600;
 
-        const maxPanX = (containerW * (currentScale - 1)) / 2 + 120;
-        const maxPanY = (contentH * (currentScale - 1)) / 2 + 200;
+        const maxPanX = (containerW * (currentScale - 1)) / 2 + 150;
+        const maxPanY = (contentH * (currentScale - 1)) / 2 + 250;
 
         setPos((prev) => ({
           x: Math.min(Math.max(-maxPanX, prev.x + deltaX), maxPanX),
@@ -269,37 +269,32 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
       }
     };
 
+    const handleWheel = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const factor = e.deltaY < 0 ? 1.15 : 0.88;
+        const newScale = Math.min(Math.max(1, scaleRef.current * factor), 5.0);
+        setScale(Number(newScale.toFixed(2)));
+        if (newScale <= 1.05) {
+          setPos({ x: 0, y: 0 });
+        }
+      }
+    };
+
     target.addEventListener('touchstart', handleTouchStart, { passive: false });
     target.addEventListener('touchmove', handleTouchMove, { passive: false });
     target.addEventListener('touchend', handleTouchEnd, { passive: true });
     target.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+    target.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
       target.removeEventListener('touchstart', handleTouchStart);
       target.removeEventListener('touchmove', handleTouchMove);
       target.removeEventListener('touchend', handleTouchEnd);
       target.removeEventListener('touchcancel', handleTouchEnd);
+      target.removeEventListener('wheel', handleWheel);
     };
-  }, [isThumbnail]);
-
-  if (error) {
-    return (
-      <iframe
-        src={`${url}#toolbar=0&navpanes=0&view=FitH`}
-        title={title}
-        className={`w-full h-full border-0 bg-white pointer-events-auto ${className}`}
-      />
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className={`w-full h-full min-h-[220px] flex flex-col items-center justify-center bg-gray-50/80 text-gray-500 gap-2 p-4 ${className}`}>
-        <Loader2 className="w-6 h-6 animate-spin text-[#EA580C]" />
-        <span className="text-xs font-semibold">Loading document pages...</span>
-      </div>
-    );
-  }
+  }, [isThumbnail, loading, pages.length]);
 
   if (isThumbnail) {
     return (
@@ -330,36 +325,49 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
       }}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Zoomable & Pannable Document Content Layer via Touch Gestures */}
-      <div
-        ref={contentRef}
-        className={`w-full p-2 sm:p-3 space-y-3.5 origin-center ${
-          isGestureActive ? 'transition-none' : 'transition-transform duration-200 ease-out'
-        }`}
-        style={{
-          transform: `translate3d(${pos.x}px, ${pos.y}px, 0) scale(${scale})`,
-          transformOrigin: 'center center',
-          willChange: 'transform',
-        }}
-      >
-        {pages.map((pageImg, idx) => (
-          <div
-            key={idx}
-            className="w-full bg-white rounded-xl shadow-xs overflow-hidden border border-gray-200/80 relative"
-          >
-            <img
-              src={pageImg}
-              alt={`Page ${idx + 1}`}
-              className="w-full h-auto block select-none pointer-events-auto"
-              draggable="false"
-              loading="lazy"
-            />
-            <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-[10px] font-mono font-bold text-white shadow-xs pointer-events-none">
-              {idx + 1} / {pages.length}
+      {loading ? (
+        <div className="w-full h-full min-h-[260px] flex flex-col items-center justify-center bg-gray-50/80 text-gray-500 gap-2 p-4">
+          <Loader2 className="w-6 h-6 animate-spin text-[#EA580C]" />
+          <span className="text-xs font-semibold">Loading document pages...</span>
+        </div>
+      ) : error ? (
+        <iframe
+          src={`${url}#toolbar=0&navpanes=0&view=FitH`}
+          title={title}
+          className="w-full h-full border-0 bg-white pointer-events-auto"
+        />
+      ) : (
+        /* Zoomable & Pannable Document Content Layer via Touch Gestures */
+        <div
+          ref={contentRef}
+          className={`w-full p-2 sm:p-3 space-y-3.5 origin-center ${
+            isGestureActive ? 'transition-none' : 'transition-transform duration-200 ease-out'
+          }`}
+          style={{
+            transform: `translate3d(${pos.x}px, ${pos.y}px, 0) scale(${scale})`,
+            transformOrigin: 'center center',
+            willChange: 'transform',
+          }}
+        >
+          {pages.map((pageImg, idx) => (
+            <div
+              key={idx}
+              className="w-full bg-white rounded-xl shadow-xs overflow-hidden border border-gray-200/80 relative"
+            >
+              <img
+                src={pageImg}
+                alt={`Page ${idx + 1}`}
+                className="w-full h-auto block select-none pointer-events-auto"
+                draggable="false"
+                loading="lazy"
+              />
+              <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-[10px] font-mono font-bold text-white shadow-xs pointer-events-none">
+                {idx + 1} / {pages.length}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
