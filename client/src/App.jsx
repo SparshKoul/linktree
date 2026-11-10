@@ -42,6 +42,14 @@ import {
   Camera,
   User,
   ShoppingBag,
+  MoreHorizontal,
+  Instagram,
+  Mail,
+  MessageCircle,
+  Video,
+  Key,
+  ChevronLeft,
+  Paintbrush,
 } from 'lucide-react';
 import { TreeSwitcher } from './components/TreeSwitcher.jsx';
 import { CreateTreeModal } from './components/CreateTreeModal.jsx';
@@ -818,12 +826,12 @@ export function App() {
         </defs>
       </svg>
       {/* 1. Topmost Dark Header Band matching Reference */}
-      <div className={`h-10 bg-[#232833] px-5 items-center shrink-0 ${activeRail === 'design' || activeRail === 'header' ? 'hidden lg:flex' : 'flex'}`}>
+      <div className="hidden lg:flex h-10 bg-[#232833] px-5 items-center shrink-0">
         <span className="text-[#26D07C] font-black text-xl leading-none select-none tracking-tight">✱</span>
       </div>
 
       {/* 2. Secondary Navigation Bar matching Reference */}
-      <header className={`h-12 bg-[#FAFBFB] px-4 sm:px-6 items-center justify-between z-30 shrink-0 ${activeRail === 'design' || activeRail === 'header' ? 'hidden lg:flex' : 'flex'}`}>
+      <header className="hidden lg:flex h-12 bg-[#FAFBFB] px-4 sm:px-6 items-center justify-between z-30 shrink-0">
         {/* Left: Hamburger menu button */}
         <div className="flex items-center gap-3 w-16">
           <button
@@ -1098,7 +1106,7 @@ export function App() {
           </aside>
         ) : (
           /* COMPACT DOCK matching Reference with navigation links in vertical center */
-          <aside className={`w-[72px] bg-[#FAFBFB] flex-col items-center py-6 shrink-0 z-20 self-stretch ${activeRail === 'design' || activeRail === 'header' ? 'hidden lg:flex' : 'flex'}`}>
+          <aside className="hidden lg:flex w-[72px] bg-[#FAFBFB] flex-col items-center py-6 shrink-0 z-20 self-stretch">
             {/* Top spacer to center nav icons */}
             <div className="flex-1" />
 
@@ -1287,9 +1295,133 @@ export function App() {
                 />
               </div>
             ) : (
-              <div className="bg-white rounded-[28px] xl:rounded-[32px] px-2.5 sm:px-3 py-4 sm:py-5 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar space-y-3.5">
-                {/* Header Title & Top Right Icons matching Image 0, 1 & 2 */}
-                <div className="flex items-center justify-between">
+              <div className="bg-white rounded-none lg:rounded-[28px] lg:xl:rounded-[32px] px-4 lg:px-2.5 lg:sm:px-3 py-2.5 lg:py-4 sm:py-5 border-0 lg:border border-gray-200/80 shadow-none lg:shadow-2xs flex-1 overflow-y-auto card-scrollbar space-y-3.5 pb-28 lg:pb-5">
+                {/* Mobile Top Action Bar matching uploaded Image 0 */}
+                <div className="lg:hidden flex items-center justify-between pb-1 -mx-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsSidebarOpen(true)}
+                    className="p-1 text-gray-800 hover:text-black hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+                    title="Menu"
+                  >
+                    <ChevronLeft className="w-6 h-6 stroke-[2.2]" />
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="w-9 h-9 rounded-full bg-[#F3F4F6] hover:bg-gray-200 flex items-center justify-center text-gray-800 transition-colors cursor-pointer"
+                      title="More"
+                    >
+                      <MoreHorizontal className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleCopyLiveUrl}
+                      className="h-9 px-3.5 rounded-full bg-[#EEEEEE] hover:bg-gray-200 text-xs font-bold text-gray-900 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                    >
+                      {copiedUrl ? (
+                        <Check className="w-3.5 h-3.5 text-green-600" />
+                      ) : (
+                        <Share2 className="w-3.5 h-3.5 text-gray-800" />
+                      )}
+                      <span>{copiedUrl ? 'Copied' : 'Copy link'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Mobile Profile Header Row matching uploaded Image 0 */}
+                <div className="lg:hidden flex flex-col pt-1 pb-1">
+                  <div className="flex items-center gap-3">
+                    {/* Squircle / Circular Avatar */}
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="w-13 h-13 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden shrink-0 shadow-inner cursor-pointer"
+                    >
+                      {currentTree?.avatarUrl ? (
+                        <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-7 h-7 text-white" />
+                      )}
+                    </button>
+
+                    <div className="flex flex-col gap-1.5 overflow-hidden flex-1">
+                      {/* @riyast */}
+                      <span className="font-extrabold text-xs text-gray-900 truncate">@{currentSlug}</span>
+
+                      {/* Social Action Circles Row with + Badge */}
+                      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddCardOpen(true)}
+                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs"
+                        >
+                          <Instagram className="w-3.5 h-3.5 stroke-[1.8]" />
+                          <span className="w-3 h-3 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
+                            +
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setIsAddCardOpen(true)}
+                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs"
+                        >
+                          <Video className="w-3 h-3 stroke-[1.8]" />
+                          <span className="w-3 h-3 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
+                            +
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setIsAddCardOpen(true)}
+                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 stroke-[1.8]" />
+                          <span className="w-3 h-3 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
+                            +
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setIsAddCardOpen(true)}
+                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs"
+                        >
+                          <Mail className="w-3.5 h-3.5 stroke-[1.8]" />
+                          <span className="w-3 h-3 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
+                            +
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setIsAddCardOpen(true)}
+                          className="w-7 h-7 rounded-full border border-gray-200 bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 shrink-0 shadow-2xs"
+                        >
+                          <Plus className="w-3.5 h-3.5 stroke-[2]" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Show Total Followers Pill */}
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F3F4F6] hover:bg-gray-200 text-[11px] font-semibold text-gray-700 transition-colors cursor-pointer"
+                    >
+                      <Users className="w-3 h-3 text-gray-500" />
+                      <span>Show total followers</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Desktop Header Title & Top Right Icons matching Image 1 */}
+                <div className="hidden lg:flex items-center justify-between">
                   <h1 className="text-xl font-bold tracking-tight text-[#111111]">
                     Content
                   </h1>
@@ -1351,8 +1483,8 @@ export function App() {
                   </div>
                 </div>
 
-                {/* Profile Block: Centered Avatar & Username */}
-                <div className="flex flex-col items-center justify-center text-center py-2 space-y-2">
+                {/* Desktop Profile Block: Centered Avatar & Username matching Image 1 */}
+                <div className="hidden lg:flex flex-col items-center justify-center text-center py-2 space-y-2">
                   <input
                     type="file"
                     ref={avatarInputRef}
@@ -1386,9 +1518,9 @@ export function App() {
                   <div className="font-bold text-sm text-[#111111]">@{currentSlug}</div>
                 </div>
 
-                {/* Add to your bios banner matching Reference */}
+                {/* Add to your bios banner matching Reference (Desktop only) */}
                 {isBioBannerVisible && (
-                  <div className="relative bg-white border border-gray-200/90 rounded-2xl p-3 flex items-center justify-between shadow-2xs hover:border-gray-300 transition-colors">
+                  <div className="hidden lg:flex relative bg-white border border-gray-200/90 rounded-2xl p-3 items-center justify-between shadow-2xs hover:border-gray-300 transition-colors">
                     <div className="space-y-0.5">
                       <div className="font-extrabold text-xs text-[#111111]">Add to your bios</div>
                       <div className="text-[10px] text-gray-400 font-mono">indiataps.com/{currentSlug}</div>
@@ -1615,9 +1747,9 @@ export function App() {
                               {isSetupNeeded && (
                                 <button
                                   onClick={() => setActiveCardDetail(card)}
-                                  className="px-2.5 py-0.5 rounded-full border border-gray-200 hover:bg-gray-50 text-[11px] font-bold text-[#111111] flex items-center gap-1 transition-colors cursor-pointer"
+                                  className="px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] font-bold flex items-center gap-1 hover:bg-amber-100 transition-colors cursor-pointer"
                                 >
-                                  <Wrench className="w-2.5 h-2.5 text-amber-600" />
+                                  <Key className="w-2.5 h-2.5 fill-current" />
                                   <span>Setup</span>
                                 </button>
                               )}
@@ -1788,6 +1920,66 @@ export function App() {
                     </div>
                   </div>
                 )}
+
+                {/* Mobile Floating Bottom Dock matching uploaded Image 0 */}
+                <div className="lg:hidden fixed bottom-3 inset-x-3 z-30 flex items-center justify-between pointer-events-none">
+                  {/* Left: Circular "33% set up" badge with purple border ring */}
+                  <div className="w-13 h-13 rounded-full bg-white shadow-xl border-3 border-[#A855F7] flex items-center justify-center relative pointer-events-auto cursor-pointer group hover:scale-105 transition-transform shrink-0">
+                    <div className="text-center leading-none">
+                      <span className="text-[10px] font-black text-gray-900 block">33%</span>
+                      <span className="text-[8px] font-bold text-gray-600 block mt-0.5">set up</span>
+                    </div>
+                  </div>
+
+                  {/* Right: Floating Pill Dock with 4 buttons */}
+                  <div className="h-13 px-4 bg-white/95 backdrop-blur-md rounded-full shadow-2xl border border-gray-200/90 flex items-center gap-5 pointer-events-auto shrink-0">
+                    {/* 1. Add */}
+                    <button
+                      type="button"
+                      onClick={() => setIsAddCardOpen(true)}
+                      className="flex flex-col items-center gap-0.5 text-gray-700 hover:text-black cursor-pointer group transition-colors"
+                    >
+                      <Plus className="w-4 h-4 stroke-[2.2] group-hover:scale-110 transition-transform" />
+                      <span className="text-[9px] font-bold">Add</span>
+                    </button>
+
+                    {/* 2. Preview */}
+                    <button
+                      type="button"
+                      onClick={() => setPreviewPhoneView(true)}
+                      className="flex flex-col items-center gap-0.5 text-gray-700 hover:text-black cursor-pointer group transition-colors"
+                    >
+                      <svg className="w-4 h-4 stroke-[2] group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="8" cy="12" r="4" />
+                        <circle cx="16" cy="12" r="4" />
+                      </svg>
+                      <span className="text-[9px] font-bold">Preview</span>
+                    </button>
+
+                    {/* 3. Design (with orange notification badge dot) */}
+                    <button
+                      type="button"
+                      onClick={() => setActiveRail('design')}
+                      className="flex flex-col items-center gap-0.5 text-gray-700 hover:text-black cursor-pointer group transition-colors relative"
+                    >
+                      <div className="relative">
+                        <Paintbrush className="w-4 h-4 stroke-[2] group-hover:scale-110 transition-transform" />
+                        <span className="w-2 h-2 rounded-full bg-[#F97316] absolute -top-0.5 -right-0.5 ring-1 ring-white" />
+                      </div>
+                      <span className="text-[9px] font-bold">Design</span>
+                    </button>
+
+                    {/* 4. Enhance */}
+                    <button
+                      type="button"
+                      onClick={() => setActiveRail('enhance')}
+                      className="flex flex-col items-center gap-0.5 text-gray-700 hover:text-black cursor-pointer group transition-colors"
+                    >
+                      <Sparkles className="w-4 h-4 stroke-[2] group-hover:scale-110 transition-transform" />
+                      <span className="text-[9px] font-bold">Enhance</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
