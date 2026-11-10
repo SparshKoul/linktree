@@ -519,6 +519,14 @@ app.get('/api/public/trees/:slug', async (req, res) => {
   const slug = req.params.slug.toLowerCase();
   const dbTree = await db.getTreeBySlug(slug);
   if (dbTree) {
+    db.recordAnalyticsEvent({
+      treeId: dbTree.id,
+      eventType: 'page_view',
+      referrer: req.headers['referer'] || req.headers['referrer'],
+      userAgent: req.headers['user-agent'],
+      ip: req.ip || req.socket?.remoteAddress,
+    });
+
     const publicCards = (dbTree.cards || [])
       .filter((c) => c.visible)
       .sort((a, b) => a.position - b.position);
@@ -550,12 +558,22 @@ app.post('/api/public/cards/:id/click', async (req, res) => {
   if (localCard) {
     localCard.clicks = (localCard.clicks || 0) + 1;
   }
+
+  db.recordAnalyticsEvent({
+    treeId: localCard?.treeId,
+    cardId,
+    eventType: 'card_click',
+    referrer: req.headers['referer'] || req.headers['referrer'],
+    userAgent: req.headers['user-agent'],
+    ip: req.ip || req.socket?.remoteAddress,
+  });
+
   res.json({ success: true, id: cardId });
 });
 
 // Upload Asset (Image / PDF) to Supabase Storage CDN
 app.post('/api/admin/upload', async (req, res) => {
-  const { file, filename, folder } = req.body;
+  const { file, filename, folder, treeId } = req.body;
   if (!file) {
     return res.status(400).json({ error: 'File data is required' });
   }
@@ -564,6 +582,8 @@ app.post('/api/admin/upload', async (req, res) => {
     base64Data: file,
     filename,
     folder: folder || 'assets',
+    adminId: req.userId,
+    treeId: treeId ? parseInt(treeId, 10) : undefined,
   });
 
   if (publicUrl) {
@@ -572,6 +592,21 @@ app.post('/api/admin/upload', async (req, res) => {
 
   // Graceful fallback to echo data URL if storage error
   res.json({ url: file, success: false, fallback: true });
+});
+
+// List Assets (Media Library)
+app.get('/api/admin/assets', async (req, res) => {
+  const treeId = req.query.treeId ? parseInt(req.query.treeId, 10) : undefined;
+  const folder = req.query.folder ? String(req.query.folder) : undefined;
+  const assets = await db.getAssets({ treeId, adminId: req.userId, folder });
+  res.json(assets);
+});
+
+// Delete Asset from Storage
+app.delete('/api/admin/assets', async (req, res) => {
+  const { filePath, publicUrl } = req.body;
+  const success = await db.deleteAsset({ filePath, publicUrl });
+  res.json({ success });
 });
 
 app.listen(PORT, () => {

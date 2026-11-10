@@ -92,5 +92,29 @@ describe('Supabase Asset Upload & Multi-Device Sync', () => {
     // Default fallback
     expect(resolveUser({}, {})).toBe(1);
   });
+
+  it('formats modular storage file paths per folder and tree', () => {
+    function generateModularStoragePath(folder, treeId, filename) {
+      const cleanFolder = (folder || 'uploads').replace(/^\/+|\/+$/g, '');
+      const subDir = treeId ? `tree_${treeId}` : 'common';
+      const ext = filename.split('.').pop();
+      return `${cleanFolder}/${subDir}/mock-timestamp.${ext}`;
+    }
+
+    expect(generateModularStoragePath('avatars', 1, 'avatar.png')).toBe('avatars/tree_1/mock-timestamp.png');
+    expect(generateModularStoragePath('wallpapers', 2, 'bg.avif')).toBe('wallpapers/tree_2/mock-timestamp.avif');
+    expect(generateModularStoragePath('menus', null, 'menu.pdf')).toBe('menus/common/mock-timestamp.pdf');
+  });
+
+  it('extracts storage file path from CDN public URL for asset deletion', () => {
+    function extractStoragePath(publicUrl, bucket = 'linktree-assets') {
+      const marker = `/${bucket}/`;
+      const idx = publicUrl.indexOf(marker);
+      return idx !== -1 ? publicUrl.substring(idx + marker.length) : null;
+    }
+
+    const sampleUrl = 'https://qbnrhcllnuwdeivpxxoj.supabase.co/storage/v1/object/public/linktree-assets/banners/tree_1/1731234567-abc.png';
+    expect(extractStoragePath(sampleUrl)).toBe('banners/tree_1/1731234567-abc.png');
+  });
 });
 

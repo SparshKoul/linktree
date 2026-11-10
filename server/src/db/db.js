@@ -21,14 +21,16 @@ export const db = {
         avatarUrl: t.avatar_url,
         themeId: t.theme_id,
         customTheme: t.custom_theme,
-        headerLayout: t.custom_theme?.headerLayout || 'classic',
-        bannerUrl: t.custom_theme?.bannerUrl || null,
-        heroUrl: t.custom_theme?.heroUrl || null,
-        logoUrl: t.custom_theme?.logoUrl || null,
-        titleStyle: t.custom_theme?.titleStyle || 'text',
-        altFontEnabled: t.custom_theme?.altFontEnabled || false,
-        titleFont: t.custom_theme?.titleFont || 'Inter',
-        titleColor: t.custom_theme?.titleColor || '#000000',
+        headerLayout: t.header_layout || t.custom_theme?.headerLayout || 'classic',
+        bannerUrl: t.banner_url || t.custom_theme?.bannerUrl || null,
+        heroUrl: t.hero_url || t.custom_theme?.heroUrl || null,
+        logoUrl: t.logo_url || t.custom_theme?.logoUrl || null,
+        titleStyle: t.title_style || t.custom_theme?.titleStyle || 'text',
+        altFontEnabled: t.alt_font_enabled ?? t.custom_theme?.altFontEnabled ?? false,
+        titleFont: t.title_font || t.custom_theme?.titleFont || 'Inter',
+        titleColor: t.title_color || t.custom_theme?.titleColor || '#111111',
+        footerEnabled: t.footer_enabled ?? t.custom_theme?.footerEnabled ?? true,
+        footerText: t.footer_text || t.custom_theme?.footerText || 'IndiaTaps',
         cardCount: t.cards?.[0]?.count || 0,
         createdAt: t.created_at,
         updatedAt: t.updated_at,
@@ -62,14 +64,20 @@ export const db = {
         avatarUrl: data.avatar_url,
         themeId: data.theme_id,
         customTheme: data.custom_theme,
-        headerLayout: data.custom_theme?.headerLayout || 'classic',
-        bannerUrl: data.custom_theme?.bannerUrl || null,
-        heroUrl: data.custom_theme?.heroUrl || null,
-        logoUrl: data.custom_theme?.logoUrl || null,
-        titleStyle: data.custom_theme?.titleStyle || 'text',
-        altFontEnabled: data.custom_theme?.altFontEnabled || false,
-        titleFont: data.custom_theme?.titleFont || 'Inter',
-        titleColor: data.custom_theme?.titleColor || '#000000',
+        headerLayout: data.header_layout || data.custom_theme?.headerLayout || 'classic',
+        bannerUrl: data.banner_url || data.custom_theme?.bannerUrl || null,
+        heroUrl: data.hero_url || data.custom_theme?.heroUrl || null,
+        logoUrl: data.logo_url || data.custom_theme?.logoUrl || null,
+        titleStyle: data.title_style || data.custom_theme?.titleStyle || 'text',
+        altFontEnabled: data.alt_font_enabled ?? data.custom_theme?.altFontEnabled ?? false,
+        titleFont: data.title_font || data.custom_theme?.titleFont || 'Inter',
+        titleColor: data.title_color || data.custom_theme?.titleColor || '#111111',
+        footerEnabled: data.footer_enabled ?? data.custom_theme?.footerEnabled ?? true,
+        footerText: data.footer_text || data.custom_theme?.footerText || 'IndiaTaps',
+        socialLinks: data.social_links || data.custom_theme?.socialLinks || [],
+        seo: data.seo || data.custom_theme?.seo || { title: '', description: '', faviconUrl: '' },
+        viewsCount: Number(data.views_count || 0),
+        clicksCount: Number(data.clicks_count || 0),
         cards: cards || [],
         createdAt: data.created_at,
         updatedAt: data.updated_at,
@@ -103,14 +111,20 @@ export const db = {
         avatarUrl: data.avatar_url,
         themeId: data.theme_id,
         customTheme: data.custom_theme,
-        headerLayout: data.custom_theme?.headerLayout || 'classic',
-        bannerUrl: data.custom_theme?.bannerUrl || null,
-        heroUrl: data.custom_theme?.heroUrl || null,
-        logoUrl: data.custom_theme?.logoUrl || null,
-        titleStyle: data.custom_theme?.titleStyle || 'text',
-        altFontEnabled: data.custom_theme?.altFontEnabled || false,
-        titleFont: data.custom_theme?.titleFont || 'Inter',
-        titleColor: data.custom_theme?.titleColor || '#000000',
+        headerLayout: data.header_layout || data.custom_theme?.headerLayout || 'classic',
+        bannerUrl: data.banner_url || data.custom_theme?.bannerUrl || null,
+        heroUrl: data.hero_url || data.custom_theme?.heroUrl || null,
+        logoUrl: data.logo_url || data.custom_theme?.logoUrl || null,
+        titleStyle: data.title_style || data.custom_theme?.titleStyle || 'text',
+        altFontEnabled: data.alt_font_enabled ?? data.custom_theme?.altFontEnabled ?? false,
+        titleFont: data.title_font || data.custom_theme?.titleFont || 'Inter',
+        titleColor: data.title_color || data.custom_theme?.titleColor || '#111111',
+        footerEnabled: data.footer_enabled ?? data.custom_theme?.footerEnabled ?? true,
+        footerText: data.footer_text || data.custom_theme?.footerText || 'IndiaTaps',
+        socialLinks: data.social_links || data.custom_theme?.socialLinks || [],
+        seo: data.seo || data.custom_theme?.seo || { title: '', description: '', faviconUrl: '' },
+        viewsCount: Number(data.views_count || 0),
+        clicksCount: Number(data.clicks_count || 0),
         cards: cards || [],
         createdAt: data.created_at,
         updatedAt: data.updated_at,
@@ -222,7 +236,11 @@ export const db = {
         updates.logoUrl !== undefined ||
         updates.altFontEnabled !== undefined ||
         updates.titleFont !== undefined ||
-        updates.titleColor !== undefined
+        updates.titleColor !== undefined ||
+        updates.footerEnabled !== undefined ||
+        updates.footerText !== undefined ||
+        updates.socialLinks !== undefined ||
+        updates.seo !== undefined
       ) {
         let existingTheme = {};
         try {
@@ -242,17 +260,39 @@ export const db = {
           ...(updates.altFontEnabled !== undefined ? { altFontEnabled: updates.altFontEnabled } : {}),
           ...(updates.titleFont !== undefined ? { titleFont: updates.titleFont } : {}),
           ...(updates.titleColor !== undefined ? { titleColor: updates.titleColor } : {}),
+          ...(updates.footerEnabled !== undefined ? { footerEnabled: updates.footerEnabled } : {}),
+          ...(updates.footerText !== undefined ? { footerText: updates.footerText } : {}),
+          ...(updates.socialLinks !== undefined ? { socialLinks: updates.socialLinks } : {}),
+          ...(updates.seo !== undefined ? { seo: updates.seo } : {}),
         };
       }
       if (updates.status !== undefined) payload.status = updates.status;
       payload.updated_at = new Date().toISOString();
 
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('trees')
         .update(payload)
         .eq('id', id)
         .select()
         .single();
+
+      // If Postgres reports column error (if migration hasn't been executed yet), fallback to core columns
+      if (error && error.message?.toLowerCase().includes('column')) {
+        const safePayload = {
+          ...(payload.name ? { name: payload.name } : {}),
+          ...(payload.title ? { title: payload.title } : {}),
+          ...(payload.bio !== undefined ? { bio: payload.bio } : {}),
+          ...(payload.avatar_url ? { avatar_url: payload.avatar_url } : {}),
+          ...(payload.theme_id ? { theme_id: payload.theme_id } : {}),
+          ...(payload.custom_theme ? { custom_theme: payload.custom_theme } : {}),
+          ...(payload.status ? { status: payload.status } : {}),
+          updated_at: new Date().toISOString(),
+        };
+        const fallbackRes = await supabase.from('trees').update(safePayload).eq('id', id).select().single();
+        data = fallbackRes.data;
+        error = fallbackRes.error;
+      }
+
       if (error) throw error;
       return {
         ...data,
@@ -261,14 +301,16 @@ export const db = {
         avatarUrl: data.avatar_url,
         themeId: data.theme_id,
         customTheme: data.custom_theme,
-        headerLayout: data.custom_theme?.headerLayout || 'classic',
-        bannerUrl: data.custom_theme?.bannerUrl || null,
-        heroUrl: data.custom_theme?.heroUrl || null,
-        logoUrl: data.custom_theme?.logoUrl || null,
-        titleStyle: data.custom_theme?.titleStyle || 'text',
-        altFontEnabled: data.custom_theme?.altFontEnabled || false,
-        titleFont: data.custom_theme?.titleFont || 'Inter',
-        titleColor: data.custom_theme?.titleColor || '#000000',
+        headerLayout: data.header_layout || data.custom_theme?.headerLayout || 'classic',
+        bannerUrl: data.banner_url || data.custom_theme?.bannerUrl || null,
+        heroUrl: data.hero_url || data.custom_theme?.heroUrl || null,
+        logoUrl: data.logo_url || data.custom_theme?.logoUrl || null,
+        titleStyle: data.title_style || data.custom_theme?.titleStyle || 'text',
+        altFontEnabled: data.alt_font_enabled ?? data.custom_theme?.altFontEnabled ?? false,
+        titleFont: data.title_font || data.custom_theme?.titleFont || 'Inter',
+        titleColor: data.title_color || data.custom_theme?.titleColor || '#111111',
+        footerEnabled: data.footer_enabled ?? data.custom_theme?.footerEnabled ?? true,
+        footerText: data.footer_text || data.custom_theme?.footerText || 'IndiaTaps',
       };
     } catch (err) {
       console.warn('[DB updateTree fallback]', err.message);
@@ -687,7 +729,7 @@ export const db = {
   },
 
   // --- Storage ---
-  async uploadAsset({ base64Data, filename, folder = 'uploads' }) {
+  async uploadAsset({ base64Data, filename, folder = 'uploads', adminId, treeId }) {
     try {
       if (!base64Data) return null;
       let mimeType = 'application/octet-stream';
@@ -702,8 +744,10 @@ export const db = {
 
       const buffer = Buffer.from(base64Content, 'base64');
       const ext = filename ? filename.split('.').pop() : (mimeType.split('/')[1] || 'bin');
+      const cleanFolder = (folder || 'uploads').replace(/^\/+|\/+$/g, '');
+      const subDir = treeId ? `tree_${treeId}` : 'common';
       const cleanName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
-      const filePath = `${folder}/${cleanName}`;
+      const filePath = `${cleanFolder}/${subDir}/${cleanName}`;
 
       const { data, error } = await supabase.storage
         .from('linktree-assets')
@@ -718,10 +762,127 @@ export const db = {
         .from('linktree-assets')
         .getPublicUrl(filePath);
 
-      return urlData?.publicUrl || null;
+      const publicUrl = urlData?.publicUrl || null;
+
+      // Log asset record into assets table if table exists
+      if (publicUrl) {
+        supabase
+          .from('assets')
+          .insert({
+            admin_id: adminId || null,
+            tree_id: treeId || null,
+            bucket: 'linktree-assets',
+            file_path: filePath,
+            public_url: publicUrl,
+            folder: cleanFolder,
+            mime_type: mimeType,
+            size_bytes: buffer.length,
+          })
+          .then(() => {})
+          .catch(() => {});
+      }
+
+      return publicUrl;
     } catch (err) {
       console.warn('[DB uploadAsset error]', err.message);
       return null;
+    }
+  },
+
+  async deleteAsset({ filePath, publicUrl }) {
+    try {
+      let targetPath = filePath;
+      if (!targetPath && publicUrl) {
+        const marker = '/linktree-assets/';
+        const idx = publicUrl.indexOf(marker);
+        if (idx !== -1) {
+          targetPath = publicUrl.substring(idx + marker.length);
+        }
+      }
+      if (!targetPath) return false;
+
+      const { error } = await supabase.storage
+        .from('linktree-assets')
+        .remove([targetPath]);
+
+      if (error) throw error;
+
+      supabase
+        .from('assets')
+        .delete()
+        .eq('file_path', targetPath)
+        .then(() => {})
+        .catch(() => {});
+
+      return true;
+    } catch (err) {
+      console.warn('[DB deleteAsset error]', err.message);
+      return false;
+    }
+  },
+
+  async getAssets({ treeId, adminId, folder }) {
+    try {
+      let query = supabase.from('assets').select('*');
+      if (treeId) query = query.eq('tree_id', treeId);
+      if (adminId) query = query.eq('admin_id', adminId);
+      if (folder) query = query.eq('folder', folder);
+      const { data, error } = await query.order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    } catch (err) {
+      console.warn('[DB getAssets fallback]', err.message);
+      return [];
+    }
+  },
+
+  async recordAnalyticsEvent({ treeId, cardId, eventType, referrer, userAgent, ip }) {
+    try {
+      if (!treeId) return false;
+      const deviceType = /mobile|iphone|android|ipad/i.test(userAgent || '') ? 'mobile' : 'desktop';
+      const ipHash = ip ? Buffer.from(ip).toString('base64').substring(0, 16) : null;
+
+      // 1. Log time-series event into analytics_events table
+      supabase
+        .from('analytics_events')
+        .insert({
+          tree_id: Number(treeId),
+          card_id: cardId ? Number(cardId) : null,
+          event_type: eventType || (cardId ? 'card_click' : 'page_view'),
+          referrer: referrer ? String(referrer).substring(0, 500) : null,
+          user_agent: userAgent ? String(userAgent).substring(0, 500) : null,
+          device_type: deviceType,
+          ip_hash: ipHash,
+        })
+        .then(() => {})
+        .catch(() => {});
+
+      // 2. Increment aggregate counter on tree
+      if (eventType === 'page_view') {
+        const { data: tree } = await supabase.from('trees').select('views_count').eq('id', treeId).single();
+        if (tree) {
+          supabase
+            .from('trees')
+            .update({ views_count: Number(tree.views_count || 0) + 1 })
+            .eq('id', treeId)
+            .then(() => {})
+            .catch(() => {});
+        }
+      } else if (eventType === 'card_click') {
+        const { data: tree } = await supabase.from('trees').select('clicks_count').eq('id', treeId).single();
+        if (tree) {
+          supabase
+            .from('trees')
+            .update({ clicks_count: Number(tree.clicks_count || 0) + 1 })
+            .eq('id', treeId)
+            .then(() => {})
+            .catch(() => {});
+        }
+      }
+      return true;
+    } catch (err) {
+      console.warn('[DB recordAnalyticsEvent error]', err.message);
+      return false;
     }
   },
 };
