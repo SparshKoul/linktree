@@ -716,12 +716,12 @@ export function App() {
       : (currentTree?.textColor || currentTree?.customTheme?.textColor || '#111111');
 
     const renderTitleBlock = (isHero = false) => (
-      <div className="flex flex-col items-center text-center space-y-0.5 mt-1">
+      <div className="flex flex-col items-center text-center space-y-1 mt-1">
         {isLogo && logoUrl ? (
-          <img src={logoUrl} alt="Logo" className="max-h-7 max-w-[150px] object-contain my-0.5" />
+          <img src={logoUrl} alt="Logo" className="max-h-8 max-w-[170px] object-contain my-0.5" />
         ) : (
           <h2
-            className={`font-extrabold text-sm ${isHero ? 'text-white drop-shadow-xs' : ''}`}
+            className={`font-black text-2xl xs:text-[28px] tracking-tight leading-tight ${isHero ? 'text-white drop-shadow-xs' : ''}`}
             style={{
               color: isHero ? '#ffffff' : titleColor,
               fontFamily: titleFont !== 'inherit' ? `'${titleFont}', sans-serif` : 'inherit',
@@ -732,7 +732,7 @@ export function App() {
         )}
         {bioText && (
           <p
-            className={`text-[11px] leading-tight max-w-[220px] ${isHero ? 'text-white/90 drop-shadow-2xs' : 'text-gray-400'}`}
+            className={`text-xs sm:text-[13px] font-medium leading-relaxed max-w-[280px] mt-0.5 mb-2 ${isHero ? 'text-white/90 drop-shadow-2xs' : 'text-gray-400'}`}
             style={{ color: isHero ? '#ffffffcc' : (currentTree?.textColor || currentTree?.customTheme?.textColor || '#9CA3AF') }}
           >
             {bioText}
@@ -821,7 +821,7 @@ export function App() {
     // Default: 'classic'
     return (
       <div className="flex flex-col items-center text-center mb-3">
-        <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3 shadow-inner">
+        <div className="w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3 shadow-md ring-2 ring-white/10 shrink-0">
           {currentTree?.avatarUrl ? (
             <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
           ) : defaultAvatarSvg}
@@ -2208,23 +2208,23 @@ export function App() {
         {/* 4. Right Side: Centered Phone Preview Mockup matching Reference */}
         {(currentView === 'workspace' || previewPhoneView) && (
           <aside
-            className={`flex-1 bg-[#FAFBFB] flex items-center justify-center p-4 lg:p-6 shrink-0 relative ${
-              previewPhoneView ? 'fixed inset-0 z-50 bg-black/60 p-4' : 'hidden lg:flex'
+            className={`flex-1 bg-[#FAFBFB] flex items-center justify-center shrink-0 relative ${
+              previewPhoneView ? 'fixed inset-0 z-50 bg-black p-0 lg:p-6 lg:bg-black/60' : 'hidden lg:flex p-4 lg:p-6'
             }`}
           >
           {previewPhoneView && (
             <button
               onClick={() => setPreviewPhoneView(false)}
-              className="absolute top-4 right-4 text-white p-2 rounded-full bg-black/50"
+              className="absolute top-4 right-4 z-30 text-white p-2 rounded-full bg-black/60 backdrop-blur-md shadow-lg hover:bg-black transition-colors cursor-pointer"
             >
               ✕
             </button>
           )}
 
-          <div className="relative">
+          <div className="relative w-full h-full lg:w-auto lg:h-auto flex items-center justify-center">
             {/* Phone Screen Mockup Container matching Reference */}
             <div
-              className="w-[325px] xl:w-[335px] h-[650px] xl:h-[670px] max-h-[calc(100vh-110px)] rounded-[42px] shadow-xl relative border border-gray-200/80 overflow-hidden"
+              className="w-full h-full lg:w-[325px] lg:xl:w-[335px] lg:h-[650px] lg:xl:h-[670px] lg:max-h-[calc(100vh-110px)] rounded-none lg:rounded-[42px] shadow-none lg:shadow-xl relative border-0 lg:border border-gray-200/80 overflow-hidden"
               style={{
                 color: activeTheme?.textColor || '#111111',
                 fontFamily:

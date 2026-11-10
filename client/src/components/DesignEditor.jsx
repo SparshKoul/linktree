@@ -841,15 +841,15 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
         {/* Center Mobile Phone Preview Area */}
         <div
           className={`flex-1 flex ${
-            activeSubview ? 'items-start pt-2 max-h-[46dvh]' : 'items-stretch'
-          } justify-center px-1 sm:px-2 pt-1 pb-0 overflow-hidden relative transition-all duration-200`}
+            activeSubview ? 'items-start pt-2 max-h-[46dvh] px-2' : 'items-stretch p-0'
+          } justify-center overflow-hidden relative transition-all duration-200`}
         >
           <div
-            className={`w-full max-w-[440px] h-full ${
+            className={`w-full h-full ${
               activeSubview
-                ? 'origin-top scale-[0.88] rounded-[24px]'
-                : 'rounded-t-[32px] rounded-b-none border-b-0'
-            } shadow-2xl relative border border-white/10 overflow-hidden flex flex-col transition-all duration-200`}
+                ? 'max-w-[440px] origin-top scale-[0.88] rounded-[24px] border border-white/10'
+                : 'rounded-none border-0'
+            } shadow-2xl relative overflow-hidden flex flex-col transition-all duration-200`}
             style={{
               background: current.backgroundValue || '#111111',
               backgroundSize: 'cover',
@@ -858,18 +858,18 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
           >
             {/* Top Phone Frame Bar */}
             <div
-              className="px-4 pt-3 pb-1 flex items-center justify-between text-xs shrink-0 z-10"
+              className="px-4 pt-3.5 pb-1 flex items-center justify-between text-xs shrink-0 z-10"
               style={{ color: current.textColor || '#FFFFFF' }}
             >
-              <span className="w-7 h-7 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white text-xs font-black shadow-xs">
+              <span className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white text-xs font-black shadow-xs">
                 ✱
               </span>
               <button
                 type="button"
-                className="w-7 h-7 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white shadow-xs hover:bg-black/40 transition-colors cursor-pointer"
+                className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white shadow-xs hover:bg-black/40 transition-colors cursor-pointer"
                 title="Share"
               >
-                <Share2 className="w-3.5 h-3.5" />
+                <Share2 className="w-4 h-4" />
               </button>
             </div>
 
@@ -877,7 +877,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
             <div className="flex-1 overflow-y-auto px-4 py-2 flex flex-col items-center no-scrollbar [&::-webkit-scrollbar]:hidden">
               {/* Header Layout Rendering */}
               {currentHeaderLayout === 'hero' ? (
-                <div className="w-full h-36 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600 mb-2 shrink-0">
+                <div className="w-full h-44 sm:h-48 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600 mb-2 shrink-0">
                   <img
                     src={current.heroUrl || currentTree?.heroUrl || current.avatarUrl || currentTree?.avatarUrl || demoGirlImg}
                     alt="Hero"
@@ -887,39 +887,39 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
                 </div>
               ) : currentHeaderLayout === 'banner' ? (
                 <div className="w-full flex flex-col items-center mb-2 shrink-0">
-                  <div className="w-full h-24 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA]">
+                  <div className="w-full h-28 sm:h-32 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA]">
                     {current.bannerUrl || currentTree?.bannerUrl ? (
                       <img src={current.bannerUrl || currentTree.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full opacity-90 bg-gradient-to-r from-[#FF007A] via-[#A855F7] to-[#7928CA]" />
                     )}
                   </div>
-                  <div className="-mt-10 mb-1 relative ring-4 ring-white rounded-full shadow-md w-16 h-16 overflow-hidden bg-white flex items-center justify-center">
+                  <div className="-mt-11 mb-2 relative ring-4 ring-white rounded-full shadow-md w-22 h-22 overflow-hidden bg-white flex items-center justify-center">
                     {current.avatarUrl || currentTree?.avatarUrl ? (
                       <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <User className="w-9 h-9 text-gray-400" />
+                      <User className="w-12 h-12 text-gray-400" />
                     )}
                   </div>
                 </div>
               ) : currentHeaderLayout === 'cutout' ? (
-                <div className="w-20 h-24 rounded-t-full overflow-hidden filter drop-shadow-xs mb-2 shrink-0">
+                <div className="w-24 h-28 rounded-t-full overflow-hidden filter drop-shadow-xs mb-2 shrink-0">
                   <img src={current.avatarUrl || currentTree?.avatarUrl || demoGirlImg} alt="Cutout" className="w-full h-full object-cover" />
                 </div>
               ) : currentHeaderLayout === 'shape' ? (
                 <div
-                  className="w-20 h-16 relative flex items-center justify-center overflow-hidden mb-2 shrink-0 shadow-2xs"
+                  className="w-24 h-20 relative flex items-center justify-center overflow-hidden mb-2 shrink-0 shadow-2xs"
                   style={{ clipPath: 'url(#linktree-organic-shape)' }}
                 >
                   <img src={current.avatarUrl || currentTree?.avatarUrl || demoGirlImg} alt="Shape" className="w-full h-full object-cover" />
                 </div>
               ) : (
-                /* Classic Avatar */
-                <div className="w-20 h-20 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-2.5 shadow-md ring-2 ring-white/10 shrink-0">
+                /* Classic Avatar - little big matching Image */
+                <div className="w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3 shadow-md ring-2 ring-white/10 shrink-0">
                   {current.avatarUrl || currentTree?.avatarUrl ? (
                     <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-12 h-12 text-white" />
+                    <User className="w-14 h-14 text-white" />
                   )}
                 </div>
               )}
@@ -929,7 +929,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
                 <img src={logoUrl} alt="Logo" className="max-h-8 max-w-[170px] object-contain my-0.5" />
               ) : (
                 <h2
-                  className="font-black text-2xl xs:text-[26px] leading-tight text-center tracking-tight"
+                  className="font-black text-2xl xs:text-[28px] leading-tight text-center tracking-tight"
                   style={{
                     color: titleColor,
                     fontFamily: titleFont !== 'inherit' ? `'${titleFont}', sans-serif` : 'inherit',
@@ -942,7 +942,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
               {/* Bio */}
               {(current.bio ?? bioText) && (
                 <p
-                  className="text-xs font-medium leading-relaxed max-w-[280px] text-gray-300 mt-1 mb-3 text-center"
+                  className="text-xs sm:text-[13px] font-medium leading-relaxed max-w-[280px] text-gray-300 mt-1 mb-3 text-center"
                   style={{ color: current.textColor ? `${current.textColor}cc` : '#D1D5DB' }}
                 >
                   {current.bio ?? bioText}
