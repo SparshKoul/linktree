@@ -72,6 +72,47 @@ export function PublicTreePage({ slug }) {
     };
   }, [slug]);
 
+  // Dynamic Page Title, Favicon, and Open Graph Metadata
+  useEffect(() => {
+    if (!treeData?.tree) return;
+    const t = treeData.tree;
+    const title = t.title || t.name || slug;
+    const pageTitle = `${title} | IndiaTaps`;
+    const originalTitle = document.title;
+    document.title = pageTitle;
+
+    const updateMeta = (selector, attr, value) => {
+      let el = document.querySelector(selector);
+      if (!el && value) {
+        el = document.createElement('meta');
+        const [k, v] = selector.replace(/[\[\]"]/g, '').split('=');
+        el.setAttribute(k, v);
+        document.head.appendChild(el);
+      }
+      if (el && value) el.setAttribute(attr, value);
+    };
+
+    updateMeta('meta[property="og:title"]', 'content', title);
+    updateMeta('meta[property="og:description"]', 'content', t.bio || `View ${title}'s links and digital card on IndiaTaps`);
+    updateMeta('meta[name="twitter:title"]', 'content', title);
+    updateMeta('meta[name="twitter:description"]', 'content', t.bio || `View ${title}'s links and digital card on IndiaTaps`);
+
+    const avatar = t.avatarUrl || t.customTheme?.avatarUrl;
+    let favicon = document.querySelector('link[rel="icon"]');
+    const originalFavicon = favicon ? favicon.getAttribute('href') : '/vite.svg';
+
+    if (avatar) {
+      updateMeta('meta[property="og:image"]', 'content', avatar);
+      updateMeta('meta[name="twitter:image"]', 'content', avatar);
+      if (favicon) favicon.setAttribute('href', avatar);
+    }
+
+    return () => {
+      document.title = originalTitle;
+      if (favicon) favicon.setAttribute('href', originalFavicon);
+    };
+  }, [treeData, slug]);
+
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({ title: treeData?.tree?.title || slug, url: window.location.href });

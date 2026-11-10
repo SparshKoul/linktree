@@ -15,6 +15,72 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
 
+// HTTP Security Headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+// Lightweight sliding-window Rate Limiter (Zero external dependencies)
+function createRateLimiter({ windowMs, maxRequests, message }) {
+  const ipHits = new Map();
+
+  setInterval(() => {
+    const now = Date.now();
+    for (const [ip, record] of ipHits.entries()) {
+      if (now - record.startTime > windowMs) {
+        ipHits.delete(ip);
+      }
+    }
+  }, Math.max(30000, Math.floor(windowMs / 2))).unref();
+
+  return (req, res, next) => {
+    if (process.env.NODE_ENV === 'test') return next(); // Skip throttling in automated tests
+
+    const ip =
+      req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+      req.socket?.remoteAddress ||
+      req.ip ||
+      'unknown';
+    const now = Date.now();
+    let record = ipHits.get(ip);
+
+    if (!record || now - record.startTime > windowMs) {
+      record = { count: 1, startTime: now };
+      ipHits.set(ip, record);
+      return next();
+    }
+
+    record.count += 1;
+    if (record.count > maxRequests) {
+      const retryAfterSec = Math.ceil((windowMs - (now - record.startTime)) / 1000);
+      res.setHeader('Retry-After', String(retryAfterSec));
+      return res.status(429).json({
+        error: message || 'Too many requests. Please slow down and try again later.',
+        retryAfter: retryAfterSec,
+      });
+    }
+
+    next();
+  };
+}
+
+// 1. Auth Rate Limiter: Max 10 attempts per 15 minutes per IP
+const authRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many authentication attempts. Please try again after 15 minutes.',
+});
+
+// 2. Tracking / Analytics Rate Limiter: Max 40 calls per minute per IP
+const trackRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 40,
+  message: 'Analytics tracking rate limit exceeded.',
+});
+
 // Multi-device session & authentication middleware
 app.use((req, res, next) => {
   const headerId = req.headers['x-user-id'];
@@ -189,7 +255,7 @@ app.get('/api/auth/me', async (req, res) => {
 });
 
 // Auth Login (Email + Password only)
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authRateLimiter, async (req, res) => {
   const { identifier, email, password } = req.body;
   const loginId = (email || identifier || '').trim().toLowerCase();
   if (!loginId || !password) {
@@ -243,7 +309,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // Auth Register / Signup (Super Admin ONLY - public self-registration is strictly disabled)
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   const callerId = req.userId;
   const isSuper = await isCallerSuperAdmin(callerId);
   if (!isSuper) {
@@ -523,7 +589,7 @@ app.patch('/api/admin/users/:id/block', async (req, res) => {
 });
 
 // Super Admin Update / Reset User Password
-app.patch('/api/admin/users/:id/password', async (req, res) => {
+app.patch('/api/admin/users/:id/password', authRateLimiter, async (req, res) => {
   const callerId = req.userId;
   const isSuper = await isCallerSuperAdmin(callerId);
   if (!isSuper) {
@@ -1105,7 +1171,7 @@ app.get('/api/public/trees/:slug', async (req, res) => {
 });
 
 // Public Click Tracker
-app.post('/api/public/cards/:id/click', async (req, res) => {
+app.post('/api/public/cards/:id/click', trackRateLimiter, async (req, res) => {
   const cardId = parseInt(req.params.id, 10);
   await db.incrementCardClicks(cardId);
 
@@ -1124,6 +1190,28 @@ app.post('/api/public/cards/:id/click', async (req, res) => {
   });
 
   res.json({ success: true, id: cardId });
+});
+
+// Public View Tracker (handles navigator.sendBeacon from public cards)
+app.post('/api/track', trackRateLimiter, async (req, res) => {
+  let body = req.body;
+  if (typeof body === 'string') {
+    try {
+      body = JSON.parse(body);
+    } catch {}
+  }
+  const treeId = body?.treeId ? parseInt(body.treeId, 10) : null;
+  if (treeId) {
+    await db.incrementTreeViews(treeId).catch(() => {});
+    db.recordAnalyticsEvent({
+      treeId,
+      eventType: body?.eventType || 'view',
+      referrer: req.headers['referer'] || req.headers['referrer'],
+      userAgent: req.headers['user-agent'],
+      ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress,
+    });
+  }
+  res.json({ success: true });
 });
 
 // Upload Asset (Image / PDF) to Supabase Storage CDN
