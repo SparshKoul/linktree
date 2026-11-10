@@ -1,5 +1,22 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
+
+// Module-level timestamp to prevent ghost tap-through on mobile
+let lastModalCloseTime = 0;
+
+if (typeof window !== 'undefined') {
+  const blockGhostEvent = (e) => {
+    if (Date.now() - lastModalCloseTime < 750) {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+      if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+      return false;
+    }
+  };
+  ['click', 'touchend', 'mouseup', 'mousedown', 'pointerup', 'pointerdown'].forEach((evt) => {
+    window.addEventListener(evt, blockGhostEvent, true);
+  });
+}
 import {
   ExternalLink,
   ShoppingBag,
@@ -185,6 +202,13 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   }
 
   const handleLinkClick = (e) => {
+    if (Date.now() - lastModalCloseTime < 750) {
+      if (e) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+      }
+      return;
+    }
     if (isLocked) {
       e.preventDefault();
       setShowLockModal(true);
@@ -204,16 +228,36 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   };
 
   const handleCloseExpanded = (e) => {
-    if (e && typeof e.stopPropagation === 'function') {
-      e.stopPropagation();
+    if (e) {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
     }
+    lastModalCloseTime = Date.now();
     setIsClosing(false);
     setIsExpanded(false);
   };
 
+  const handleClosePage = (e) => {
+    if (e) {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }
+    lastModalCloseTime = Date.now();
+    setIsPageOpen(false);
+  };
+
   const handleOpenPage = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+    if (Date.now() - lastModalCloseTime < 750) {
+      if (e) {
+        if (typeof e.preventDefault === 'function') e.preventDefault();
+        if (typeof e.stopPropagation === 'function') e.stopPropagation();
+      }
+      return;
+    }
+    if (e) {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }
     setIsPageOpen(true);
   };
 
@@ -605,6 +649,11 @@ export function CardRenderer({ card, theme, isPreview = false }) {
       <>
         <div
           onClick={(e) => {
+            if (Date.now() - lastModalCloseTime < 750) {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
             if (isLocalMedia && !isMap) {
               e.preventDefault();
               e.stopPropagation();
@@ -720,7 +769,14 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                   href={card.url || `https://maps.google.com/?q=${encodeURIComponent(subtitle || card.title)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    if (Date.now() - lastModalCloseTime < 750) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      return;
+                    }
+                    e.stopPropagation();
+                  }}
                   className="px-5 py-2 rounded-full bg-white/15 hover:bg-white/25 border border-white/20 text-xs font-semibold text-white/95 transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
                 >
                   Get directions
@@ -929,9 +985,13 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     const modalContent = (
       <div
         className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
-        onClick={() => setIsPageOpen(false)}
+        onClick={handleClosePage}
         onTouchEnd={(e) => {
-          if (e.target === e.currentTarget) setIsPageOpen(false);
+          if (e.target === e.currentTarget) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleClosePage(e);
+          }
         }}
       >
         <div
@@ -946,10 +1006,11 @@ export function CardRenderer({ card, theme, isPreview = false }) {
             </div>
             <button
               type="button"
-              onClick={() => setIsPageOpen(false)}
+              onClick={handleClosePage}
               onTouchEnd={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                setIsPageOpen(false);
+                handleClosePage(e);
               }}
               className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 flex items-center justify-center text-gray-600 transition-colors cursor-pointer"
               aria-label="Close"
@@ -1069,6 +1130,8 @@ export function CardRenderer({ card, theme, isPreview = false }) {
         onClick={handleCloseExpanded}
         onTouchEnd={(e) => {
           if (e.target === e.currentTarget) {
+            e.preventDefault();
+            e.stopPropagation();
             handleCloseExpanded(e);
           }
         }}
@@ -1084,6 +1147,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
               type="button"
               onClick={handleCloseExpanded}
               onTouchEnd={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 handleCloseExpanded(e);
               }}
@@ -1241,6 +1305,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
               type="button"
               onClick={handleCloseExpanded}
               onTouchEnd={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 handleCloseExpanded(e);
               }}
