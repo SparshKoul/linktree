@@ -24,7 +24,6 @@ import {
   Plus,
 } from 'lucide-react';
 import { CardRenderer } from '../cards/CardRenderer.jsx';
-import { PhonePreview } from './PhonePreview.jsx';
 import { PRESET_THEMES } from '../constants/themes.js';
 import { WallpaperEditor } from './WallpaperEditor.jsx';
 import { ButtonEditor } from './ButtonEditor.jsx';
@@ -845,30 +844,124 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
             activeSubview ? 'items-start pt-2 max-h-[46dvh] px-2' : 'items-stretch p-0'
           } justify-center overflow-hidden relative transition-all duration-200`}
         >
-          <PhonePreview
-            tree={{
-              ...currentTree,
-              title: current.title ?? currentTree?.title,
-              bio: current.bio ?? currentTree?.bio,
-              avatarUrl: current.avatarUrl || currentTree?.avatarUrl,
-              bannerUrl: current.bannerUrl || currentTree?.bannerUrl,
-              heroUrl: current.heroUrl || currentTree?.heroUrl,
-              headerLayout: current.headerLayout || currentTree?.headerLayout,
-              titleStyle: current.titleStyle || currentTree?.titleStyle,
-              logoUrl: current.logoUrl || currentTree?.logoUrl,
-              altFontEnabled: current.altFontEnabled ?? currentTree?.altFontEnabled,
-              titleFont: current.titleFont || currentTree?.titleFont,
-              titleColor: current.titleColor || currentTree?.titleColor,
-            }}
-            theme={previewTheme}
-            containerClassName={`w-full h-full ${
+          <div
+            className={`w-full h-full ${
               activeSubview
-                ? 'max-w-[440px] origin-top scale-[0.88] rounded-[24px] border border-white/10 shadow-2xl'
-                : 'rounded-none border-0 shadow-none'
-            }`}
-            onShare={handleSave}
-            headerLayoutOverride={current.headerLayout}
-          />
+                ? 'max-w-[440px] origin-top scale-[0.88] rounded-[32px] border border-white/10'
+                : 'rounded-none border-0'
+            } shadow-2xl relative overflow-hidden flex flex-col transition-all duration-200 select-none`}
+            style={{
+              background: current.backgroundValue || current.backgroundColor || '#111111',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              color: current.textColor || '#FFFFFF',
+              fontFamily: current.fontFamily || "'Inter', sans-serif",
+            }}
+          >
+            {/* Top iOS Frame Bar */}
+            <div className="px-5 pt-4 pb-1 flex items-center justify-between text-xs shrink-0 z-10" style={{ color: current.textColor || '#FFFFFF' }}>
+              <span className="font-black text-base text-white select-none">✱</span>
+              <button
+                type="button"
+                onClick={handleSave}
+                className="p-1 text-white hover:opacity-80 transition-opacity cursor-pointer"
+                title="Share"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                  <polyline points="16 6 12 2 8 6" />
+                  <line x1="12" y1="2" x2="12" y2="15" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Scroll Area */}
+            <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-2 flex flex-col items-center no-scrollbar [&::-webkit-scrollbar]:hidden">
+              <div className="w-full max-w-[440px] flex flex-col items-center flex-1">
+                {/* Header Layout Rendering */}
+                {currentHeaderLayout === 'hero' ? (
+                  <div className="w-full h-44 sm:h-48 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600 mb-2 shrink-0">
+                    <img src={current.heroUrl || currentTree?.heroUrl || current.avatarUrl || currentTree?.avatarUrl || demoGirlImg} alt="Hero" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  </div>
+                ) : currentHeaderLayout === 'banner' ? (
+                  <div className="w-full flex flex-col items-center mb-2 shrink-0">
+                    <div className="w-full h-28 sm:h-32 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA]">
+                      {current.bannerUrl || currentTree?.bannerUrl ? (
+                        <img src={current.bannerUrl || currentTree.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full opacity-90 bg-gradient-to-r from-[#FF007A] via-[#A855F7] to-[#7928CA]" />
+                      )}
+                    </div>
+                    <div className="-mt-11 mb-2 relative ring-4 ring-white rounded-full shadow-md w-22 h-22 overflow-hidden bg-white flex items-center justify-center">
+                      {current.avatarUrl || currentTree?.avatarUrl ? (
+                        <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-12 h-12 text-gray-400" />
+                      )}
+                    </div>
+                  </div>
+                ) : currentHeaderLayout === 'cutout' ? (
+                  <div className="w-24 h-28 rounded-t-full overflow-hidden filter drop-shadow-xs mb-2 shrink-0">
+                    <img src={current.avatarUrl || currentTree?.avatarUrl || demoGirlImg} alt="Cutout" className="w-full h-full object-cover" />
+                  </div>
+                ) : currentHeaderLayout === 'shape' ? (
+                  <div className="w-24 h-20 relative flex items-center justify-center overflow-hidden mb-2 shrink-0 shadow-2xs" style={{ clipPath: 'url(#linktree-organic-shape)' }}>
+                    <img src={current.avatarUrl || currentTree?.avatarUrl || demoGirlImg} alt="Shape" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  /* Classic Avatar matching iPhone 16 Pro Max */
+                  <div className="w-24 h-24 sm:w-26 sm:h-26 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3 shadow-lg ring-1 ring-white/15 shrink-0">
+                    {current.avatarUrl || currentTree?.avatarUrl ? (
+                      <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-12 h-12 text-white" />
+                    )}
+                  </div>
+                )}
+
+                {/* Title */}
+                {isLogo && logoUrl ? (
+                  <img src={logoUrl} alt="Logo" className="max-h-8 max-w-[170px] object-contain my-0.5" />
+                ) : (
+                  <h2
+                    className="font-bold text-2xl sm:text-[26px] leading-tight text-center tracking-tight"
+                    style={{
+                      color: titleColor,
+                      fontFamily: titleFont !== 'inherit' ? `'${titleFont}', sans-serif` : 'inherit',
+                    }}
+                  >
+                    {current.title ?? titleText}
+                  </h2>
+                )}
+
+                {/* Bio */}
+                {(current.bio ?? bioText) && (
+                  <p
+                    className="text-sm font-normal leading-relaxed max-w-[280px] text-gray-300 mt-1 mb-3 text-center"
+                    style={{ color: current.textColor ? `${current.textColor}cc` : '#D1D5DB' }}
+                  >
+                    {current.bio ?? bioText}
+                  </p>
+                )}
+
+                {/* Links List - using CardRenderer */}
+                <div className="w-full space-y-3.5 my-3 flex-1 px-1">
+                  {visibleCards.map((card) => (
+                    <CardRenderer key={card.id} card={card} theme={previewTheme} isPreview />
+                  ))}
+                </div>
+
+                {/* Footer */}
+                {current.footerEnabled !== false && (
+                  <div className="mt-auto pt-6 pb-6 text-center text-[10px] text-gray-400 leading-tight shrink-0">
+                    <div>Cookie Preferences • Report • Privacy</div>
+                    <div className="mt-0.5">More from Linktree</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Mobile Bottom Toolbar (Image 1: When drawer is closed) */}

@@ -63,7 +63,6 @@ import { CardRenderer } from './cards/CardRenderer.jsx';
 import { AuthModal } from './components/AuthModal.jsx';
 import { HeaderEditor } from './components/HeaderEditor.jsx';
 import { DesignEditor } from './components/DesignEditor.jsx';
-import { PhonePreview } from './components/PhonePreview.jsx';
 import { getPatternSvg, getContrastingPatternColor } from './components/WallpaperEditor.jsx';
 import { PRESET_THEMES } from './constants/themes.js';
 import { storage } from './services/storage.js';
@@ -821,8 +820,8 @@ export function App() {
 
     // Default: 'classic'
     return (
-      <div className="flex flex-col items-center text-center mb-3">
-        <div className="w-22 h-22 sm:w-24 sm:h-24 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3 shadow-md ring-2 ring-white/10 shrink-0">
+      <div className="flex flex-col items-center text-center mb-3 shrink-0">
+        <div className="w-24 h-24 sm:w-26 sm:h-26 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3 shadow-lg ring-1 ring-white/15 shrink-0">
           {currentTree?.avatarUrl ? (
             <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
           ) : defaultAvatarSvg}
@@ -2224,13 +2223,163 @@ export function App() {
 
           <div className="relative w-full h-full lg:w-auto lg:h-auto flex items-center justify-center">
             {/* Phone Screen Mockup Container matching iPhone 16 Pro Max Preview Size */}
-            <PhonePreview
-              tree={currentTree}
-              theme={activeTheme}
-              footerEnabled={isFooterEnabled}
-              containerClassName="w-full h-full lg:w-[410px] xl:w-[430px] 2xl:w-[440px] lg:h-[840px] lg:max-h-[min(900px,calc(100vh-70px))] rounded-none lg:rounded-[55px] shadow-none lg:shadow-2xl relative border-0 lg:border-[8px] lg:border-[#1C1C1E]"
-              onShare={handleCopyLiveUrl}
-            />
+            <div
+              className="w-full h-full lg:w-[410px] xl:w-[430px] 2xl:w-[440px] lg:h-[840px] lg:max-h-[min(900px,calc(100vh-70px))] rounded-none lg:rounded-[55px] shadow-none lg:shadow-2xl relative border-0 lg:border-[8px] lg:border-[#1C1C1E] overflow-hidden select-none"
+              style={{
+                color: activeTheme?.textColor || '#111111',
+                fontFamily:
+                  activeTheme?.fontFamily && activeTheme.fontFamily !== 'Link Sans'
+                    ? `'${activeTheme.fontFamily}', sans-serif`
+                    : "'Inter', system-ui, -apple-system, sans-serif",
+              }}
+            >
+              {/* Wallpaper Background Base + Effects + Tint + Noise */}
+              <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+                <div
+                  className="w-full h-full absolute inset-0"
+                  style={{
+                    background:
+                      activeTheme?.wallpaperStyle === 'video'
+                        ? 'transparent'
+                        : activeTheme?.backgroundType === 'solid' || activeTheme?.wallpaperStyle === 'fill'
+                        ? (activeTheme?.backgroundValue?.startsWith('#') ? activeTheme.backgroundValue : (activeTheme?.backgroundColor || '#F3F3F1'))
+                        : activeTheme?.backgroundImageUrl
+                        ? `url("${activeTheme.backgroundImageUrl}") center / cover no-repeat`
+                        : activeTheme?.backgroundValue || activeTheme?.backgroundColor || '#111111',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    filter:
+                      activeTheme?.wallpaperStyle === 'blur'
+                        ? 'blur(20px)'
+                        : activeTheme?.effect === 'mono'
+                        ? 'grayscale(100%)'
+                        : activeTheme?.effect === 'blur'
+                        ? 'blur(8px)'
+                        : activeTheme?.effect === 'halftone'
+                        ? 'contrast(200%) grayscale(100%)'
+                        : 'none',
+                    transform:
+                      activeTheme?.wallpaperStyle === 'blur' || activeTheme?.effect === 'blur'
+                        ? 'scale(1.12)'
+                        : 'none',
+                  }}
+                />
+
+                {activeTheme?.wallpaperStyle === 'video' &&
+                  (activeTheme?.wallpaperVideoUrl || activeTheme?.backgroundImageUrl) && (
+                    <video
+                      src={activeTheme.wallpaperVideoUrl || activeTheme.backgroundImageUrl}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover absolute inset-0"
+                    />
+                  )}
+
+                {activeTheme?.wallpaperStyle === 'gradient' && (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: `linear-gradient(180deg, ${activeTheme?.backgroundColor || '#638873'} 0%, rgba(0,0,0,0.85) 100%)`,
+                      mixBlendMode: activeTheme?.backgroundImageUrl ? 'multiply' : 'normal',
+                    }}
+                  />
+                )}
+
+                {activeTheme?.wallpaperStyle === 'pattern' && (
+                  <div
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                    style={{
+                      backgroundColor: activeTheme?.backgroundImageUrl
+                        ? 'transparent'
+                        : activeTheme?.backgroundColor || '#050F15',
+                      backgroundImage: `url("${getPatternSvg(
+                        activeTheme?.patternType || 'organic',
+                        activeTheme?.backgroundImageUrl
+                          ? (activeTheme?.backgroundColor || '#050F15')
+                          : getContrastingPatternColor(activeTheme?.backgroundColor || '#050F15'),
+                        activeTheme?.backgroundImageUrl ? 0.45 : 0.3
+                      )}")`,
+                      backgroundRepeat: 'repeat',
+                      mixBlendMode: activeTheme?.backgroundImageUrl ? 'multiply' : 'normal',
+                    }}
+                  />
+                )}
+
+                {typeof activeTheme?.tint === 'number' && activeTheme.tint !== 0 && (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      backgroundColor:
+                        activeTheme.tint < 0
+                          ? `rgba(0, 0, 0, ${(Math.abs(activeTheme.tint) / 100) * 0.75})`
+                          : `rgba(255, 255, 255, ${(activeTheme.tint / 100) * 0.75})`,
+                    }}
+                  />
+                )}
+
+                {activeTheme?.noise && (
+                  <div
+                    className="absolute inset-0 opacity-25 mix-blend-overlay"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.6'/%3E%3C/svg%3E")`,
+                    }}
+                  />
+                )}
+              </div>
+
+              {/* Scrollable Content Container Over Sticky Wallpaper */}
+              <div className="absolute inset-0 z-10 overflow-y-auto px-4 sm:px-5 pb-8 flex flex-col justify-between text-center no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pt-5 sm:pt-6">
+                <div className="flex flex-col justify-between flex-1 min-h-full w-full max-w-[440px] mx-auto">
+                  {/* Top iOS Icons */}
+                  <div className="w-full flex items-center justify-between text-xs mb-4 z-10 px-1 pt-1" style={{ color: activeTheme?.textColor || '#FFFFFF' }}>
+                    <span className="font-black text-base text-white select-none">✱</span>
+                    <button type="button" onClick={handleCopyLiveUrl} className="p-1 text-white hover:opacity-80 transition-opacity cursor-pointer" title="Share">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                        <polyline points="16 6 12 2 8 6" />
+                        <line x1="12" y1="2" x2="12" y2="15" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Profile Header */}
+                  {renderPhoneHeader()}
+
+                  {/* Cards Stack using CardRenderer */}
+                  <div className="w-full space-y-3.5 flex-1 mt-4 mb-8">
+                    {currentTree?.cards &&
+                      currentTree.cards
+                        .filter((c) => c.visible !== false)
+                        .map((card) => (
+                          <CardRenderer key={card.id} card={card} theme={activeTheme} isPreview />
+                        ))}
+                  </div>
+
+                  {/* Footer */}
+                  {isFooterEnabled && (
+                    <div className="mt-auto pt-4 pb-4 space-y-2.5 w-full shrink-0">
+                      {activeTheme?.footerButton && (
+                        <button
+                          type="button"
+                          className="w-full max-w-[210px] py-2 px-4 rounded-full bg-white text-black text-xs font-bold shadow-md hover:scale-[1.02] transition-transform mx-auto block cursor-pointer border border-gray-100"
+                        >
+                          {activeTheme?.footerText || 'Get your own Linktree'}
+                        </button>
+                      )}
+                      <div className="text-[10px] text-gray-400 leading-tight">
+                        Cookie Preferences · Report · Privacy
+                        <div className="mt-0.5">More from Linktree</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="w-full h-12 shrink-0 pointer-events-none" aria-hidden="true" />
+                </div>
+              </div>
+            </div>
 
             {/* Floating Side Action Pill on Phone Frame matching Reference */}
             <div className="hidden lg:flex absolute -right-12 top-1/2 -translate-y-1/2 bg-white rounded-full p-2.5 shadow-md border border-gray-200/90 flex-col gap-3 text-gray-600 z-30">
