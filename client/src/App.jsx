@@ -818,12 +818,12 @@ export function App() {
         </defs>
       </svg>
       {/* 1. Topmost Dark Header Band matching Reference */}
-      <div className={`h-10 bg-[#232833] px-5 items-center shrink-0 ${activeRail === 'design' ? 'hidden lg:flex' : 'flex'}`}>
+      <div className={`h-10 bg-[#232833] px-5 items-center shrink-0 ${activeRail === 'design' || activeRail === 'header' ? 'hidden lg:flex' : 'flex'}`}>
         <span className="text-[#26D07C] font-black text-xl leading-none select-none tracking-tight">✱</span>
       </div>
 
       {/* 2. Secondary Navigation Bar matching Reference */}
-      <header className={`h-12 bg-[#FAFBFB] px-4 sm:px-6 items-center justify-between z-30 shrink-0 ${activeRail === 'design' ? 'hidden lg:flex' : 'flex'}`}>
+      <header className={`h-12 bg-[#FAFBFB] px-4 sm:px-6 items-center justify-between z-30 shrink-0 ${activeRail === 'design' || activeRail === 'header' ? 'hidden lg:flex' : 'flex'}`}>
         {/* Left: Hamburger menu button */}
         <div className="flex items-center gap-3 w-16">
           <button
@@ -1098,7 +1098,7 @@ export function App() {
           </aside>
         ) : (
           /* COMPACT DOCK matching Reference with navigation links in vertical center */
-          <aside className={`w-[72px] bg-[#FAFBFB] flex-col items-center py-6 shrink-0 z-20 self-stretch ${activeRail === 'design' ? 'hidden lg:flex' : 'flex'}`}>
+          <aside className={`w-[72px] bg-[#FAFBFB] flex-col items-center py-6 shrink-0 z-20 self-stretch ${activeRail === 'design' || activeRail === 'header' ? 'hidden lg:flex' : 'flex'}`}>
             {/* Top spacer to center nav icons */}
             <div className="flex-1" />
 
@@ -1240,8 +1240,8 @@ export function App() {
             }}
           />
         ) : (
-          <main className={`flex-1 ${activeRail === 'design' ? 'p-0 lg:px-1.5 lg:sm:px-2.5 lg:pt-2 lg:pb-4 h-full lg:h-[calc(100vh-88px)]' : 'px-1.5 sm:px-2.5 pt-2 pb-4 h-[calc(100vh-88px)]'} flex justify-center lg:justify-end items-start overflow-hidden`}>
-          <div className={`w-full ${activeRail === 'design' ? 'max-w-none lg:max-w-[740px] lg:xl:max-w-[820px] h-full' : 'max-w-[740px] xl:max-w-[820px] h-full'} flex flex-col`}>
+          <main className={`flex-1 ${activeRail === 'design' || activeRail === 'header' ? 'p-0 lg:px-1.5 lg:sm:px-2.5 lg:pt-2 lg:pb-4 h-full lg:h-[calc(100vh-88px)]' : 'px-1.5 sm:px-2.5 pt-2 pb-4 h-[calc(100vh-88px)]'} flex justify-center lg:justify-end items-start overflow-hidden`}>
+          <div className={`w-full ${activeRail === 'design' || activeRail === 'header' ? 'max-w-none lg:max-w-[740px] lg:xl:max-w-[820px] h-full' : 'max-w-[740px] xl:max-w-[820px] h-full'} flex flex-col`}>
             {activeCardDetail ? (
               <div className="bg-white rounded-[28px] xl:rounded-[32px] px-2.5 sm:px-3 py-4 sm:py-5 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar">
                 <CardDetailEditor
@@ -1263,16 +1263,27 @@ export function App() {
                 />
               </div>
             ) : activeRail === 'header' ? (
-              <div className="bg-white rounded-[28px] xl:rounded-[32px] px-6 sm:px-10 py-6 sm:py-8 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar">
-                <HeaderEditor currentTree={currentTree} onUpdateTree={handleUpdateTree} />
-              </div>
+              <>
+                {/* Desktop: Untouched HeaderEditor */}
+                <div className="hidden lg:block bg-white rounded-[28px] xl:rounded-[32px] px-6 sm:px-10 py-6 sm:py-8 border border-gray-200/80 shadow-2xs flex-1 overflow-y-auto card-scrollbar">
+                  <HeaderEditor currentTree={currentTree} onUpdateTree={handleUpdateTree} />
+                </div>
+                {/* Mobile: Unified mobile customizer with Header drawer open */}
+                <div className="lg:hidden w-full h-full">
+                  <DesignEditor
+                    currentTree={currentTree}
+                    onUpdateTree={handleUpdateTree}
+                    onBack={() => setActiveRail('content')}
+                    initialSubview="header"
+                  />
+                </div>
+              </>
             ) : activeRail === 'design' ? (
               <div className="w-full h-full lg:bg-white lg:rounded-[28px] lg:xl:rounded-[32px] lg:px-6 lg:sm:px-10 lg:py-6 lg:sm:py-8 lg:border lg:border-gray-200/80 lg:shadow-2xs flex-1 overflow-y-auto card-scrollbar">
                 <DesignEditor
                   currentTree={currentTree}
                   onUpdateTree={handleUpdateTree}
                   onBack={() => setActiveRail('content')}
-                  onOpenHeader={() => setActiveRail('header')}
                 />
               </div>
             ) : (

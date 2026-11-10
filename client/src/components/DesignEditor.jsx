@@ -21,6 +21,7 @@ import {
   User,
   Zap,
   Share2,
+  Plus,
 } from 'lucide-react';
 import { CardRenderer } from '../cards/CardRenderer.jsx';
 import { PRESET_THEMES } from '../constants/themes.js';
@@ -29,11 +30,19 @@ import { ButtonEditor } from './ButtonEditor.jsx';
 import { TextEditor } from './TextEditor.jsx';
 import { ColorsEditor } from './ColorsEditor.jsx';
 
-export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }) {
-  const [activeSubview, setActiveSubview] = useState(null); // null | 'theme' | 'wallpaper' | 'buttons' | 'text' | 'colors' | 'stickers' | 'footer'
+export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, initialSubview = null }) {
+  const [activeSubview, setActiveSubview] = useState(initialSubview); // null | 'theme' | 'header' | 'wallpaper' | 'buttons' | 'text' | 'colors' | 'stickers' | 'footer'
   const [themeTab, setThemeTab] = useState('customizable'); // 'customizable' | 'curated'
   const [savedToast, setSavedToast] = useState(false);
   const wallpaperInputRef = useRef(null);
+  const avatarInputRef = useRef(null);
+
+  // Sync initialSubview when prop updates
+  useEffect(() => {
+    if (initialSubview !== undefined) {
+      setActiveSubview(initialSubview);
+    }
+  }, [initialSubview]);
 
   // Snapshot of tree design state for undo / redo / cancel
   const extractSnapshot = (tree) => {
@@ -54,6 +63,12 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
       footerEnabled: tree?.footerEnabled !== undefined ? tree.footerEnabled : custom.footerEnabled !== false,
       footerText: custom.footerText || 'Get your own Linktree',
       stickers: custom.stickers || [],
+      headerLayout: tree?.headerLayout || custom.headerLayout || 'classic',
+      avatarUrl: tree?.avatarUrl || custom.avatarUrl || null,
+      bannerUrl: tree?.bannerUrl || custom.bannerUrl || null,
+      heroUrl: tree?.heroUrl || custom.heroUrl || null,
+      title: tree?.title ?? `@${tree?.slug || 'riyast'}`,
+      bio: tree?.bio ?? '',
       ...custom,
     };
   };
@@ -96,6 +111,12 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
       ...(patch.altFontEnabled !== undefined ? { altFontEnabled: patch.altFontEnabled } : {}),
       ...(patch.titleFont ? { titleFont: patch.titleFont } : {}),
       ...(patch.titleColor ? { titleColor: patch.titleColor } : {}),
+      ...(patch.headerLayout ? { headerLayout: patch.headerLayout } : {}),
+      ...(patch.avatarUrl !== undefined ? { avatarUrl: patch.avatarUrl } : {}),
+      ...(patch.bannerUrl !== undefined ? { bannerUrl: patch.bannerUrl } : {}),
+      ...(patch.heroUrl !== undefined ? { heroUrl: patch.heroUrl } : {}),
+      ...(patch.title !== undefined ? { title: patch.title } : {}),
+      ...(patch.bio !== undefined ? { bio: patch.bio } : {}),
     });
   };
 
@@ -107,6 +128,12 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
       onUpdateTree({
         themeId: target.themeId,
         customTheme: { ...(currentTree?.customTheme || {}), ...target },
+        headerLayout: target.headerLayout,
+        avatarUrl: target.avatarUrl,
+        bannerUrl: target.bannerUrl,
+        heroUrl: target.heroUrl,
+        title: target.title,
+        bio: target.bio,
       });
     }
   };
@@ -119,6 +146,12 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
       onUpdateTree({
         themeId: target.themeId,
         customTheme: { ...(currentTree?.customTheme || {}), ...target },
+        headerLayout: target.headerLayout,
+        avatarUrl: target.avatarUrl,
+        bannerUrl: target.bannerUrl,
+        heroUrl: target.heroUrl,
+        title: target.title,
+        bio: target.bio,
       });
     }
   };
@@ -130,6 +163,12 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
     onUpdateTree({
       themeId: snap.themeId,
       customTheme: { ...(currentTree?.customTheme || {}), ...snap },
+      headerLayout: snap.headerLayout,
+      avatarUrl: snap.avatarUrl,
+      bannerUrl: snap.bannerUrl,
+      heroUrl: snap.heroUrl,
+      title: snap.title,
+      bio: snap.bio,
     });
     setActiveSubview(null);
   };
@@ -138,9 +177,47 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
     onUpdateTree({
       themeId: current.themeId,
       customTheme: { ...(currentTree?.customTheme || {}), ...current },
+      headerLayout: current.headerLayout,
+      avatarUrl: current.avatarUrl,
+      bannerUrl: current.bannerUrl,
+      heroUrl: current.heroUrl,
+      title: current.title,
+      bio: current.bio,
     });
     setSavedToast(true);
     setTimeout(() => setSavedToast(false), 2500);
+  };
+
+  const handleAvatarUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const rawDataUrl = event.target?.result;
+      if (typeof rawDataUrl === 'string') {
+        commitChange({ avatarUrl: rawDataUrl });
+        onUpdateTree({ avatarUrl: rawDataUrl });
+
+        // Background CDN upload to Supabase Storage
+        fetch('/api/admin/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ file: rawDataUrl, filename: file.name, folder: 'avatars' }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data?.url) {
+              commitChange({ avatarUrl: data.url });
+              onUpdateTree({ avatarUrl: data.url });
+            }
+          })
+          .catch(() => {});
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const applyPresetTheme = (themeObj) => {
@@ -281,6 +358,9 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
   const titleFont = current.altFontEnabled ? (current.titleFont || 'Manrope') : (current.fontFamily || 'inherit');
   const titleColor = current.altFontEnabled ? (current.titleColor || current.textColor || '#FFFFFF') : (current.textColor || '#FFFFFF');
   const visibleCards = (currentTree?.cards || []).filter((c) => c.visible !== false);
+
+  const currentHeaderLayout = current.headerLayout || currentTree?.headerLayout || currentTree?.customTheme?.headerLayout || 'classic';
+  const demoGirlImg = current.avatarUrl || currentTree?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -759,9 +839,17 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
         </div>
 
         {/* Center Mobile Phone Preview Area */}
-        <div className={`flex-1 flex items-center justify-center p-2.5 sm:p-3 overflow-hidden relative transition-all ${activeSubview ? 'max-h-[46vh]' : ''}`}>
+        <div
+          className={`flex-1 flex items-start justify-center pt-3 sm:pt-4 px-3 overflow-hidden relative transition-all duration-200 ${
+            activeSubview ? 'max-h-[50dvh]' : 'pb-18'
+          }`}
+        >
           <div
-            className="w-[305px] sm:w-[325px] h-[540px] sm:h-[600px] max-h-full rounded-[36px] shadow-2xl relative border border-white/10 overflow-hidden flex flex-col shrink-0"
+            className={`w-[305px] xs:w-[320px] sm:w-[335px] ${
+              activeSubview
+                ? 'h-[520px] xs:h-[560px] sm:h-[600px] origin-top scale-[0.85] xs:scale-[0.9] sm:scale-100'
+                : 'h-[580px] xs:h-[620px] sm:h-[650px] max-h-[calc(100dvh-130px)]'
+            } rounded-[38px] shadow-2xl relative border border-white/10 overflow-hidden flex flex-col shrink-0 transition-all duration-200`}
             style={{
               background: current.backgroundValue || '#111111',
               backgroundSize: 'cover',
@@ -781,14 +869,54 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
 
             {/* Phone Body Scroll Area */}
             <div className="flex-1 overflow-y-auto px-4 py-2 flex flex-col items-center no-scrollbar [&::-webkit-scrollbar]:hidden">
-              {/* Avatar */}
-              <div className="w-16 h-16 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-2 shadow-inner shrink-0">
-                {currentTree?.avatarUrl ? (
-                  <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-9 h-9 text-white" />
-                )}
-              </div>
+              {/* Header Layout Rendering */}
+              {currentHeaderLayout === 'hero' ? (
+                <div className="w-full h-36 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600 mb-2 shrink-0">
+                  <img
+                    src={current.heroUrl || currentTree?.heroUrl || current.avatarUrl || currentTree?.avatarUrl || demoGirlImg}
+                    alt="Hero"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                </div>
+              ) : currentHeaderLayout === 'banner' ? (
+                <div className="w-full flex flex-col items-center mb-2 shrink-0">
+                  <div className="w-full h-24 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA]">
+                    {current.bannerUrl || currentTree?.bannerUrl ? (
+                      <img src={current.bannerUrl || currentTree.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full opacity-90 bg-gradient-to-r from-[#FF007A] via-[#A855F7] to-[#7928CA]" />
+                    )}
+                  </div>
+                  <div className="-mt-10 mb-1 relative ring-4 ring-white rounded-full shadow-md w-16 h-16 overflow-hidden bg-white flex items-center justify-center">
+                    {current.avatarUrl || currentTree?.avatarUrl ? (
+                      <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="w-9 h-9 text-gray-400" />
+                    )}
+                  </div>
+                </div>
+              ) : currentHeaderLayout === 'cutout' ? (
+                <div className="w-20 h-24 rounded-t-full overflow-hidden filter drop-shadow-xs mb-2 shrink-0">
+                  <img src={current.avatarUrl || currentTree?.avatarUrl || demoGirlImg} alt="Cutout" className="w-full h-full object-cover" />
+                </div>
+              ) : currentHeaderLayout === 'shape' ? (
+                <div
+                  className="w-20 h-16 relative flex items-center justify-center overflow-hidden mb-2 shrink-0 shadow-2xs"
+                  style={{ clipPath: 'url(#linktree-organic-shape)' }}
+                >
+                  <img src={current.avatarUrl || currentTree?.avatarUrl || demoGirlImg} alt="Shape" className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                /* Classic Avatar */
+                <div className="w-16 h-16 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-2 shadow-inner shrink-0">
+                  {current.avatarUrl || currentTree?.avatarUrl ? (
+                    <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-9 h-9 text-white" />
+                  )}
+                </div>
+              )}
 
               {/* Title */}
               {isLogo && logoUrl ? (
@@ -801,17 +929,17 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
                     fontFamily: titleFont !== 'inherit' ? `'${titleFont}', sans-serif` : 'inherit',
                   }}
                 >
-                  {titleText}
+                  {current.title ?? titleText}
                 </h2>
               )}
 
               {/* Bio */}
-              {bioText && (
+              {(current.bio ?? bioText) && (
                 <p
                   className="text-[11px] leading-tight max-w-[210px] text-gray-400 mt-0.5 mb-2 text-center"
                   style={{ color: current.textColor ? `${current.textColor}bb` : '#9CA3AF' }}
                 >
-                  {bioText}
+                  {current.bio ?? bioText}
                 </p>
               )}
 
@@ -833,9 +961,9 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
           </div>
         </div>
 
-        {/* Mobile Bottom Toolbar (Image 0: When drawer is closed) */}
+        {/* Mobile Bottom Toolbar (Image 1: When drawer is closed) */}
         {!activeSubview && (
-          <div className="h-16 bg-white border-t border-gray-200 px-2 flex items-center justify-between shrink-0 z-20">
+          <div className="absolute bottom-0 inset-x-0 h-16 bg-white border-t border-gray-200 px-2 flex items-center justify-between shrink-0 z-20 shadow-sm animate-in fade-in duration-150">
             {/* 1. Theme */}
             <button
               type="button"
@@ -849,17 +977,15 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
               <span className="text-[10px] font-medium text-gray-700">Theme</span>
             </button>
 
-            {/* 2. Header */}
+            {/* 2. Header (with red dot notification matching Image 1) */}
             <button
               type="button"
-              onClick={() => {
-                if (onOpenHeader) onOpenHeader();
-              }}
+              onClick={() => setActiveSubview('header')}
               className="flex flex-col items-center gap-1 group cursor-pointer flex-1"
             >
               <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-300 flex items-center justify-center relative group-hover:scale-105 transition-transform">
                 <User className="w-4 h-4 text-gray-600" />
-                <span className="w-2 h-2 rounded-full bg-red-500 absolute top-0.5 right-0.5 ring-1 ring-white" />
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 absolute -top-0.5 -right-0.5 ring-2 ring-white" />
               </div>
               <span className="text-[10px] font-medium text-gray-700">Header</span>
             </button>
@@ -923,10 +1049,10 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
           </div>
         )}
 
-        {/* Mobile Bottom Sheet Drawer (Image 1: When tool is selected) */}
+        {/* Mobile Bottom Sheet Drawer (Images 0, 2 & 3: When drawer is open) */}
         {activeSubview && (
-          <div className="h-[52vh] sm:h-[55vh] bg-white rounded-t-[32px] border-t border-gray-200 shadow-2xl flex flex-col shrink-0 z-30 animate-in slide-in-from-bottom duration-200">
-            {/* Top Grab Handle */}
+          <div className="absolute bottom-0 inset-x-0 h-[50dvh] sm:h-[52dvh] max-h-[460px] bg-white rounded-t-[32px] border-t border-gray-200/90 shadow-2xl flex flex-col shrink-0 z-30 animate-in slide-in-from-bottom duration-200">
+            {/* Top Drag Handle */}
             <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-2.5 mb-1 shrink-0" />
 
             {/* Drawer Header with Title & (X) Close button */}
@@ -935,10 +1061,10 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
               <button
                 type="button"
                 onClick={() => setActiveSubview(null)}
-                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-full bg-[#E5E5E5] hover:bg-gray-300 flex items-center justify-center text-gray-600 transition-colors cursor-pointer"
                 title="Close"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4 stroke-[2.2]" />
               </button>
             </div>
 
@@ -946,14 +1072,14 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
             {activeSubview === 'theme' && (
               <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Tabs */}
-                <div className="px-5 flex items-center gap-6 border-b border-gray-100 text-xs font-bold shrink-0">
+                <div className="px-5 flex items-center gap-7 border-b border-gray-100 text-xs font-bold shrink-0">
                   <button
                     type="button"
                     onClick={() => setThemeTab('customizable')}
                     className={`pb-2.5 transition-colors cursor-pointer relative ${
                       themeTab === 'customizable'
-                        ? 'text-black border-b-2 border-black'
-                        : 'text-gray-400 hover:text-black'
+                        ? 'text-black border-b-2 border-black font-extrabold'
+                        : 'text-gray-400 hover:text-black font-semibold'
                     }`}
                   >
                     Customizable
@@ -963,8 +1089,8 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
                     onClick={() => setThemeTab('curated')}
                     className={`pb-2.5 transition-colors cursor-pointer relative ${
                       themeTab === 'curated'
-                        ? 'text-black border-b-2 border-black'
-                        : 'text-gray-400 hover:text-black'
+                        ? 'text-black border-b-2 border-black font-extrabold'
+                        : 'text-gray-400 hover:text-black font-semibold'
                     }`}
                   >
                     Curated
@@ -973,13 +1099,20 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
 
                 {/* Theme Grid */}
                 <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 card-scrollbar">
-                  {/* Shuffle Button */}
+                  {/* Shuffle Button matching Image 0 & 2 */}
                   <button
                     type="button"
                     onClick={handleShuffleTheme}
-                    className="w-full py-2 px-4 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center gap-2 text-xs font-semibold text-gray-800 transition-colors cursor-pointer shadow-2xs"
+                    className="w-full py-2.5 px-4 rounded-full border border-gray-200/90 bg-white hover:bg-gray-50 flex items-center justify-center gap-2 text-xs font-bold text-gray-800 transition-colors cursor-pointer shadow-2xs"
                   >
-                    <Shuffle className="w-3.5 h-3.5 text-gray-600" />
+                    <svg className="w-4 h-4 text-gray-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="18" height="18" x="3" y="3" rx="4" />
+                      <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+                      <circle cx="15.5" cy="8.5" r="1.5" fill="currentColor" />
+                      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                      <circle cx="8.5" cy="15.5" r="1.5" fill="currentColor" />
+                      <circle cx="15.5" cy="15.5" r="1.5" fill="currentColor" />
+                    </svg>
                     <span>Shuffle</span>
                   </button>
 
@@ -998,9 +1131,9 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
                         <button
                           type="button"
                           onClick={() => setActiveSubview('wallpaper')}
-                          className="w-full h-24 rounded-2xl bg-[#EEEEEE] border border-gray-200 flex items-center justify-center cursor-pointer hover:border-gray-300 transition-all shadow-2xs group"
+                          className="w-full h-24 rounded-2xl bg-[#EBEBEB] border border-gray-200 flex items-center justify-center cursor-pointer hover:border-gray-300 transition-all shadow-2xs group"
                         >
-                          <Paintbrush className="w-5 h-5 text-gray-600 stroke-[1.5] group-hover:scale-110 transition-transform" />
+                          <Paintbrush className="w-5 h-5 text-gray-700 stroke-[1.8] group-hover:scale-110 transition-transform" />
                         </button>
                         <span className="text-[10px] font-medium text-gray-700 text-center mt-1">Custom</span>
                       </div>
@@ -1029,6 +1162,12 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
                               backgroundPosition: 'center',
                             }}
                           >
+                            {/* Pro / Sparkle Badge on top right */}
+                            {pt.isPro && (
+                              <div className="w-3.5 h-3.5 rounded-full bg-black/50 backdrop-blur-xs flex items-center justify-center absolute top-1.5 right-1.5 pointer-events-none">
+                                <Sparkles className="w-2 h-2 text-white" />
+                              </div>
+                            )}
                             <span
                               className="font-bold text-xs tracking-tight leading-none text-left"
                               style={{
@@ -1056,6 +1195,174 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader }
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Header Subview matching Image 3 */}
+            {activeSubview === 'header' && (
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4 card-scrollbar">
+                  {/* 1. Layout Section matching Image 3 */}
+                  <div>
+                    <span className="text-xs font-bold text-gray-900 block mb-2.5">Layout</span>
+                    <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+                      {/* Classic */}
+                      <div className="flex flex-col items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            commitChange({ headerLayout: 'classic' });
+                            onUpdateTree({ headerLayout: 'classic' });
+                          }}
+                          className={`w-full h-24 rounded-2xl p-1.5 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                            currentHeaderLayout === 'classic'
+                              ? 'border-2 border-black bg-white shadow-2xs ring-1 ring-black/10'
+                              : 'border border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="w-10 h-10 rounded-full bg-rose-500 overflow-hidden flex items-center justify-center shadow-2xs">
+                            <img src={demoGirlImg} alt="Classic" className="w-full h-full object-cover" />
+                          </div>
+                        </button>
+                        <span className="text-[10px] font-semibold text-gray-800 text-center mt-1">Classic</span>
+                      </div>
+
+                      {/* Hero */}
+                      <div className="flex flex-col items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            commitChange({ headerLayout: 'hero' });
+                            onUpdateTree({ headerLayout: 'hero' });
+                          }}
+                          className={`w-full h-24 rounded-2xl p-1.5 flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden ${
+                            currentHeaderLayout === 'hero'
+                              ? 'border-2 border-black bg-white shadow-2xs ring-1 ring-black/10'
+                              : 'border border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="w-full h-14 rounded-xl overflow-hidden relative bg-rose-500">
+                            <img src={demoGirlImg} alt="Hero" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
+                          </div>
+                          <div className="w-4 h-4 rounded-full bg-black/60 backdrop-blur-xs flex items-center justify-center absolute top-1.5 right-1.5">
+                            <Sparkles className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        </button>
+                        <span className="text-[10px] font-semibold text-gray-800 text-center mt-1">Hero</span>
+                      </div>
+
+                      {/* Banner */}
+                      <div className="flex flex-col items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            commitChange({ headerLayout: 'banner' });
+                            onUpdateTree({ headerLayout: 'banner' });
+                          }}
+                          className={`w-full h-24 rounded-2xl p-1.5 flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden ${
+                            currentHeaderLayout === 'banner'
+                              ? 'border-2 border-black bg-white shadow-2xs ring-1 ring-black/10'
+                              : 'border border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="w-full h-8 rounded-t-lg bg-pink-300 overflow-hidden relative">
+                            <div className="w-full h-full opacity-60 bg-[radial-gradient(#ec4899_1px,transparent_1px)] [background-size:6px_6px]" />
+                          </div>
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-rose-500 -mt-3.5 ring-2 ring-white shadow-2xs">
+                            <img src={demoGirlImg} alt="Banner" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="w-4 h-4 rounded-full bg-black/60 backdrop-blur-xs flex items-center justify-center absolute top-1.5 right-1.5">
+                            <Sparkles className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        </button>
+                        <span className="text-[10px] font-semibold text-gray-800 text-center mt-1">Banner</span>
+                      </div>
+
+                      {/* Cutout */}
+                      <div className="flex flex-col items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            commitChange({ headerLayout: 'cutout' });
+                            onUpdateTree({ headerLayout: 'cutout' });
+                          }}
+                          className={`w-full h-24 rounded-2xl p-1.5 flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden ${
+                            currentHeaderLayout === 'cutout'
+                              ? 'border-2 border-black bg-white shadow-2xs ring-1 ring-black/10'
+                              : 'border border-gray-200 bg-white hover:border-gray-300'
+                          }`}
+                        >
+                          <div className="w-9 h-12 rounded-t-full overflow-hidden filter drop-shadow-xs">
+                            <img src={demoGirlImg} alt="Cutout" className="w-full h-full object-cover" />
+                          </div>
+                          <div className="w-4 h-4 rounded-full bg-black/60 backdrop-blur-xs flex items-center justify-center absolute top-1.5 right-1.5">
+                            <Sparkles className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        </button>
+                        <span className="text-[10px] font-semibold text-gray-800 text-center mt-1">Cutout</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Profile Image Section matching Image 3 */}
+                  <div className="flex items-center justify-between pt-2 pb-1 border-t border-gray-100">
+                    <span className="text-xs font-bold text-gray-900">Profile image</span>
+                    <input
+                      type="file"
+                      ref={avatarInputRef}
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                    />
+                    <div
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="w-12 h-12 rounded-xl bg-[#B5B9BE] relative flex items-center justify-center cursor-pointer overflow-visible group hover:opacity-95 transition-all shadow-inner shrink-0"
+                      title="Upload profile image"
+                    >
+                      {currentTree?.avatarUrl || current.avatarUrl ? (
+                        <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover rounded-xl" />
+                      ) : (
+                        <User className="w-7 h-7 text-white" />
+                      )}
+                      <div className="w-5 h-5 rounded-full bg-white shadow-xs border border-gray-200 flex items-center justify-center absolute -bottom-1 -right-1 text-gray-600 group-hover:scale-110 transition-transform">
+                        <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. Profile Title Section */}
+                  <div className="space-y-1.5 pt-2 border-t border-gray-100">
+                    <label className="text-xs font-bold text-gray-900 block">Profile title</label>
+                    <input
+                      type="text"
+                      value={current.title ?? `@${currentTree?.slug || 'riyast'}`}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        commitChange({ title: val });
+                        onUpdateTree({ title: val });
+                      }}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-black text-xs font-semibold text-gray-900 transition-all outline-hidden"
+                      placeholder="@username or title"
+                    />
+                  </div>
+
+                  {/* 4. Bio Section */}
+                  <div className="space-y-1.5 pb-4">
+                    <label className="text-xs font-bold text-gray-900 block">Bio</label>
+                    <textarea
+                      value={current.bio ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        commitChange({ bio: val });
+                        onUpdateTree({ bio: val });
+                      }}
+                      rows={2}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-gray-50 focus:bg-white focus:border-black text-xs text-gray-800 transition-all outline-hidden resize-none"
+                      placeholder="Add a short bio"
+                    />
                   </div>
                 </div>
               </div>
