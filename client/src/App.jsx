@@ -721,7 +721,7 @@ export function App() {
           <img src={logoUrl} alt="Logo" className="max-h-8 max-w-[170px] object-contain my-0.5" />
         ) : (
           <h2
-            className={`font-black text-2xl xs:text-[28px] tracking-tight leading-tight ${isHero ? 'text-white drop-shadow-xs' : ''}`}
+            className={`font-black text-[28px] sm:text-[32px] tracking-tight leading-tight ${isHero ? 'text-white drop-shadow-xs' : ''}`}
             style={{
               color: isHero ? '#ffffff' : titleColor,
               fontFamily: titleFont !== 'inherit' ? `'${titleFont}', sans-serif` : 'inherit',
@@ -732,7 +732,7 @@ export function App() {
         )}
         {bioText && (
           <p
-            className={`text-xs sm:text-[13px] font-medium leading-relaxed max-w-[280px] mt-0.5 mb-2 ${isHero ? 'text-white/90 drop-shadow-2xs' : 'text-gray-400'}`}
+            className={`text-sm sm:text-[15px] font-medium leading-relaxed max-w-[280px] mt-1 mb-2 ${isHero ? 'text-white/90 drop-shadow-2xs' : 'text-gray-300'}`}
             style={{ color: isHero ? '#ffffffcc' : (currentTree?.textColor || currentTree?.customTheme?.textColor || '#9CA3AF') }}
           >
             {bioText}
@@ -742,7 +742,7 @@ export function App() {
     );
 
     const defaultAvatarSvg = (
-      <svg className="w-12 h-12 text-white" viewBox="0 0 24 24" fill="currentColor">
+      <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
       </svg>
     );
@@ -820,8 +820,8 @@ export function App() {
 
     // Default: 'classic'
     return (
-      <div className="flex flex-col items-center text-center mb-3 shrink-0">
-        <div className="w-24 h-24 sm:w-26 sm:h-26 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3 shadow-lg ring-1 ring-white/15 shrink-0">
+      <div className="flex flex-col items-center text-center mt-3.5 sm:mt-4 mb-3 shrink-0">
+        <div className="w-28 h-28 sm:w-30 sm:h-30 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3.5 shadow-lg ring-1 ring-white/15 shrink-0">
           {currentTree?.avatarUrl ? (
             <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
           ) : defaultAvatarSvg}

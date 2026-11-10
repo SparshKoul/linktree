@@ -921,12 +921,12 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
                     <img src={current.avatarUrl || currentTree?.avatarUrl || demoGirlImg} alt="Shape" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  /* Classic Avatar matching iPhone 16 Pro Max */
-                  <div className="w-24 h-24 sm:w-26 sm:h-26 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-3 shadow-lg ring-1 ring-white/15 shrink-0">
+                  /* Classic Avatar matching Image */
+                  <div className="w-28 h-28 sm:w-30 sm:h-30 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mt-3.5 sm:mt-4 mb-3.5 shadow-lg ring-1 ring-white/15 shrink-0">
                     {current.avatarUrl || currentTree?.avatarUrl ? (
                       <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                      <User className="w-12 h-12 text-white" />
+                      <User className="w-16 h-16 text-white" />
                     )}
                   </div>
                 )}
@@ -936,7 +936,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
                   <img src={logoUrl} alt="Logo" className="max-h-8 max-w-[170px] object-contain my-0.5" />
                 ) : (
                   <h2
-                    className="font-bold text-2xl sm:text-[26px] leading-tight text-center tracking-tight"
+                    className="font-black text-[28px] sm:text-[32px] leading-tight text-center tracking-tight"
                     style={{
                       color: titleColor,
                       fontFamily: titleFont !== 'inherit' ? `'${titleFont}', sans-serif` : 'inherit',
@@ -949,7 +949,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
                 {/* Bio */}
                 {(current.bio ?? bioText) && (
                   <p
-                    className="text-sm font-normal leading-relaxed max-w-[280px] text-gray-300 mt-1 mb-3 text-center"
+                    className="text-sm sm:text-[15px] font-medium leading-relaxed max-w-[280px] text-gray-300 mt-1 mb-4 text-center"
                     style={{ color: current.textColor ? `${current.textColor}cc` : '#D1D5DB' }}
                   >
                     {current.bio ?? bioText}
