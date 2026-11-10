@@ -2115,18 +2115,10 @@ export function App() {
                   </div>
                 )}
 
-                {/* Mobile Floating Bottom Dock matching uploaded Image 0 */}
-                <div className="lg:hidden fixed bottom-3 inset-x-3 z-30 flex items-center justify-between pointer-events-none">
-                  {/* Left: Circular "33% set up" badge with purple border ring */}
-                  <div className="w-12 h-12 min-w-12 min-h-12 rounded-full bg-white shadow-xl border-2 border-[#A855F7] flex items-center justify-center relative pointer-events-auto cursor-pointer group hover:scale-105 transition-transform shrink-0">
-                    <div className="text-center leading-none">
-                      <span className="text-[10px] font-black text-gray-900 block">33%</span>
-                      <span className="text-[8px] font-bold text-gray-600 block mt-0.5">set up</span>
-                    </div>
-                  </div>
-
-                  {/* Right: Floating Pill Dock with 4 buttons */}
-                  <div className="h-12 px-4 bg-white/95 backdrop-blur-md rounded-full shadow-2xl border border-gray-200/90 flex items-center gap-5 pointer-events-auto shrink-0">
+                {/* Mobile Floating Bottom Dock */}
+                <div className="lg:hidden fixed bottom-3 inset-x-0 z-30 flex justify-center pointer-events-none px-4">
+                  {/* Floating Pill Dock with 4 buttons */}
+                  <div className="h-12 px-5 bg-white/95 backdrop-blur-md rounded-full shadow-2xl border border-gray-200/90 flex items-center gap-6 pointer-events-auto shrink-0">
                     {/* 1. Add */}
                     <button
                       type="button"
