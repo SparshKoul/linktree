@@ -113,3 +113,18 @@ body {
 .animate-soundwave-3 {
   animation: soundwave 0.9s ease-in-out infinite 0.2s;
 }
+
+/* Skeleton Loading Shimmer */
+@keyframes skeletonShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: skeletonShimmer 1.8s ease-in-out infinite;
+}
+

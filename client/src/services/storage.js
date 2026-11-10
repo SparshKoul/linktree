@@ -131,63 +131,7 @@ export const storage = {
     try {
       const raw = localStorage.getItem(CARDS_KEY);
       if (!raw) {
-        // Initial cards matching user's screen state
-        const initialCards = [
-          {
-            id: 1,
-            treeId: 1,
-            type: 'maps',
-            title: 'Star Carz Ludhiana',
-            subtitle: 'Starcarz, Pakhowal Rd, Hotel Aagaaz, Ludhiana',
-            url: 'https://maps.app.goo.gl/41pK4HQY5RHNe7qQA',
-            clicks: 0,
-            position: 0,
-            visible: true,
-            animation: 'none',
-            settings: {
-              address: 'Starcarz, Pakhowal Rd, Hotel Aagaaz, Ludhiana',
-              layout: 'classic',
-            },
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: 2,
-            treeId: 1,
-            type: 'link',
-            title: 'instagram.com',
-            subtitle: 'instagram.com',
-            url: 'https://instagram.com',
-            clicks: 0,
-            position: 1,
-            visible: true,
-            animation: 'none',
-            settings: {
-              layout: 'classic',
-            },
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: 3,
-            treeId: 1,
-            type: 'link',
-            title: 'GitHub · Change is constant. GitHub keeps you ahead. · GitHub...',
-            subtitle: 'github.com',
-            url: 'https://github.com',
-            clicks: 0,
-            position: 2,
-            visible: true,
-            animation: 'none',
-            settings: {
-              subtitle: 'github.com',
-              layout: 'classic',
-            },
-            createdAt: new Date().toISOString(),
-          },
-        ];
-        localStorage.setItem(CARDS_KEY, JSON.stringify(initialCards));
-        return treeId !== undefined && treeId !== null
-          ? initialCards.filter((c) => Number(c.treeId) === Number(treeId))
-          : initialCards;
+        return [];
       }
 
       const cards = JSON.parse(raw);
