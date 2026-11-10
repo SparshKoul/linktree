@@ -1332,7 +1332,7 @@ export function App() {
                 />
               </div>
             ) : (
-              <div className="bg-white rounded-none lg:rounded-[28px] lg:xl:rounded-[32px] px-4 lg:px-2.5 lg:sm:px-3 py-2.5 lg:py-4 sm:py-5 border-0 lg:border border-gray-200/80 shadow-none lg:shadow-2xs flex-1 overflow-y-auto card-scrollbar space-y-3.5 pb-28 lg:pb-5">
+              <div className="bg-white rounded-none lg:rounded-[28px] lg:xl:rounded-[32px] px-4 sm:px-5 lg:px-2.5 lg:sm:px-3 py-3 lg:py-4 sm:py-5 border-0 lg:border border-gray-200/80 shadow-none lg:shadow-2xs flex-1 overflow-y-auto card-scrollbar space-y-4 pb-28 lg:pb-5">
                 {/* Mobile Top Action Bar matching uploaded Image 0 */}
                 <div className="lg:hidden flex items-center justify-between pb-1 -mx-1">
                   <button
@@ -1461,39 +1461,39 @@ export function App() {
                     </div>
                   )}
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3.5">
                     {/* Squircle / Circular Avatar with strict dimensions */}
                     <button
                       type="button"
                       onClick={() => avatarInputRef.current?.click()}
-                      className="w-12 h-12 min-w-12 min-h-12 max-w-12 max-h-12 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden shrink-0 shadow-inner cursor-pointer relative"
+                      className="w-14 h-14 min-w-14 min-h-14 max-w-14 max-h-14 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden shrink-0 shadow-inner cursor-pointer relative"
                       title="Change profile photo"
                     >
                       {currentTree?.avatarUrl ? (
                         <img
                           src={currentTree.avatarUrl}
                           alt="Avatar"
-                          className="w-12 h-12 rounded-full object-cover block"
+                          className="w-14 h-14 rounded-full object-cover block"
                         />
                       ) : (
-                        <User className="w-6 h-6 text-white" />
+                        <User className="w-7 h-7 text-white" />
                       )}
                     </button>
 
                     <div className="flex flex-col gap-1.5 overflow-hidden flex-1">
                       {/* @riyast */}
-                      <span className="font-extrabold text-[13px] text-gray-900 truncate">@{currentSlug}</span>
+                      <span className="font-extrabold text-sm text-gray-900 truncate">@{currentSlug}</span>
 
                       {/* Social Action Circles Row with + Badge */}
-                      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
+                      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
                         <button
                           type="button"
                           onClick={() => handleAddSocialQuick('instagram')}
-                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
+                          className="w-8 h-8 rounded-full border border-gray-200/90 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
                           title="Add Instagram"
                         >
-                          <Instagram className="w-3.5 h-3.5 stroke-[1.8]" />
-                          <span className="w-3 h-3 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
+                          <Instagram className="w-4 h-4 stroke-[1.8]" />
+                          <span className="w-3.5 h-3.5 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
                             +
                           </span>
                         </button>
@@ -1501,13 +1501,13 @@ export function App() {
                         <button
                           type="button"
                           onClick={() => handleAddSocialQuick('tiktok')}
-                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
+                          className="w-8 h-8 rounded-full border border-gray-200/90 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
                           title="Add TikTok"
                         >
-                          <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                             <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.43c1.61-1.42 2.39-3.2 2.39-5.75v-5.2a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.43-.57z"/>
                           </svg>
-                          <span className="w-3 h-3 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
+                          <span className="w-3.5 h-3.5 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
                             +
                           </span>
                         </button>
@@ -1515,13 +1515,13 @@ export function App() {
                         <button
                           type="button"
                           onClick={() => handleAddSocialQuick('whatsapp')}
-                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
+                          className="w-8 h-8 rounded-full border border-gray-200/90 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
                           title="Add WhatsApp"
                         >
                           <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                             <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 0 1-1.26-4.36c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.4-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.35-.77-1.85-.2-.49-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.87.85-.87 2.08s.89 2.42 1.01 2.59c.13.17 1.75 2.67 4.24 3.75.59.26 1.05.41 1.41.53.6.19 1.14.16 1.57.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3z"/>
                           </svg>
-                          <span className="w-3 h-3 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
+                          <span className="w-3.5 h-3.5 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
                             +
                           </span>
                         </button>
@@ -1529,11 +1529,11 @@ export function App() {
                         <button
                           type="button"
                           onClick={() => handleAddSocialQuick('mail')}
-                          className="w-7 h-7 rounded-full border border-gray-200 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
+                          className="w-8 h-8 rounded-full border border-gray-200/90 bg-white hover:bg-gray-50 flex items-center justify-center text-gray-700 relative shrink-0 shadow-2xs cursor-pointer"
                           title="Add Email"
                         >
-                          <Mail className="w-3.5 h-3.5 stroke-[1.8]" />
-                          <span className="w-3 h-3 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
+                          <Mail className="w-4 h-4 stroke-[1.8]" />
+                          <span className="w-3.5 h-3.5 rounded-full bg-white border border-gray-300 text-gray-700 text-[8px] font-black flex items-center justify-center absolute -top-1 -right-1 shadow-2xs leading-none">
                             +
                           </span>
                         </button>
@@ -1541,10 +1541,10 @@ export function App() {
                         <button
                           type="button"
                           onClick={() => setIsAddCardOpen(true)}
-                          className="w-7 h-7 rounded-full border border-gray-200 bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 shrink-0 shadow-2xs cursor-pointer"
+                          className="w-8 h-8 rounded-full border border-gray-200/90 bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-700 shrink-0 shadow-2xs cursor-pointer"
                           title="Add More"
                         >
-                          <Plus className="w-3.5 h-3.5 stroke-[2]" />
+                          <Plus className="w-4 h-4 stroke-[2]" />
                         </button>
                       </div>
                     </div>
@@ -1561,7 +1561,7 @@ export function App() {
                         });
                         setTimeout(() => setTopToast(null), 3000);
                       }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F3F4F6] hover:bg-gray-200 text-[11px] font-semibold text-gray-700 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F3F4F6] hover:bg-gray-200 text-[11px] font-medium text-gray-600 transition-colors cursor-pointer"
                     >
                       <Users className="w-3.5 h-3.5 text-gray-500" />
                       <span>Show total followers</span>
@@ -1727,10 +1727,10 @@ export function App() {
                 </div>
 
                 {/* Action Buttons Row: [ ⊞ Add collection ] and [ + Add ] matching Reference */}
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() => handleAddCard('collapsible', 'Add collection title', { subtitle: 'Add or drag & drop an existing link' })}
-                    className="flex-1 py-2.5 px-4 rounded-full bg-[#EAEAE8] hover:bg-[#E2E2E0] text-xs font-semibold text-[#111111] flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    className="flex-1 h-11 py-2.5 px-4 rounded-full bg-[#EAEAE8] hover:bg-[#E2E2E0] text-xs font-bold text-[#111111] flex items-center justify-center gap-2 transition-colors cursor-pointer"
                   >
                     {/* Collection grid icon */}
                     <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
@@ -1744,7 +1744,7 @@ export function App() {
 
                   <button
                     onClick={() => setIsAddCardOpen(true)}
-                    className="flex-1 py-2.5 px-4 rounded-full bg-black hover:bg-neutral-800 text-xs font-bold text-white flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
+                    className="flex-1 h-11 py-2.5 px-4 rounded-full bg-black hover:bg-neutral-800 text-xs font-bold text-white flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                     <span>Add</span>
@@ -1753,10 +1753,10 @@ export function App() {
 
                 {/* Cards List with Internal Scroll Matching Reference */}
                 {activeTab === 'links' && (
-                  <div className="space-y-2 pt-1">
+                  <div className="space-y-3 pt-1.5">
                     {/* Reordering Active Banner */}
                     {isReordering && (
-                      <div className="flex items-center justify-between px-3.5 py-2 rounded-2xl bg-[#111111] text-white text-xs shadow-xs animate-in fade-in">
+                      <div className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-[#111111] text-white text-xs shadow-xs animate-in fade-in">
                         <div className="flex items-center gap-2 font-bold text-[11px]">
                           <ArrowUpDown className="w-3.5 h-3.5 text-purple-400" />
                           <span>Drag cards to reorder</span>
@@ -1771,7 +1771,7 @@ export function App() {
                     )}
 
                     {filterHiddenOnly && (
-                      <div className="flex items-center justify-between px-3.5 py-2 rounded-2xl bg-[#EAEAEA] border border-gray-300/80 text-xs">
+                      <div className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl bg-[#EAEAEA] border border-gray-300/80 text-xs">
                         <div className="flex items-center gap-1.5 font-bold text-[11px] text-gray-800">
                           <EyeOff className="w-3.5 h-3.5 text-gray-600" />
                           <span>
@@ -1849,7 +1849,7 @@ export function App() {
                             onClick={() => {
                               if (!isReordering) setActiveCardDetail(card);
                             }}
-                            className={`group rounded-xl sm:rounded-2xl py-2 px-2.5 sm:px-3 shadow-2xs transition-all flex items-center justify-between gap-2.5 ${
+                            className={`group rounded-[22px] sm:rounded-3xl py-3.5 px-3.5 sm:px-4 min-h-[66px] shadow-2xs transition-all flex items-center justify-between gap-3 ${
                               isReordering
                                 ? 'cursor-grab active:cursor-grabbing border-purple-300 ring-2 ring-purple-100 hover:border-purple-400'
                                 : 'cursor-pointer'
@@ -1858,10 +1858,10 @@ export function App() {
                             } ${
                               isHidden
                                 ? 'bg-[#EAEAEA] border border-gray-300/80 text-gray-500 hover:bg-[#E2E2E2]'
-                                : 'bg-white border border-gray-200/80 hover:border-gray-300 hover:shadow-xs'
+                                : 'bg-white border border-gray-200/90 hover:border-gray-300 hover:shadow-xs'
                             }`}
                           >
-                            <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="flex items-center gap-3 min-w-0">
                               {/* Drag Handle: shown only when Reorder mode is enabled */}
                               {isReordering && !filterHiddenOnly && (
                                 <div className="flex items-center gap-1 shrink-0 -ml-1">
@@ -1904,12 +1904,16 @@ export function App() {
                               )}
 
                               <div className={isHidden ? 'opacity-60' : ''}>
-                                <FaviconIcon card={card} className="w-4 h-4" containerClassName="w-8 h-8 rounded-xl shrink-0" />
+                                <FaviconIcon
+                                  card={card}
+                                  className="w-5 h-5"
+                                  containerClassName="w-11 h-11 rounded-[16px] shrink-0"
+                                />
                               </div>
 
-                              <div className="min-w-0 space-y-0.5">
+                              <div className="min-w-0 space-y-1">
                                 <div className="flex items-center gap-1.5 min-w-0">
-                                  <span className={`font-bold text-xs truncate leading-tight ${isHidden ? 'text-gray-500' : 'text-[#111111]'}`}>
+                                  <span className={`font-bold text-[13px] sm:text-sm truncate leading-snug ${isHidden ? 'text-gray-500' : 'text-[#111111]'}`}>
                                     {card.title}
                                   </span>
                                   {isHidden && (
@@ -1919,7 +1923,7 @@ export function App() {
                                     </span>
                                   )}
                                 </div>
-                                <div className={`text-[10px] truncate flex items-center gap-1.5 ${isHidden ? 'text-gray-400' : 'text-gray-500'}`}>
+                                <div className={`text-[11px] truncate flex items-center gap-1.5 ${isHidden ? 'text-gray-400' : 'text-gray-400'}`}>
                                   {card.type === 'collapsible' ? (
                                     <span className="truncate">{displaySubtitle}</span>
                                   ) : (
@@ -1937,13 +1941,13 @@ export function App() {
                               </div>
                             </div>
 
-                            <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                               {isSetupNeeded && (
                                 <button
                                   onClick={() => setActiveCardDetail(card)}
-                                  className="px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#D97706] text-[10px] font-bold flex items-center gap-1 hover:bg-amber-100 transition-colors cursor-pointer"
+                                  className="px-2.5 py-1 rounded-full bg-[#FEF3C7] text-[#D97706] text-[11px] font-bold flex items-center gap-1 hover:bg-amber-100 transition-colors cursor-pointer"
                                 >
-                                  <Key className="w-2.5 h-2.5 fill-current" />
+                                  <Key className="w-3 h-3 fill-current" />
                                   <span>Setup</span>
                                 </button>
                               )}
@@ -1951,10 +1955,10 @@ export function App() {
                               <div className="relative">
                                 <button
                                   onClick={() => setCardMenuId(cardMenuId === card.id ? null : card.id)}
-                                  className="p-1 rounded-lg text-gray-400 hover:text-black hover:bg-gray-100 transition-colors cursor-pointer"
+                                  className="p-1.5 rounded-xl text-gray-400 hover:text-black hover:bg-gray-100 transition-colors cursor-pointer"
                                   title="More options"
                                 >
-                                  <MoreVertical className="w-3.5 h-3.5" />
+                                  <MoreVertical className="w-4 h-4" />
                                 </button>
 
                                 {/* Card Context Menu matching Image 1 */}
@@ -2052,7 +2056,7 @@ export function App() {
                     })()}
 
                     {/* IndiaTaps footer toggle container matching Image 0 & 2 */}
-                    <div className="bg-white border border-gray-200/80 rounded-2xl p-3 shadow-2xs mt-3">
+                    <div className="bg-white border border-gray-200/90 rounded-[22px] p-4 shadow-2xs mt-3.5">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-bold text-[#111111]">IndiaTaps footer</span>
