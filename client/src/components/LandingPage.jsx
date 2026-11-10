@@ -294,9 +294,13 @@ export function LandingPage({ onNavigate, onOpenAuth, currentUser, onLogout }) {
             </form>
           </div>
 
-          {/* Right Column: Hero Visual Mockup matching Image 0 */}
+          {/* Right Column: Hero Visual Mockup matching Image 0 with Living Animations */}
           <div className="lg:col-span-5 flex justify-center lg:justify-end">
-            <div className="w-full max-w-[480px] rounded-[36px] overflow-hidden shadow-2xl relative bg-[#2C4EE4] aspect-[4/5] border border-black/10 flex flex-col justify-between p-6 sm:p-7 text-white select-none">
+            <div className="w-full max-w-[480px] rounded-[36px] overflow-hidden shadow-2xl relative bg-[#2C4EE4] aspect-[4/5] border border-black/10 flex flex-col justify-between p-6 sm:p-7 text-white select-none group">
+              {/* Glowing ambient light orbs inside card */}
+              <div className="absolute -top-10 -left-10 w-44 h-44 rounded-full bg-cyan-400/25 blur-3xl animate-hero-glow pointer-events-none" />
+              <div className="absolute -bottom-10 -right-10 w-52 h-52 rounded-full bg-indigo-600/35 blur-3xl animate-hero-glow pointer-events-none" />
+
               {/* Blue ribbed corrugated background texture */}
               <div
                 className="absolute inset-0 opacity-40 mix-blend-multiply pointer-events-none"
@@ -311,7 +315,7 @@ export function LandingPage({ onNavigate, onOpenAuth, currentUser, onLogout }) {
                 {[0, 1, 2, 3, 4].map((step) => (
                   <div key={step} className="h-2 bg-[#B88A52]/70 w-full relative">
                     {step === 1 && (
-                      <div className="absolute -top-4 right-1 w-6 h-5 bg-gray-200 rounded-sm border border-gray-400" />
+                      <div className="absolute -top-4 right-1 w-6 h-5 bg-gray-200 rounded-sm border border-gray-400 shadow-xs" />
                     )}
                   </div>
                 ))}
@@ -319,64 +323,93 @@ export function LandingPage({ onNavigate, onOpenAuth, currentUser, onLogout }) {
 
               {/* Top pill badge */}
               <div className="relative z-10 flex items-center justify-between">
-                <span className="px-3.5 py-1 rounded-full bg-black/30 backdrop-blur-md text-[11px] font-extrabold tracking-wider uppercase text-white/90">
-                  Featured Creator
+                <span className="px-3.5 py-1 rounded-full bg-black/40 backdrop-blur-md text-[11px] font-extrabold tracking-wider uppercase text-white/95 flex items-center gap-1.5 border border-white/10 shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-[#00E575] animate-pulse" />
+                  <span>Featured Creator</span>
                 </span>
-                <div className="w-8 h-8 rounded-full bg-black/25 backdrop-blur-md flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-amber-300" />
+                <div className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center border border-white/10 shadow-sm group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
                 </div>
               </div>
 
-              {/* Central Phone Kiosk Mockup matching Image 0 */}
+              {/* Central Phone Kiosk Mockup with Gentle Living Float */}
               <div className="relative z-10 my-auto flex items-center justify-center">
-                <div className="w-[260px] sm:w-[275px] rounded-[34px] p-3.5 bg-[#1F3EBE] shadow-2xl ring-4 ring-[#3D63FF]/60 border border-white/20 transform hover:scale-[1.01] transition-transform">
+                {/* Floating Micro-Pill 1: 2.4k Likes */}
+                <div className="absolute -left-2 sm:-left-5 top-1/4 z-20 bg-white/95 backdrop-blur-md text-[#111111] px-3 py-1.5 rounded-2xl shadow-xl border border-white/40 flex items-center gap-1.5 text-[11px] font-black animate-hero-float [animation-delay:0.5s] hover:scale-105 transition-transform pointer-events-none">
+                  <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500 animate-pulse" />
+                  <span>2.4k Likes</span>
+                </div>
+
+                {/* Floating Micro-Pill 2: 480 Taps Today */}
+                <div className="absolute -right-2 sm:-right-4 bottom-1/4 z-20 bg-[#111318]/90 backdrop-blur-md text-white px-3 py-1.5 rounded-2xl shadow-xl border border-white/15 flex items-center gap-1.5 text-[11px] font-extrabold animate-hero-float [animation-delay:1.5s] hover:scale-105 transition-transform pointer-events-none">
+                  <Zap className="w-3.5 h-3.5 text-[#00E575] fill-[#00E575] animate-bounce" />
+                  <span>480 Taps Today</span>
+                </div>
+
+                {/* Floating Phone Frame with Gentle Hover Breath */}
+                <div className="w-[260px] sm:w-[275px] rounded-[34px] p-3.5 bg-[#1F3EBE] shadow-2xl ring-4 ring-[#3D63FF]/70 border border-white/20 animate-hero-float transition-all hover:ring-[#00E575]/70">
                   <div className="w-full bg-white text-[#111111] rounded-[26px] p-4 flex flex-col items-center text-center shadow-inner">
-                    {/* Flower Logo & Handle matching Image 0 */}
-                    <div className="w-12 h-12 rounded-full bg-[#1F3EBE] text-white flex items-center justify-center font-black text-xs shadow-sm mb-1.5 ring-2 ring-blue-100">
-                      <span>WANNA BE</span>
+                    {/* Flower Logo & Handle with Online Indicator */}
+                    <div className="relative mb-1.5">
+                      <div className="w-12 h-12 rounded-full bg-[#1F3EBE] text-white flex items-center justify-center font-black text-xs shadow-sm ring-2 ring-blue-100">
+                        <span>WANNA BE</span>
+                      </div>
+                      <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-[#00E575] border-2 border-white ring-2 ring-[#00E575]/30 animate-pulse" />
                     </div>
 
                     <h3 className="font-black text-base tracking-tight text-[#111111]">
                       Koy Sun
                     </h3>
 
-                    {/* Social Icons row */}
+                    {/* Social Icons row with interactive hover */}
                     <div className="flex items-center gap-2 mt-1 mb-3 text-gray-700">
-                      <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                      <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center hover:bg-pink-100 hover:text-pink-600 transition-colors cursor-pointer hover:scale-110">
                         <Instagram className="w-3 h-3" />
                       </div>
-                      <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                      <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center hover:bg-red-100 hover:text-red-600 transition-colors cursor-pointer hover:scale-110">
                         <Youtube className="w-3 h-3 text-red-600" />
                       </div>
-                      <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors">
+                      <div className="w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center hover:bg-purple-100 hover:text-purple-600 transition-colors cursor-pointer hover:scale-110">
                         <Music className="w-3 h-3 text-pink-600" />
                       </div>
                     </div>
 
                     {/* Button 1: Check out my work */}
-                    <div className="w-full py-2.5 px-3 rounded-full border border-gray-300 text-xs font-bold text-gray-800 shadow-2xs hover:bg-gray-50 transition-colors mb-2.5">
+                    <div className="w-full py-2.5 px-3 rounded-full border border-gray-300 text-xs font-bold text-gray-800 shadow-2xs hover:bg-[#D2E823] hover:text-[#1E3A1E] hover:border-[#1E3A1E] transition-all mb-2.5 cursor-pointer hover:scale-[1.02]">
                       Check out my work
                     </div>
 
-                    {/* TikTok Embedded Card matching Image 0 */}
-                    <div className="w-full bg-[#F3F4F6] rounded-2xl p-2.5 text-left border border-gray-200/80">
+                    {/* TikTok Embedded Card with Animated Soundwave */}
+                    <div className="w-full bg-[#F3F4F6] rounded-2xl p-2.5 text-left border border-gray-200/80 hover:border-gray-300 transition-colors">
                       <div className="flex items-center justify-between text-[10px] font-bold text-gray-500 mb-1.5">
-                        <span className="flex items-center gap-1 font-extrabold text-black">
+                        <span className="flex items-center gap-1.5 font-extrabold text-black">
                           <Music className="w-2.5 h-2.5 text-pink-500" />
-                          TikTok
+                          <span>TikTok</span>
+                          {/* Animated Soundwave Equalizer */}
+                          <div className="flex items-end gap-0.5 h-2.5 ml-1">
+                            <div className="w-0.5 bg-[#00E575] rounded-full animate-soundwave-1" />
+                            <div className="w-0.5 bg-[#00E575] rounded-full animate-soundwave-2" />
+                            <div className="w-0.5 bg-[#00E575] rounded-full animate-soundwave-3" />
+                          </div>
                         </span>
-                        <span className="text-gray-400">@koysun</span>
+                        <span className="text-gray-400 font-mono">@koysun</span>
                       </div>
-                      <div className="w-full h-18 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-500 overflow-hidden relative shadow-inner">
-                        <div className="absolute inset-0 flex items-center justify-center text-white/90 text-[11px] font-bold">
+
+                      {/* Video Thumbnail with Shimmer Light */}
+                      <div className="w-full h-18 rounded-xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-purple-600 overflow-hidden relative shadow-inner group-hover:brightness-105 transition-all">
+                        <div className="absolute inset-0 flex items-center justify-center text-white/95 text-[11px] font-black drop-shadow-md">
                           🖌️ Studio Painting Session
                         </div>
+                        <div className="absolute bottom-1 right-1.5 bg-black/60 px-1.5 py-0.5 rounded text-[9px] font-mono text-white">
+                          0:45
+                        </div>
                       </div>
+
                       <div className="mt-2 flex items-center justify-between">
                         <span className="text-[10px] font-bold text-gray-700">Watch full clip</span>
                         <button
                           type="button"
-                          className="px-3 py-1 rounded-full bg-black text-white text-[10px] font-bold hover:bg-gray-800 transition-colors"
+                          className="px-3.5 py-1 rounded-full bg-black hover:bg-[#1E3A1E] text-white text-[10px] font-extrabold transition-all hover:scale-105 cursor-pointer shadow-xs"
                         >
                           Follow
                         </button>
