@@ -714,10 +714,14 @@ export const db = {
       const user = data?.[0];
       if (!user) return null;
       const isSuper = user.email?.toLowerCase() === 'sparshkoul6@gmail.com' || user.role === 'super_admin';
+      const accountState = user.account_state || (user.tier === 'blocked' ? 'locked' : 'active');
       return {
         ...user,
         role: isSuper ? 'super_admin' : (user.role || 'client'),
         accountType: isSuper ? 'super_admin' : (user.account_type || user.role || 'client'),
+        accountState,
+        account_state: accountState,
+        isBlocked: accountState === 'locked' || user.tier === 'blocked' || user.role === 'blocked',
         isSuperAdmin: isSuper,
       };
     } catch (err) {

@@ -88,7 +88,16 @@ export function SuperAdminDashboard({
 
       // Update local state
       setUsers((prev) =>
-        prev.map((u) => (u.id === user.id ? { ...u, isBlocked: nextBlocked } : u))
+        prev.map((u) =>
+          u.id === user.id
+            ? {
+                ...u,
+                isBlocked: nextBlocked,
+                account_state: nextBlocked ? 'locked' : 'active',
+                accountState: nextBlocked ? 'locked' : 'active',
+              }
+            : u
+        )
       );
     } catch (err) {
       alert(err.message);
@@ -421,13 +430,13 @@ export function SuperAdminDashboard({
                           </span>
 
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                              u.isBlocked
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 font-mono uppercase tracking-wide ${
+                              u.account_state === 'locked' || u.isBlocked
                                 ? 'bg-red-100 text-red-700 border border-red-200'
                                 : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                             }`}
                           >
-                            {u.isBlocked ? (
+                            {u.account_state === 'locked' || u.isBlocked ? (
                               <>
                                 <Lock className="w-2.5 h-2.5" />
                                 <span>Locked</span>

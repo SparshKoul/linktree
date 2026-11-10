@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   display_name TEXT,
   role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   tier TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'pro', 'enterprise')),
+  account_state TEXT NOT NULL DEFAULT 'active' CHECK (account_state IN ('active', 'locked')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -28,7 +29,11 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS display_name TEXT;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'client';
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS account_type TEXT NOT NULL DEFAULT 'client';
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS tier TEXT NOT NULL DEFAULT 'free';
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS account_state TEXT NOT NULL DEFAULT 'active' CHECK (account_state IN ('active', 'locked'));
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- Sync any locked/blocked states
+UPDATE public.users SET account_state = 'locked' WHERE tier = 'blocked';
 
 -- Super Admin Provisioning
 UPDATE public.users SET role = 'super_admin', account_type = 'super_admin' WHERE LOWER(email) = 'sparshkoul6@gmail.com';

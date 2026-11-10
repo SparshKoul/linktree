@@ -211,7 +211,7 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const user = await db.signInUser({ identifier: loginId, password });
     if (user) {
-      if (user.isBlocked || user.is_blocked || user.status === 'blocked') {
+      if (user.isBlocked || user.is_blocked || user.status === 'blocked' || user.account_state === 'locked' || user.accountState === 'locked' || user.tier === 'blocked') {
         return res.status(403).json({ error: 'Your account has been locked by the administrator. Contact sparshkoul6@gmail.com for assistance.' });
       }
       store.currentUserId = user.id;
@@ -233,7 +233,7 @@ app.post('/api/auth/login', async (req, res) => {
   if (!user) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
-  if (user.isBlocked || user.is_blocked || user.status === 'blocked') {
+  if (user.isBlocked || user.is_blocked || user.status === 'blocked' || user.account_state === 'locked' || user.accountState === 'locked' || user.tier === 'blocked') {
     return res.status(403).json({ error: 'Your account has been locked by the administrator. Contact sparshkoul6@gmail.com for assistance.' });
   }
   store.currentUserId = user.id;
@@ -366,6 +366,8 @@ app.post('/api/admin/users', async (req, res) => {
     role: role || 'client',
     accountType: accountType || 'client',
     isSuperAdmin: false,
+    accountState: 'active',
+    account_state: 'active',
     isBlocked: false,
     createdAt: new Date().toISOString(),
   };
@@ -402,11 +404,17 @@ app.get('/api/admin/users', async (req, res) => {
 
   let dbUsers = null;
   try {
-    const { data, error } = await supabase.from('users').select('id, email, username, role, tier, created_at');
+    let { data, error } = await supabase.from('users').select('id, email, username, role, tier, account_state, created_at');
+    if (error && error.message?.includes('account_state')) {
+      const fallback = await supabase.from('users').select('id, email, username, role, tier, created_at');
+      data = fallback.data;
+      error = fallback.error;
+    }
     if (error) throw error;
     if (data) {
       dbUsers = data.map((u) => {
         const isS = u.email?.toLowerCase() === 'sparshkoul6@gmail.com' || u.role === 'super_admin';
+        const accountState = u.account_state || (u.tier === 'blocked' ? 'locked' : 'active');
         return {
           id: u.id,
           email: u.email,
@@ -414,7 +422,9 @@ app.get('/api/admin/users', async (req, res) => {
           role: isS ? 'super_admin' : (u.role || 'client'),
           accountType: isS ? 'super_admin' : (u.role || 'client'),
           isSuperAdmin: isS,
-          isBlocked: Boolean(u.tier === 'blocked' || u.role === 'blocked'),
+          accountState,
+          account_state: accountState,
+          isBlocked: accountState === 'locked' || u.tier === 'blocked' || u.role === 'blocked',
           createdAt: u.created_at,
         };
       });
@@ -423,10 +433,15 @@ app.get('/api/admin/users', async (req, res) => {
     console.warn('[Admin List Users error]', err.message);
   }
 
-  const baseUsers = dbUsers || store.users.map(({ password, ...u }) => ({
-    ...u,
-    isBlocked: Boolean(u.isBlocked || u.status === 'blocked' || u.tier === 'blocked'),
-  }));
+  const baseUsers = dbUsers || store.users.map(({ password, ...u }) => {
+    const accountState = u.account_state || u.accountState || (u.tier === 'blocked' || u.status === 'blocked' || u.isBlocked ? 'locked' : 'active');
+    return {
+      ...u,
+      accountState,
+      account_state: accountState,
+      isBlocked: accountState === 'locked',
+    };
+  });
 
   // Attach digital cards / trees to each user
   let allTrees = [];
@@ -475,14 +490,24 @@ app.patch('/api/admin/users/:id/block', async (req, res) => {
   }
 
   const isBlocked = req.body.isBlocked !== undefined ? Boolean(req.body.isBlocked) : true;
+  const nextAccountState = isBlocked ? 'locked' : 'active';
 
   if (user) {
     user.isBlocked = isBlocked;
+    user.accountState = nextAccountState;
+    user.account_state = nextAccountState;
     user.status = isBlocked ? 'blocked' : 'active';
   }
 
   try {
-    await supabase.from('users').update({ tier: isBlocked ? 'blocked' : 'free' }).eq('id', targetId);
+    const { error } = await supabase.from('users').update({
+      account_state: nextAccountState,
+      tier: isBlocked ? 'blocked' : 'free',
+    }).eq('id', targetId);
+
+    if (error && error.message?.includes('account_state')) {
+      await supabase.from('users').update({ tier: isBlocked ? 'blocked' : 'free' }).eq('id', targetId);
+    }
   } catch (err) {
     console.warn('[Supabase block error]', err.message);
   }
@@ -490,6 +515,8 @@ app.patch('/api/admin/users/:id/block', async (req, res) => {
   res.json({
     success: true,
     userId: targetId,
+    account_state: nextAccountState,
+    accountState: nextAccountState,
     isBlocked,
     message: isBlocked ? 'Client account has been locked' : 'Client account has been unlocked',
   });

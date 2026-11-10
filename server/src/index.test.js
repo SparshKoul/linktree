@@ -365,6 +365,66 @@ describe('Super Admin & Authentication Restrictions', () => {
     const loginBad = handleEmailPasswordLogin('riyast', 'wrongpwd');
     expect(loginBad.status).toBe(401);
   });
+
+  it('allows Super Admin to view client trees count and lock/unlock client accounts via account_state', () => {
+    const clients = [
+      { id: 10, email: 'client1@test.com', account_state: 'active', isBlocked: false },
+      { id: 20, email: 'client2@test.com', account_state: 'active', isBlocked: false },
+    ];
+    const trees = [
+      { id: 101, adminId: 10, slug: 'client1-tree1' },
+      { id: 102, adminId: 10, slug: 'client1-tree2' },
+      { id: 103, adminId: 20, slug: 'client2-tree1' },
+    ];
+
+    // Compute client trees
+    const enriched = clients.map((c) => {
+      const userTrees = trees.filter((t) => t.adminId === c.id);
+      return {
+        ...c,
+        treesCount: userTrees.length,
+        trees: userTrees,
+      };
+    });
+
+    expect(enriched[0].treesCount).toBe(2);
+    expect(enriched[1].treesCount).toBe(1);
+
+    // Toggle block / account_state logic
+    function toggleAccountState(caller, targetUser, isLocked) {
+      if (!isSuperAdmin(caller)) return { status: 403, error: 'Forbidden' };
+      if (targetUser.email === 'sparshkoul6@gmail.com') return { status: 400, error: 'Cannot block Super Admin' };
+      targetUser.account_state = isLocked ? 'locked' : 'active';
+      targetUser.isBlocked = isLocked;
+      return { status: 200, account_state: targetUser.account_state, isBlocked: targetUser.isBlocked };
+    }
+
+    // Lock client1
+    const lockRes = toggleAccountState(users[0], clients[0], true);
+    expect(lockRes.status).toBe(200);
+    expect(clients[0].account_state).toBe('locked');
+    expect(clients[0].isBlocked).toBe(true);
+
+    // Verify locked user cannot log in
+    function tryLogin(user) {
+      if (user.account_state === 'locked' || user.isBlocked) {
+        return { status: 403, error: 'Your account has been locked by the administrator.' };
+      }
+      return { status: 200, success: true };
+    }
+    expect(tryLogin(clients[0]).status).toBe(403);
+
+    // Cannot lock Super Admin
+    const lockSuperRes = toggleAccountState(users[0], users[0], true);
+    expect(lockSuperRes.status).toBe(400);
+
+    // Unlock client1
+    const unlockRes = toggleAccountState(users[0], clients[0], false);
+    expect(unlockRes.status).toBe(200);
+    expect(clients[0].account_state).toBe('active');
+    expect(clients[0].isBlocked).toBe(false);
+    expect(tryLogin(clients[0]).status).toBe(200);
+  });
 });
 
 
