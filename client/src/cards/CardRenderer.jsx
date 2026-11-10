@@ -46,17 +46,28 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
+  const cardSettings =
+    typeof card.settings === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(card.settings);
+          } catch {
+            return {};
+          }
+        })()
+      : card.settings || {};
+
   const isGallery =
     card.type === 'gallery' ||
-    card.settings?.platform === 'gallery' ||
-    Boolean(card.settings?.images && card.settings.images.length > 0) ||
+    cardSettings.platform === 'gallery' ||
+    Boolean(cardSettings.images && cardSettings.images.length > 0) ||
     (card.title || '').toLowerCase().includes('gallery');
 
   const isPdfOrMenu =
     card.type === 'menu' ||
-    card.settings?.platform === 'menu' ||
-    Boolean(card.settings?.isPdf) ||
-    Boolean(card.settings?.pdfName) ||
+    cardSettings.platform === 'menu' ||
+    Boolean(cardSettings.isPdf) ||
+    Boolean(cardSettings.pdfName) ||
     Boolean(card.url && /\.pdf($|\?)/i.test(card.url)) ||
     Boolean(card.url && card.url.startsWith('data:application/pdf')) ||
     (card.title || '').toLowerCase().includes('menu');
@@ -84,9 +95,14 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80',
   ];
 
-  const galleryItems =
-    Array.isArray(card.settings?.images) && card.settings.images.length > 0
-      ? card.settings.images.map((it) =>
+  const hasUploadedImages =
+    Array.isArray(cardSettings.images) &&
+    cardSettings.images.length > 0 &&
+    cardSettings.images.some((it) => (typeof it === 'string' ? it.trim() !== '' : Boolean(it?.url)));
+
+  const galleryItems = hasUploadedImages
+    ? cardSettings.images
+        .map((it) =>
           typeof it === 'string'
             ? { url: it, isVid: isVideoMedia(it), formattedSize: '' }
             : {
@@ -95,9 +111,10 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                 formattedSize: it.formattedSize || '',
               }
         )
-      : (card.thumbnailUrl ? [card.thumbnailUrl, ...defaultGalleryImages.slice(1)] : defaultGalleryImages).map(
-          (url) => ({ url, isVid: isVideoMedia(url), formattedSize: '' })
-        );
+        .filter((it) => it.url && it.url.trim() !== '')
+    : (card.thumbnailUrl ? [card.thumbnailUrl, ...defaultGalleryImages.slice(1)] : defaultGalleryImages).map(
+        (url) => ({ url, isVid: isVideoMedia(url), formattedSize: '' })
+      );
 
   const galleryImages = galleryItems.map((it) => it.url);
 

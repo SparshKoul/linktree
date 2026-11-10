@@ -413,11 +413,13 @@ export function App() {
     storage.updateCard(cardId, updates);
 
     const updatedCards = currentTree.cards.map((c) =>
-      c.id === cardId ? { ...c, ...updates, settings: { ...(c.settings || {}), ...(updates.settings || {}) } } : c
+      String(c.id) === String(cardId)
+        ? { ...c, ...updates, settings: { ...(c.settings || {}), ...(updates.settings || {}) } }
+        : c
     );
     setCurrentTree({ ...currentTree, cards: updatedCards });
 
-    if (activeCardDetail && activeCardDetail.id === cardId) {
+    if (activeCardDetail && String(activeCardDetail.id) === String(cardId)) {
       setActiveCardDetail((prev) =>
         prev ? { ...prev, ...updates, settings: { ...(prev.settings || {}), ...(updates.settings || {}) } } : null
       );
@@ -442,7 +444,7 @@ export function App() {
               ? {
                   ...prev,
                   cards: (prev.cards || []).map((c) =>
-                    c.id === cardId
+                    String(c.id) === String(cardId)
                       ? {
                           ...c,
                           ...updatedDb,
@@ -456,13 +458,27 @@ export function App() {
                 }
               : prev
           );
+          if (activeCardDetail && String(activeCardDetail.id) === String(cardId)) {
+            setActiveCardDetail((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    ...updatedDb,
+                    settings: {
+                      ...(prev.settings || {}),
+                      ...(updatedDb.settings || {}),
+                    },
+                  }
+                : null
+            );
+          }
         }
       })
       .catch(() => {});
   };
 
   const promptDeleteCard = (cardId) => {
-    const target = currentTree?.cards?.find((c) => c.id === cardId) || activeCardDetail;
+    const target = currentTree?.cards?.find((c) => String(c.id) === String(cardId)) || activeCardDetail;
     if (target) {
       setCardPendingDelete({
         title: target.title,
@@ -513,7 +529,7 @@ export function App() {
   };
 
   const confirmDeleteCard = async (cardId) => {
-    const toDelete = currentTree?.cards?.find((c) => c.id === cardId) || activeCardDetail;
+    const toDelete = currentTree?.cards?.find((c) => String(c.id) === String(cardId)) || activeCardDetail;
     if (toDelete) {
       executeDeleteCards([toDelete]);
     }

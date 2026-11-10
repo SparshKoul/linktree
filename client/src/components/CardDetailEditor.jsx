@@ -62,35 +62,50 @@ export function CardDetailEditor({
   onDeleteCard,
   activeTheme,
 }) {
+  const cardSettings =
+    typeof card?.settings === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(card.settings);
+          } catch {
+            return {};
+          }
+        })()
+      : card?.settings || {};
+
   const isMaps =
     card?.type === 'maps' ||
-    Boolean(card?.settings?.address) ||
+    Boolean(cardSettings.address) ||
     Boolean(card?.url && /maps\.google|maps\.app\.goo\.gl/i.test(card.url));
 
   const isMenu =
     card?.type === 'menu' ||
-    card?.settings?.platform === 'menu' ||
-    Boolean(card?.settings?.isPdf) ||
+    cardSettings.platform === 'menu' ||
+    Boolean(cardSettings.isPdf) ||
     Boolean(card?.url && /\.pdf($|\?)/i.test(card.url));
 
   const isGallery =
     card?.type === 'gallery' ||
-    card?.settings?.platform === 'gallery' ||
-    Boolean(card?.settings?.images && card.settings.images.length > 0) ||
+    cardSettings.platform === 'gallery' ||
+    Boolean(cardSettings.images && cardSettings.images.length > 0) ||
     (card?.title || '').toLowerCase().includes('gallery');
+
+  const MAX_GALLERY_ITEMS = 10;
+  const MAX_GALLERY_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB limit per container
 
   const [activeTab, setActiveTab] = useState('details'); // 'details' | 'powerups' | 'insights'
   const [title, setTitle] = useState(card?.title ?? '');
-  const [subtitle, setSubtitle] = useState(card?.subtitle ?? card?.settings?.address ?? '');
+  const [subtitle, setSubtitle] = useState(card?.subtitle ?? cardSettings.address ?? '');
   const [url, setUrl] = useState(card?.url ?? '');
   const [thumbnailUrl, setThumbnailUrl] = useState(card?.thumbnailUrl ?? '');
-  const [layout, setLayout] = useState(card?.settings?.layout || 'classic');
+  const [layout, setLayout] = useState(cardSettings.layout || 'classic');
   const [showMenu, setShowMenu] = useState(false);
   const fileInputRef = useRef(null);
   const pdfInputRef = useRef(null);
   const galleryInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
+  const [galleryError, setGalleryError] = useState('');
 
   useEffect(() => {
     if (card) {
@@ -250,11 +265,45 @@ export function CardDetailEditor({
   };
 
   const handleGallerySelect = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+    const rawFiles = Array.from(e.target.files || []);
+    if (!rawFiles.length) return;
+    setGalleryError('');
+
+    const existing = (cardSettings.images || []).map(normalizeGalleryItem).filter(Boolean);
+    const existingBytes = existing.reduce((acc, it) => acc + (it.size || 0), 0);
+
+    if (existing.length >= MAX_GALLERY_ITEMS) {
+      setGalleryError(`Container limit reached: this gallery box can have at most ${MAX_GALLERY_ITEMS} photos/videos.`);
+      if (e.target) e.target.value = '';
+      return;
+    }
+
+    // Limit files to remaining available slots (max 10)
+    const availableSlots = MAX_GALLERY_ITEMS - existing.length;
+    let files = rawFiles.slice(0, availableSlots);
+    if (rawFiles.length > availableSlots) {
+      setGalleryError(`Maximum ${MAX_GALLERY_ITEMS} items allowed per gallery. Only the first ${availableSlots} files were selected.`);
+    }
+
+    // Enforce 50 MB utmost storage limit per box
+    let runningBytes = existingBytes;
+    const acceptedFiles = [];
+    for (const f of files) {
+      if (runningBytes + f.size > MAX_GALLERY_SIZE_BYTES) {
+        setGalleryError(`Utmost storage limit of 50 MB reached. Some large files were skipped.`);
+        break;
+      }
+      runningBytes += f.size;
+      acceptedFiles.push(f);
+    }
+
+    if (!acceptedFiles.length) {
+      if (e.target) e.target.value = '';
+      return;
+    }
 
     setIsUploading(true);
-    setUploadStatus(`Preparing ${files.length} ${files.length === 1 ? 'file' : 'files'}...`);
+    setUploadStatus(`Preparing ${acceptedFiles.length} ${acceptedFiles.length === 1 ? 'file' : 'files'}...`);
 
     const readAsDataUrl = (file) =>
       new Promise((resolve) => {
@@ -266,10 +315,10 @@ export function CardDetailEditor({
 
     try {
       const newItems = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+      for (let i = 0; i < acceptedFiles.length; i++) {
+        const file = acceptedFiles[i];
         const isVid = file.type.startsWith('video/') || /\.(mp4|webm|mov|ogg)$/i.test(file.name);
-        setUploadStatus(`Uploading ${i + 1} of ${files.length}: ${file.name} (${formatFileSize(file.size)})...`);
+        setUploadStatus(`Uploading ${i + 1} of ${acceptedFiles.length}: ${file.name} (${formatFileSize(file.size)})...`);
 
         const dataUrl = await readAsDataUrl(file);
         if (!dataUrl) continue;
@@ -307,7 +356,6 @@ export function CardDetailEditor({
       }
 
       if (newItems.length > 0) {
-        const existing = (card.settings?.images || []).map(normalizeGalleryItem).filter(Boolean);
         const combined = [...existing, ...newItems];
         const totalSize = combined.reduce((acc, it) => acc + (it.size || 0), 0);
         const sizeTag = totalSize > 0 ? ` · ${formatFileSize(totalSize)}` : '';
@@ -318,7 +366,7 @@ export function CardDetailEditor({
           subtitle: newSubtitle,
           thumbnailUrl: card.thumbnailUrl || combined[0]?.url,
           settings: {
-            ...(card.settings || {}),
+            ...cardSettings,
             images: combined,
             totalSizeBytes: totalSize,
             needsSetup: false,
@@ -333,7 +381,8 @@ export function CardDetailEditor({
   };
 
   const handleRemoveGalleryItem = (indexToRemove) => {
-    const existing = (card.settings?.images || []).map(normalizeGalleryItem).filter(Boolean);
+    setGalleryError('');
+    const existing = (cardSettings.images || []).map(normalizeGalleryItem).filter(Boolean);
     const updated = existing.filter((_, idx) => idx !== indexToRemove);
     const totalSize = updated.reduce((acc, it) => acc + (it.size || 0), 0);
     const sizeTag = totalSize > 0 ? ` · ${formatFileSize(totalSize)}` : '';
@@ -344,7 +393,7 @@ export function CardDetailEditor({
       subtitle: newSubtitle,
       thumbnailUrl: updated[0]?.url || '',
       settings: {
-        ...(card.settings || {}),
+        ...cardSettings,
         images: updated,
         totalSizeBytes: totalSize,
       },
@@ -565,121 +614,186 @@ export function CardDetailEditor({
             </div>
 
             {/* Dedicated Gallery Upload for Photos & Videos */}
-            {isGallery && (
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <label className="block text-[11px] font-semibold text-gray-500">
-                    Gallery Items ({card.settings?.images?.length || 0})
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => galleryInputRef.current?.click()}
-                    className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
-                  >
-                    + Add Photos / Videos
-                  </button>
-                </div>
+            {isGallery && (() => {
+              const currentGalleryItems = (cardSettings.images || []).map(normalizeGalleryItem).filter(Boolean);
+              const totalGalleryBytes = currentGalleryItems.reduce((acc, it) => acc + (it.size || 0), 0);
+              const galleryStoragePercent = Math.min(100, Math.round((totalGalleryBytes / MAX_GALLERY_SIZE_BYTES) * 100));
+              const isGalleryFull = currentGalleryItems.length >= MAX_GALLERY_ITEMS || totalGalleryBytes >= MAX_GALLERY_SIZE_BYTES;
 
-                <input
-                  type="file"
-                  ref={galleryInputRef}
-                  accept=".png,.jpg,.jpeg,.mp4,.webm,.mov,.pnj,image/png,image/jpeg,image/jpg,image/webp,video/mp4,video/webm,video/quicktime"
-                  multiple
-                  onChange={handleGallerySelect}
-                  className="hidden"
-                />
+              return (
+                <div className="space-y-3">
+                  {/* Container Storage & Limit Indicator (10 files max, 50 MB max) */}
+                  <div className="space-y-1.5 bg-gray-50/90 p-3.5 rounded-2xl border border-gray-200/80 shadow-2xs">
+                    <div className="flex items-center justify-between text-xs font-bold text-gray-700">
+                      <div className="flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Gallery Items ({currentGalleryItems.length} / {MAX_GALLERY_ITEMS})</span>
+                      </div>
+                      <span className="font-mono text-[11px] font-semibold text-gray-500">
+                        {formatFileSize(totalGalleryBytes) || '0 MB'} / 50 MB
+                      </span>
+                    </div>
 
-                {/* Uploading progress banner & animation */}
-                {isUploading && (
-                  <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 flex items-center gap-3 text-blue-700 animate-pulse shadow-2xs">
-                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
-                    <div className="min-w-0">
-                      <div className="font-bold text-xs">Uploading Media...</div>
-                      <div className="text-[11px] text-blue-600 truncate">{uploadStatus}</div>
+                    <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          galleryStoragePercent > 90
+                            ? 'bg-red-500'
+                            : galleryStoragePercent > 70
+                            ? 'bg-amber-500'
+                            : 'bg-blue-600'
+                        }`}
+                        style={{ width: `${Math.max(galleryStoragePercent, currentGalleryItems.length > 0 ? 5 : 0)}%` }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between pt-0.5 text-[10px] text-gray-500">
+                      <span>Max 10 images/videos · Utmost storage 50 MB per box</span>
+                      {currentGalleryItems.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onUpdateCard(card.id, {
+                              subtitle: 'Gallery · 0 items',
+                              thumbnailUrl: '',
+                              settings: {
+                                ...cardSettings,
+                                images: [],
+                                totalSizeBytes: 0,
+                              },
+                            });
+                          }}
+                          className="font-bold text-red-500 hover:text-red-700 transition-colors cursor-pointer"
+                        >
+                          Clear all
+                        </button>
+                      )}
                     </div>
                   </div>
-                )}
 
-                {/* Grid of uploaded items with MB size indicators */}
-                {card.settings?.images && card.settings.images.length > 0 ? (
-                  <div className="space-y-2.5">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                      {(card.settings.images || []).map(normalizeGalleryItem).filter(Boolean).map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="rounded-xl overflow-hidden relative group border border-gray-200 bg-white shadow-2xs flex flex-col"
-                        >
-                          <div className="aspect-[4/3] w-full relative bg-black/5 overflow-hidden">
-                            {item.type === 'video' ? (
-                              <div className="w-full h-full bg-black flex items-center justify-center text-white relative">
-                                <Play className="w-6 h-6 opacity-80" />
-                                <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/75 text-[9px] font-bold text-white uppercase tracking-wider">
-                                  Video
-                                </span>
-                              </div>
-                            ) : (
-                              <img
-                                src={item.url}
-                                alt={item.name || `Gallery ${idx + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveGalleryItem(idx)}
-                              className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/75 hover:bg-black text-white flex items-center justify-center transition-colors cursor-pointer shadow-sm"
-                              title="Delete"
-                            >
-                              <X className="w-3.5 h-3.5 stroke-[2.5]" />
-                            </button>
-                          </div>
-
-                          {/* File info footer with MB badge */}
-                          <div className="p-2 bg-white flex items-center justify-between gap-1 text-[11px] border-t border-gray-100">
-                            <span className="font-semibold text-gray-800 truncate" title={item.name}>
-                              {item.name || `Item ${idx + 1}`}
-                            </span>
-                            {item.formattedSize && (
-                              <span className="shrink-0 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px] font-mono font-bold">
-                                {item.formattedSize}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                  {/* Warning / Error banner if limit reached */}
+                  {galleryError && (
+                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center justify-between animate-in fade-in">
+                      <span>{galleryError}</span>
+                      <button
+                        type="button"
+                        onClick={() => setGalleryError('')}
+                        className="p-1 text-amber-600 hover:text-black cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </div>
+                  )}
 
+                  <input
+                    type="file"
+                    ref={galleryInputRef}
+                    accept=".png,.jpg,.jpeg,.mp4,.webm,.mov,.pnj,image/png,image/jpeg,image/jpg,image/webp,video/mp4,video/webm,video/quicktime"
+                    multiple
+                    onChange={handleGallerySelect}
+                    className="hidden"
+                  />
+
+                  {/* Uploading progress banner & animation */}
+                  {isUploading && (
+                    <div className="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 flex items-center gap-3 text-blue-700 animate-pulse shadow-2xs">
+                      <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-bold text-xs">Uploading Media...</div>
+                        <div className="text-[11px] text-blue-600 truncate">{uploadStatus}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Grid of uploaded items with MB size indicators */}
+                  {currentGalleryItems.length > 0 ? (
+                    <div className="space-y-2.5">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        {currentGalleryItems.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="rounded-xl overflow-hidden relative group border border-gray-200 bg-white shadow-2xs flex flex-col"
+                          >
+                            <div className="aspect-[4/3] w-full relative bg-black/5 overflow-hidden">
+                              {item.type === 'video' ? (
+                                <div className="w-full h-full bg-black flex items-center justify-center text-white relative">
+                                  <Play className="w-6 h-6 opacity-80" />
+                                  <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/75 text-[9px] font-bold text-white uppercase tracking-wider">
+                                    Video
+                                  </span>
+                                </div>
+                              ) : (
+                                <img
+                                  src={item.url}
+                                  alt={item.name || `Gallery ${idx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveGalleryItem(idx)}
+                                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/75 hover:bg-black text-white flex items-center justify-center transition-colors cursor-pointer shadow-sm"
+                                title="Delete"
+                              >
+                                <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                              </button>
+                            </div>
+
+                            {/* File info footer with MB badge */}
+                            <div className="p-2 bg-white flex items-center justify-between gap-1 text-[11px] border-t border-gray-100">
+                              <span className="font-semibold text-gray-800 truncate" title={item.name}>
+                                {item.name || `Item ${idx + 1}`}
+                              </span>
+                              {item.formattedSize && (
+                                <span className="shrink-0 px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 text-[10px] font-mono font-bold">
+                                  {item.formattedSize}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={isUploading || isGalleryFull}
+                        onClick={() => galleryInputRef.current?.click()}
+                        className={`w-full py-2.5 rounded-xl border border-dashed text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                          isGalleryFull
+                            ? 'border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed'
+                            : 'border-gray-300 hover:border-blue-500 bg-blue-50/30 hover:bg-blue-50 text-blue-600'
+                        }`}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>
+                          {isGalleryFull
+                            ? 'Gallery container full (10 files / 50 MB limit reached)'
+                            : 'Add more pictures / videos (.png, .jpg, .mp4)'}
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
                     <button
                       type="button"
                       disabled={isUploading}
                       onClick={() => galleryInputRef.current?.click()}
-                      className="w-full py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-blue-500 bg-blue-50/30 hover:bg-blue-50 text-xs font-bold text-blue-600 flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                      className="w-full p-5 rounded-2xl border-2 border-dashed border-gray-300 hover:border-blue-500 bg-gray-50/60 hover:bg-blue-50/30 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer group disabled:opacity-50"
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Add more pictures / videos (.png, .jpg, .mp4)</span>
+                      <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 group-hover:text-blue-600 shadow-2xs transition-colors">
+                        <ImageIcon className="w-5 h-5" />
+                      </div>
+                      <div className="font-bold text-xs text-gray-700 group-hover:text-black">
+                        Upload Photos & Videos (.png, .jpg, .mp4)
+                      </div>
+                      <div className="text-[10px] text-gray-400">
+                        Max 10 files · Utmost 50 MB storage
+                      </div>
                     </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={isUploading}
-                    onClick={() => galleryInputRef.current?.click()}
-                    className="w-full p-4 rounded-2xl border-2 border-dashed border-gray-300 hover:border-blue-500 bg-gray-50/60 hover:bg-blue-50/30 flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer group disabled:opacity-50"
-                  >
-                    <div className="w-9 h-9 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-500 group-hover:text-blue-600 shadow-2xs transition-colors">
-                      <ImageIcon className="w-4 h-4" />
-                    </div>
-                    <div className="font-bold text-xs text-gray-700 group-hover:text-black">
-                      Upload Photos & Videos (.png, .jpg, .mp4)
-                    </div>
-                    <div className="text-[10px] text-gray-400">
-                      Select .png, .jpg photos or .mp4 video clips from your device
-                    </div>
-                  </button>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Dedicated PDF Menu Upload for Restaurant Menu & Catalogs */}
             {isMenu && (
@@ -765,24 +879,26 @@ export function CardDetailEditor({
               </div>
             )}
 
-            {/* URL Field */}
-            <div className="p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-gray-300 transition-colors">
-              <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">
-                Destination URL
-              </label>
-              <div className="flex items-center justify-between">
-                <input
-                  type="text"
-                  value={url}
-                  onChange={(e) => handleUrlChange(e.target.value)}
-                  placeholder="https://example.com"
-                  className="w-full bg-transparent text-sm font-semibold text-[#111111] focus:outline-none font-mono"
-                />
-                <button className="text-gray-400 hover:text-black p-1 shrink-0">
-                  <Pencil className="w-3.5 h-3.5" />
-                </button>
+            {/* URL Field - hidden for Gallery since it contains multiple uploaded photos/videos */}
+            {!isGallery && (
+              <div className="p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-gray-300 transition-colors">
+                <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">
+                  Destination URL
+                </label>
+                <div className="flex items-center justify-between">
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => handleUrlChange(e.target.value)}
+                    placeholder="https://example.com"
+                    className="w-full bg-transparent text-sm font-semibold text-[#111111] focus:outline-none font-mono"
+                  />
+                  <button className="text-gray-400 hover:text-black p-1 shrink-0">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Section: Display Layout (Classic vs Featured) */}
