@@ -98,18 +98,13 @@ export function PublicTreePage({ slug }) {
     updateMeta('meta[name="twitter:description"]', 'content', t.bio || `View ${title}'s links and digital card on IndiaTaps`);
 
     const avatar = t.avatarUrl || t.customTheme?.avatarUrl;
-    let favicon = document.querySelector('link[rel="icon"]');
-    const originalFavicon = favicon ? favicon.getAttribute('href') : '/vite.svg';
-
     if (avatar) {
       updateMeta('meta[property="og:image"]', 'content', avatar);
       updateMeta('meta[name="twitter:image"]', 'content', avatar);
-      if (favicon) favicon.setAttribute('href', avatar);
     }
 
     return () => {
       document.title = originalTitle;
-      if (favicon) favicon.setAttribute('href', originalFavicon);
     };
   }, [treeData, slug]);
 

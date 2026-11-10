@@ -625,20 +625,17 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     card.settings?.subtitle ||
     (isPdf ? 'PDF Menu' : '');
 
-  // Card 2 in Image 0 (Instagram.com): plain links with no custom thumbnail render as clean centered text pills
+  // Plain links with no custom thumbnail render as clean centered text pills
   const hasCustomThumbnail = Boolean(card.thumbnailUrl);
-  const isGitHub = (card.url || '').toLowerCase().includes('github.com');
   const isSimpleCenteredLink =
     card.type === 'link' &&
     !hasCustomThumbnail &&
     !card.settings?.showIcon &&
-    ((card.title || '').toLowerCase() === 'instagram.com' ||
-      (card.title || '').toLowerCase().includes('instagram.com') ||
-      (!card.subtitle || card.subtitle === card.title));
+    (!card.subtitle || card.subtitle === card.title);
 
   const showThumbnail = Boolean(
     hasCustomThumbnail ||
-    (card.type === 'link' && !isSimpleCenteredLink && (isGitHub || (card.subtitle && card.subtitle !== card.title))) ||
+    (card.type === 'link' && !isSimpleCenteredLink && card.subtitle && card.subtitle !== card.title) ||
     card.type === 'reviews'
   );
 
