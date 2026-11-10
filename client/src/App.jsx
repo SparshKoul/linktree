@@ -1440,17 +1440,43 @@ export function App() {
 
                 {/* Mobile Profile Header Row matching uploaded Image 0 */}
                 <div className="lg:hidden flex flex-col pt-1 pb-1">
+                  {/* Optional Banner Cover if Banner / Hero layout is enabled */}
+                  {currentHeaderLayout === 'banner' && (currentTree?.bannerUrl || currentTree?.customTheme?.bannerUrl) && (
+                    <div className="w-full h-24 rounded-2xl overflow-hidden relative shadow-xs mb-2 border border-gray-200/60 shrink-0">
+                      <img
+                        src={currentTree?.bannerUrl || currentTree?.customTheme?.bannerUrl}
+                        alt="Banner cover"
+                        className="w-full h-full object-cover block"
+                      />
+                    </div>
+                  )}
+
+                  {currentHeaderLayout === 'hero' && (currentTree?.heroUrl || currentTree?.customTheme?.heroUrl) && (
+                    <div className="w-full h-28 rounded-2xl overflow-hidden relative shadow-xs mb-2 border border-gray-200/60 shrink-0">
+                      <img
+                        src={currentTree?.heroUrl || currentTree?.customTheme?.heroUrl}
+                        alt="Hero cover"
+                        className="w-full h-full object-cover block"
+                      />
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-3">
-                    {/* Squircle / Circular Avatar */}
+                    {/* Squircle / Circular Avatar with strict dimensions */}
                     <button
                       type="button"
                       onClick={() => avatarInputRef.current?.click()}
-                      className="w-13 h-13 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden shrink-0 shadow-inner cursor-pointer"
+                      className="w-12 h-12 min-w-12 min-h-12 max-w-12 max-h-12 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden shrink-0 shadow-inner cursor-pointer relative"
+                      title="Change profile photo"
                     >
                       {currentTree?.avatarUrl ? (
-                        <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                        <img
+                          src={currentTree.avatarUrl}
+                          alt="Avatar"
+                          className="w-12 h-12 rounded-full object-cover block"
+                        />
                       ) : (
-                        <User className="w-7 h-7 text-white" />
+                        <User className="w-6 h-6 text-white" />
                       )}
                     </button>
 
@@ -2092,7 +2118,7 @@ export function App() {
                 {/* Mobile Floating Bottom Dock matching uploaded Image 0 */}
                 <div className="lg:hidden fixed bottom-3 inset-x-3 z-30 flex items-center justify-between pointer-events-none">
                   {/* Left: Circular "33% set up" badge with purple border ring */}
-                  <div className="w-13 h-13 rounded-full bg-white shadow-xl border-3 border-[#A855F7] flex items-center justify-center relative pointer-events-auto cursor-pointer group hover:scale-105 transition-transform shrink-0">
+                  <div className="w-12 h-12 min-w-12 min-h-12 rounded-full bg-white shadow-xl border-2 border-[#A855F7] flex items-center justify-center relative pointer-events-auto cursor-pointer group hover:scale-105 transition-transform shrink-0">
                     <div className="text-center leading-none">
                       <span className="text-[10px] font-black text-gray-900 block">33%</span>
                       <span className="text-[8px] font-bold text-gray-600 block mt-0.5">set up</span>
@@ -2100,7 +2126,7 @@ export function App() {
                   </div>
 
                   {/* Right: Floating Pill Dock with 4 buttons */}
-                  <div className="h-13 px-4 bg-white/95 backdrop-blur-md rounded-full shadow-2xl border border-gray-200/90 flex items-center gap-5 pointer-events-auto shrink-0">
+                  <div className="h-12 px-4 bg-white/95 backdrop-blur-md rounded-full shadow-2xl border border-gray-200/90 flex items-center gap-5 pointer-events-auto shrink-0">
                     {/* 1. Add */}
                     <button
                       type="button"
