@@ -2055,8 +2055,8 @@ export function App() {
                       });
                     })()}
 
-                    {/* IndiaTaps footer toggle container matching Image 0 & 2 */}
-                    <div className="bg-white border border-gray-200/90 rounded-[22px] p-4 shadow-2xs mt-3.5">
+                    {/* IndiaTaps footer toggle container (hidden on mobile, kept on desktop) */}
+                    <div className="hidden lg:block bg-white border border-gray-200/90 rounded-[22px] p-4 shadow-2xs mt-3.5">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-bold text-[#111111]">IndiaTaps footer</span>
