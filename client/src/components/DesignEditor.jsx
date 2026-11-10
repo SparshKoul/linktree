@@ -841,15 +841,15 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
         {/* Center Mobile Phone Preview Area */}
         <div
           className={`flex-1 flex ${
-            activeSubview ? 'items-start pt-2 sm:pt-3 max-h-[50dvh]' : 'items-center justify-center p-2.5 sm:p-3.5'
-          } justify-center px-3 overflow-hidden relative transition-all duration-200`}
+            activeSubview ? 'items-start pt-2 max-h-[46dvh]' : 'items-stretch'
+          } justify-center px-1 sm:px-2 pt-1 pb-0 overflow-hidden relative transition-all duration-200`}
         >
           <div
-            className={`w-[305px] xs:w-[320px] sm:w-[335px] max-w-[calc(100vw-28px)] ${
+            className={`w-full max-w-[440px] h-full ${
               activeSubview
-                ? 'h-[520px] xs:h-[560px] sm:h-[600px] origin-top scale-[0.85] xs:scale-[0.9] sm:scale-100'
-                : 'h-full max-h-[calc(100dvh-130px)]'
-            } rounded-[38px] shadow-2xl relative border border-white/10 overflow-hidden flex flex-col shrink-0 transition-all duration-200`}
+                ? 'origin-top scale-[0.88] rounded-[24px]'
+                : 'rounded-t-[32px] rounded-b-none border-b-0'
+            } shadow-2xl relative border border-white/10 overflow-hidden flex flex-col transition-all duration-200`}
             style={{
               background: current.backgroundValue || '#111111',
               backgroundSize: 'cover',
@@ -858,11 +858,17 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
           >
             {/* Top Phone Frame Bar */}
             <div
-              className="px-5 pt-3.5 pb-1 flex items-center justify-between text-xs shrink-0"
+              className="px-4 pt-3 pb-1 flex items-center justify-between text-xs shrink-0 z-10"
               style={{ color: current.textColor || '#FFFFFF' }}
             >
-              <span className="font-extrabold text-sm leading-none">✱</span>
-              <button type="button" className="opacity-90 hover:opacity-100 cursor-pointer" title="Share">
+              <span className="w-7 h-7 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white text-xs font-black shadow-xs">
+                ✱
+              </span>
+              <button
+                type="button"
+                className="w-7 h-7 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white shadow-xs hover:bg-black/40 transition-colors cursor-pointer"
+                title="Share"
+              >
                 <Share2 className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -909,21 +915,21 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
                 </div>
               ) : (
                 /* Classic Avatar */
-                <div className="w-16 h-16 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-2 shadow-inner shrink-0">
+                <div className="w-20 h-20 rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-2.5 shadow-md ring-2 ring-white/10 shrink-0">
                   {current.avatarUrl || currentTree?.avatarUrl ? (
                     <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-9 h-9 text-white" />
+                    <User className="w-12 h-12 text-white" />
                   )}
                 </div>
               )}
 
               {/* Title */}
               {isLogo && logoUrl ? (
-                <img src={logoUrl} alt="Logo" className="max-h-7 max-w-[150px] object-contain my-0.5" />
+                <img src={logoUrl} alt="Logo" className="max-h-8 max-w-[170px] object-contain my-0.5" />
               ) : (
                 <h2
-                  className="font-extrabold text-sm leading-tight text-center"
+                  className="font-black text-2xl xs:text-[26px] leading-tight text-center tracking-tight"
                   style={{
                     color: titleColor,
                     fontFamily: titleFont !== 'inherit' ? `'${titleFont}', sans-serif` : 'inherit',
@@ -936,15 +942,15 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
               {/* Bio */}
               {(current.bio ?? bioText) && (
                 <p
-                  className="text-[11px] leading-tight max-w-[210px] text-gray-400 mt-0.5 mb-2 text-center"
-                  style={{ color: current.textColor ? `${current.textColor}bb` : '#9CA3AF' }}
+                  className="text-xs font-medium leading-relaxed max-w-[280px] text-gray-300 mt-1 mb-3 text-center"
+                  style={{ color: current.textColor ? `${current.textColor}cc` : '#D1D5DB' }}
                 >
                   {current.bio ?? bioText}
                 </p>
               )}
 
               {/* Links List */}
-              <div className="w-full space-y-2 my-2 flex-1">
+              <div className="w-full space-y-3 my-2 flex-1 px-1">
                 {visibleCards.map((card) => (
                   <CardRenderer key={card.id} card={card} theme={previewTheme} isPreview />
                 ))}
@@ -952,7 +958,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
 
               {/* Footer */}
               {current.footerEnabled !== false && (
-                <div className="mt-auto pt-4 pb-4 text-center text-[9px] text-gray-400 leading-tight shrink-0">
+                <div className="mt-auto pt-6 pb-6 text-center text-[10px] text-gray-400 leading-tight shrink-0">
                   <div>Cookie Preferences • Report • Privacy</div>
                   <div className="mt-0.5">More from Linktree</div>
                 </div>
