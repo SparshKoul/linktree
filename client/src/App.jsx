@@ -22,6 +22,7 @@ import {
   Trash2,
   X,
   Copy,
+  ShieldCheck,
   HelpCircle,
   MessageSquare,
   LogOut,
@@ -74,12 +75,21 @@ import { storage } from './services/storage.js';
 import { LandingPage } from './components/LandingPage.jsx';
 import { PublicTreePage } from './components/PublicTreePage.jsx';
 import { ContactPage } from './components/ContactPage.jsx';
+import { SuperAdminDashboard } from './components/SuperAdminDashboard.jsx';
 
 export function App() {
   const initialUser = storage.getUser();
   const initialSettings = storage.getSettings();
 
   const [currentUser, setCurrentUser] = useState(initialUser);
+  const isSuper = Boolean(
+    currentUser && (
+      currentUser.isSuperAdmin ||
+      currentUser.role === 'super_admin' ||
+      currentUser.accountType === 'super_admin' ||
+      currentUser.email?.toLowerCase() === 'sparshkoul6@gmail.com'
+    )
+  );
   const [trees, setTrees] = useState([]);
   const [currentTree, setCurrentTree] = useState(null);
   const [activeTab, setActiveTab] = useState('links'); // 'links' | 'shop'
@@ -158,6 +168,13 @@ export function App() {
       }
     }
   }, [currentPath, isDashboard]);
+
+  // Route to Super Admin dashboard if /admin path
+  useEffect(() => {
+    if (typeof window !== 'undefined' && currentPath.startsWith('/admin') && isSuper) {
+      setCurrentView('super_admin');
+    }
+  }, [currentPath, isSuper]);
 
   // Load current user and trees on mount or user change using localStorage first
   const fetchUserData = (userId) => {
@@ -1332,6 +1349,24 @@ export function App() {
                   <span>Dashboard</span>
                 </button>
 
+                {isSuper && (
+                  <button
+                    onClick={() => {
+                      setCurrentView('super_admin');
+                      if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${
+                      currentView === 'super_admin'
+                        ? 'bg-purple-100 text-purple-950 font-black shadow-2xs border border-purple-200'
+                        : 'text-purple-700 hover:text-purple-950 hover:bg-purple-50 font-bold'
+                    }`}
+                  >
+                    <ShieldCheck className="w-4 h-4 text-purple-700" />
+                    <span>Super Admin</span>
+                    <span className="ml-auto text-[9px] font-black uppercase bg-purple-700 text-white px-1.5 py-0.5 rounded">Console</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
                     if (window.innerWidth < 1024) setIsSidebarOpen(false);
@@ -1578,8 +1613,15 @@ export function App() {
           </aside>
         )}
 
-        {/* 3. Center Main View: Account & Trees Dashboard OR Workspace Editor */}
-        {currentView === 'dashboard' ? (
+        {/* 3. Center Main View: Super Admin Console OR Account & Trees Dashboard OR Workspace Editor */}
+        {currentView === 'super_admin' && isSuper ? (
+          <SuperAdminDashboard
+            currentUser={currentUser}
+            onGoToWorkspace={() => setCurrentView('workspace')}
+            onGoToDashboard={() => setCurrentView('dashboard')}
+            onLogout={handleLogout}
+          />
+        ) : currentView === 'dashboard' ? (
           <CardsDashboard
             currentUser={currentUser}
             currentTree={currentTree}

@@ -3,6 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { db } from './db/db.js';
+import { supabase } from './db/supabase.js';
 
 dotenv.config();
 
@@ -210,6 +211,9 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const user = await db.signInUser({ identifier: loginId, password });
     if (user) {
+      if (user.isBlocked || user.is_blocked || user.status === 'blocked') {
+        return res.status(403).json({ error: 'Your account has been locked by the administrator. Contact sparshkoul6@gmail.com for assistance.' });
+      }
       store.currentUserId = user.id;
       setAuthCookies(user);
       const { password: _, ...safeUser } = user;
@@ -228,6 +232,9 @@ app.post('/api/auth/login', async (req, res) => {
   );
   if (!user) {
     return res.status(401).json({ error: 'Invalid email or password' });
+  }
+  if (user.isBlocked || user.is_blocked || user.status === 'blocked') {
+    return res.status(403).json({ error: 'Your account has been locked by the administrator. Contact sparshkoul6@gmail.com for assistance.' });
   }
   store.currentUserId = user.id;
   setAuthCookies(user);
@@ -359,13 +366,33 @@ app.post('/api/admin/users', async (req, res) => {
     role: role || 'client',
     accountType: accountType || 'client',
     isSuperAdmin: false,
+    isBlocked: false,
+    createdAt: new Date().toISOString(),
   };
   store.users.push(newUser);
+
+  // Automatically provision an initial tree for the new client
+  const clientTree = {
+    id: Date.now() + 1,
+    adminId: newId,
+    name: cleanUsername,
+    slug: cleanUsername,
+    status: 'live',
+    title: cleanUsername,
+    bio: 'Welcome to my digital card',
+    avatarUrl: null,
+    themeId: 'classic-light',
+    customTheme: { name: 'Classic Clean' },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  store.trees.push(clientTree);
+
   const { password: _, ...safeUser } = newUser;
-  res.status(201).json({ user: safeUser, success: true });
+  res.status(201).json({ user: safeUser, tree: clientTree, success: true });
 });
 
-// Super Admin List Users
+// Super Admin List Users with their trees and status
 app.get('/api/admin/users', async (req, res) => {
   const callerId = req.userId;
   const isSuper = await isCallerSuperAdmin(callerId);
@@ -375,22 +402,124 @@ app.get('/api/admin/users', async (req, res) => {
 
   let dbUsers = null;
   try {
-    const { data } = await supabase.from('users').select('id, email, username, role, created_at');
+    const { data, error } = await supabase.from('users').select('id, email, username, role, tier, created_at');
+    if (error) throw error;
     if (data) {
       dbUsers = data.map((u) => {
         const isS = u.email?.toLowerCase() === 'sparshkoul6@gmail.com' || u.role === 'super_admin';
         return {
-          ...u,
+          id: u.id,
+          email: u.email,
+          username: u.username,
           role: isS ? 'super_admin' : (u.role || 'client'),
-          accountType: isS ? 'super_admin' : (u.account_type || u.role || 'client'),
+          accountType: isS ? 'super_admin' : (u.role || 'client'),
           isSuperAdmin: isS,
+          isBlocked: Boolean(u.tier === 'blocked' || u.role === 'blocked'),
+          createdAt: u.created_at,
         };
       });
     }
+  } catch (err) {
+    console.warn('[Admin List Users error]', err.message);
+  }
+
+  const baseUsers = dbUsers || store.users.map(({ password, ...u }) => ({
+    ...u,
+    isBlocked: Boolean(u.isBlocked || u.status === 'blocked' || u.tier === 'blocked'),
+  }));
+
+  // Attach digital cards / trees to each user
+  let allTrees = [];
+  try {
+    const dbTrees = await db.getTrees();
+    if (dbTrees && dbTrees.length) allTrees = dbTrees;
+  } catch (err) {
+    console.warn('[Admin List Trees error]', err.message);
+  }
+  if (!allTrees.length) {
+    allTrees = store.trees;
+  }
+
+  const enrichedUsers = baseUsers.map((u) => {
+    const userTrees = allTrees.filter(
+      (t) => (t.adminId ?? t.admin_id) === u.id || (t.slug && u.username && t.slug.toLowerCase() === u.username.toLowerCase())
+    );
+    return {
+      ...u,
+      treesCount: userTrees.length,
+      trees: userTrees.map((t) => ({
+        id: t.id,
+        name: t.name || t.title || t.slug,
+        slug: t.slug,
+        status: t.status || 'live',
+        cardCount: t.cardCount || 0,
+      })),
+    };
+  });
+
+  res.json(enrichedUsers);
+});
+
+// Super Admin Block / Lock Client Account
+app.patch('/api/admin/users/:id/block', async (req, res) => {
+  const callerId = req.userId;
+  const isSuper = await isCallerSuperAdmin(callerId);
+  if (!isSuper) {
+    return res.status(403).json({ error: 'Forbidden: Super Admin access required' });
+  }
+
+  const targetId = Number(req.params.id);
+  const user = store.users.find((u) => u.id === targetId);
+  if (user && (user.email?.toLowerCase() === 'sparshkoul6@gmail.com' || user.isSuperAdmin)) {
+    return res.status(400).json({ error: 'Cannot block or lock the Super Admin account' });
+  }
+
+  const isBlocked = req.body.isBlocked !== undefined ? Boolean(req.body.isBlocked) : true;
+
+  if (user) {
+    user.isBlocked = isBlocked;
+    user.status = isBlocked ? 'blocked' : 'active';
+  }
+
+  try {
+    await supabase.from('users').update({ tier: isBlocked ? 'blocked' : 'free' }).eq('id', targetId);
+  } catch (err) {
+    console.warn('[Supabase block error]', err.message);
+  }
+
+  res.json({
+    success: true,
+    userId: targetId,
+    isBlocked,
+    message: isBlocked ? 'Client account has been locked' : 'Client account has been unlocked',
+  });
+});
+
+// Super Admin Delete Client Account
+app.delete('/api/admin/users/:id', async (req, res) => {
+  const callerId = req.userId;
+  const isSuper = await isCallerSuperAdmin(callerId);
+  if (!isSuper) {
+    return res.status(403).json({ error: 'Forbidden: Super Admin access required' });
+  }
+
+  const targetId = Number(req.params.id);
+  const user = store.users.find((u) => u.id === targetId);
+  if (user && (user.email?.toLowerCase() === 'sparshkoul6@gmail.com' || user.isSuperAdmin)) {
+    return res.status(400).json({ error: 'Cannot delete the Super Admin account' });
+  }
+
+  const userIdx = store.users.findIndex((u) => u.id === targetId);
+  if (userIdx !== -1) {
+    store.users.splice(userIdx, 1);
+  }
+  store.trees = store.trees.filter((t) => t.adminId !== targetId);
+
+  try {
+    await supabase.from('users').delete().eq('id', targetId);
   } catch {}
 
-  const list = dbUsers || store.users.map(({ password, ...u }) => u);
-  res.json(list);
+  res.json({ success: true, message: 'Client account deleted successfully' });
 });
 
 // Google OAuth & Social Logins (Completely Disabled per security policy)
