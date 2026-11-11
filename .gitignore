@@ -3,6 +3,7 @@
 # ==============================================================================
 node_modules/
 */node_modules/
+**/node_modules/
 web_modules/
 jspm_packages/
 .pnp
@@ -18,9 +19,12 @@ jspm_packages/
 # ==============================================================================
 .env
 .env.*
-!.env.example
-!.env.*.example
 *.env
+*.env.*
+**/.env
+**/.env.*
+**/*.env
+**/*.env.*
 *.env.local
 *.env.development.local
 *.env.test.local
@@ -28,7 +32,12 @@ jspm_packages/
 .env.backup
 .env*.local
 
-# Secrets, API keys, and certificates
+# Allow documented example templates ONLY
+!.env.example
+!**/.env.example
+!server/.env.example
+
+# Secrets, API keys, tokens, and certificates
 *.pem
 *.key
 *.crt
@@ -40,19 +49,50 @@ jspm_packages/
 id_rsa*
 secrets/
 .secrets/
+**/.secrets/
 *.secret
 credentials*.json
+*credential*
 service-account*.json
+*service_account*.json
+*service-account*.json
 token*.json
+auth_token*
+refresh_token*
 jwt_secret*
+session_secret*
+google-services.json
+GoogleService-Info.plist
+*.keystore
+*.jks
+*.gpg
+*.pgp
+*.kdbx
+
+# Cloud providers and deployment CLI local caches
+.vercel
+.vercel/
+**/.vercel/
+.netlify/
+**/.netlify/
+.firebase/
+**/.firebase/
+.aws/
+**/.aws/
+.gcp/
+**/.gcp/
+.azure/
+**/.azure/
 
 # ==============================================================================
 # Build outputs, bundles, and compiled assets
 # ==============================================================================
 dist/
 */dist/
+**/dist/
 build/
 */build/
+**/build/
 out/
 */out/
 .parcel-cache/
@@ -72,11 +112,14 @@ out/
 # ==============================================================================
 logs/
 *.log
+**/*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+firebase-debug.log*
+firestore-debug.log*
 
 # ==============================================================================
 # Databases, backups, and local storage dumps
@@ -89,8 +132,11 @@ lerna-debug.log*
 *.db-shm
 *.rdb
 dump.rdb
+*.dump
+*.dmp
 *.sql
 *.sql.gz
+!server/src/db/schema.sql
 data/
 storage/
 
@@ -125,8 +171,13 @@ Desktop.ini
 *.bak
 
 # ==============================================================================
-# Local agents, AI caches, and sensitive project docs
+# Local scratch files, agents, and sensitive project docs
 # ==============================================================================
+scratch/
+**/scratch/
+tmp/
+**/tmp/
+*.scratch.*
 .agents/
 .gemini/
 .cursor/
