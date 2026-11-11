@@ -202,6 +202,24 @@ export function WallpaperEditor({ current, commitChange }) {
           wallpaperStyle: activeStyle === 'fill' ? 'image' : activeStyle,
         });
         setShowImagePicker(false);
+
+        // Upload to backend CDN storage so huge base64 strings don't bloat DB
+        fetch('/api/admin/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ file: dataUrl, filename: file.name, folder: 'wallpapers' }),
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((res) => {
+            if (res?.url && !res.fallback) {
+              syncBackgroundValue({
+                backgroundImageUrl: res.url,
+                wallpaperStyle: activeStyle === 'fill' ? 'image' : activeStyle,
+              });
+            }
+          })
+          .catch(() => {});
       }
     };
     reader.readAsDataURL(file);

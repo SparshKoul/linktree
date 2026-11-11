@@ -193,49 +193,84 @@ export const db = {
       if (updates.title !== undefined) payload.title = updates.title;
       if (updates.bio !== undefined) payload.bio = updates.bio;
 
-      const avatar = updates.avatarUrl ?? updates.avatar_url;
-      if (avatar !== undefined) {
-        if (typeof avatar === 'string' && avatar.startsWith('data:image')) {
-          const cdnUrl = await this.uploadAsset({
-            base64Data: avatar,
+      // 1. Parallelize any pending base64 uploads (avatar, banner, hero, logo, background)
+      const uploadPromises = [];
+
+      let finalAvatar = updates.avatarUrl ?? updates.avatar_url;
+      if (typeof finalAvatar === 'string' && finalAvatar.startsWith('data:image')) {
+        uploadPromises.push(
+          this.uploadAsset({
+            base64Data: finalAvatar,
             filename: 'avatar.jpg',
             folder: 'avatars',
-          });
-          payload.avatar_url = cdnUrl || avatar;
-        } else {
-          payload.avatar_url = avatar;
-        }
+            treeId: id,
+          }).then((cdn) => {
+            if (cdn) finalAvatar = cdn;
+          })
+        );
       }
 
       let banner = updates.bannerUrl ?? updates.customTheme?.bannerUrl;
       if (typeof banner === 'string' && banner.startsWith('data:image')) {
-        const cdnBanner = await this.uploadAsset({
-          base64Data: banner,
-          filename: 'banner.png',
-          folder: 'banners',
-        });
-        if (cdnBanner) banner = cdnBanner;
+        uploadPromises.push(
+          this.uploadAsset({
+            base64Data: banner,
+            filename: 'banner.png',
+            folder: 'banners',
+            treeId: id,
+          }).then((cdn) => {
+            if (cdn) banner = cdn;
+          })
+        );
       }
 
       let hero = updates.heroUrl ?? updates.customTheme?.heroUrl;
       if (typeof hero === 'string' && hero.startsWith('data:image')) {
-        const cdnHero = await this.uploadAsset({
-          base64Data: hero,
-          filename: 'hero.png',
-          folder: 'heroes',
-        });
-        if (cdnHero) hero = cdnHero;
+        uploadPromises.push(
+          this.uploadAsset({
+            base64Data: hero,
+            filename: 'hero.png',
+            folder: 'heroes',
+            treeId: id,
+          }).then((cdn) => {
+            if (cdn) hero = cdn;
+          })
+        );
       }
 
       let logo = updates.logoUrl ?? updates.customTheme?.logoUrl;
       if (typeof logo === 'string' && logo.startsWith('data:image')) {
-        const cdnLogo = await this.uploadAsset({
-          base64Data: logo,
-          filename: 'logo.png',
-          folder: 'logos',
-        });
-        if (cdnLogo) logo = cdnLogo;
+        uploadPromises.push(
+          this.uploadAsset({
+            base64Data: logo,
+            filename: 'logo.png',
+            folder: 'logos',
+            treeId: id,
+          }).then((cdn) => {
+            if (cdn) logo = cdn;
+          })
+        );
       }
+
+      let bgImg = updates.customTheme?.backgroundImageUrl;
+      if (typeof bgImg === 'string' && bgImg.startsWith('data:image')) {
+        uploadPromises.push(
+          this.uploadAsset({
+            base64Data: bgImg,
+            filename: 'wallpaper.jpg',
+            folder: 'wallpapers',
+            treeId: id,
+          }).then((cdn) => {
+            if (cdn) bgImg = cdn;
+          })
+        );
+      }
+
+      if (uploadPromises.length > 0) {
+        await Promise.all(uploadPromises);
+      }
+
+      if (finalAvatar !== undefined) payload.avatar_url = finalAvatar;
 
       if (updates.themeId !== undefined || updates.theme_id !== undefined) {
         payload.theme_id = updates.themeId || updates.theme_id;
@@ -257,10 +292,12 @@ export const db = {
         updates.seo !== undefined
       ) {
         let existingTheme = {};
-        try {
-          const { data: curr } = await supabase.from('trees').select('custom_theme').eq('id', id).single();
-          if (curr?.custom_theme) existingTheme = curr.custom_theme;
-        } catch {}
+        if (!updates.customTheme && !updates.custom_theme) {
+          try {
+            const { data: curr } = await supabase.from('trees').select('custom_theme').eq('id', id).single();
+            if (curr?.custom_theme) existingTheme = curr.custom_theme;
+          } catch {}
+        }
 
         const baseTheme = updates.customTheme || updates.custom_theme || {};
         payload.custom_theme = {
@@ -271,6 +308,7 @@ export const db = {
           ...(hero !== undefined ? { heroUrl: hero } : {}),
           ...(updates.titleStyle !== undefined ? { titleStyle: updates.titleStyle } : {}),
           ...(logo !== undefined ? { logoUrl: logo } : {}),
+          ...(bgImg !== undefined ? { backgroundImageUrl: bgImg } : {}),
           ...(updates.altFontEnabled !== undefined ? { altFontEnabled: updates.altFontEnabled } : {}),
           ...(updates.titleFont !== undefined ? { titleFont: updates.titleFont } : {}),
           ...(updates.titleColor !== undefined ? { titleColor: updates.titleColor } : {}),
@@ -638,25 +676,129 @@ export const db = {
 
   async syncTreeCards(treeId, cards) {
     try {
+      if (!Array.isArray(cards)) return [];
+
+      // 1. Parallelize asset uploads across all cards
+      const preparedCards = await Promise.all(
+        cards.map(async (c, i) => {
+          let finalThumb = c.thumbnailUrl ?? c.thumbnail_url ?? null;
+          if (typeof finalThumb === 'string' && finalThumb.startsWith('data:image')) {
+            const cdnThumb = await this.uploadAsset({
+              base64Data: finalThumb,
+              filename: 'thumbnail.jpg',
+              folder: 'thumbnails',
+              treeId,
+            });
+            if (cdnThumb) finalThumb = cdnThumb;
+          }
+
+          let finalUrl = c.url || '';
+          if (typeof finalUrl === 'string' && (finalUrl.startsWith('data:application/pdf') || finalUrl.startsWith('data:image'))) {
+            const isPdf = finalUrl.startsWith('data:application/pdf');
+            const cdnPdf = await this.uploadAsset({
+              base64Data: finalUrl,
+              filename: isPdf ? (c.settings?.pdfName || 'menu.pdf') : 'card-asset.jpg',
+              folder: isPdf ? 'menus' : 'cards',
+              treeId,
+            });
+            if (cdnPdf) finalUrl = cdnPdf;
+          }
+
+          const settings = { ...(c.settings || {}) };
+          if (typeof settings.image === 'string' && settings.image.startsWith('data:image')) {
+            const cdnImg = await this.uploadAsset({
+              base64Data: settings.image,
+              filename: 'card-image.jpg',
+              folder: 'cards',
+              treeId,
+            });
+            if (cdnImg) settings.image = cdnImg;
+          }
+          if (typeof settings.thumbnailUrl === 'string' && settings.thumbnailUrl.startsWith('data:image')) {
+            const cdnThumb = await this.uploadAsset({
+              base64Data: settings.thumbnailUrl,
+              filename: 'thumbnail.jpg',
+              folder: 'thumbnails',
+              treeId,
+            });
+            if (cdnThumb) settings.thumbnailUrl = cdnThumb;
+          }
+          if (typeof settings.pdfUrl === 'string' && settings.pdfUrl.startsWith('data:application/pdf')) {
+            const cdnPdf = await this.uploadAsset({
+              base64Data: settings.pdfUrl,
+              filename: settings.pdfName || 'menu.pdf',
+              folder: 'menus',
+              treeId,
+            });
+            if (cdnPdf) settings.pdfUrl = cdnPdf;
+          }
+
+          // Handle gallery images if present
+          if (Array.isArray(settings.images)) {
+            settings.images = await Promise.all(
+              settings.images.map(async (imgItem) => {
+                const imgUrl = typeof imgItem === 'string' ? imgItem : imgItem?.url;
+                if (typeof imgUrl === 'string' && imgUrl.startsWith('data:image')) {
+                  const cdnImg = await this.uploadAsset({
+                    base64Data: imgUrl,
+                    filename: 'gallery-img.jpg',
+                    folder: 'gallery',
+                    treeId,
+                  });
+                  if (cdnImg) {
+                    return typeof imgItem === 'string' ? cdnImg : { ...imgItem, url: cdnImg };
+                  }
+                }
+                return imgItem;
+              })
+            );
+          }
+
+          return {
+            tree_id: treeId,
+            type: c.type || 'link',
+            title: c.title || '',
+            subtitle: c.subtitle || '',
+            url: finalUrl,
+            thumbnail_url: finalThumb,
+            position: i,
+            visible: c.visible ?? true,
+            animation: c.animation || 'none',
+            layout: c.layout || c.settings?.layout || 'classic',
+            lock_type: c.lockType || c.lock_type || 'none',
+            lock_value: c.lockValue || c.lock_value || null,
+            settings: settings,
+          };
+        })
+      );
+
+      // 2. Clear old cards for this tree
       await supabase.from('cards').delete().eq('tree_id', treeId);
 
-      const syncedCards = [];
-      for (let i = 0; i < cards.length; i++) {
-        const c = cards[i];
-        const cardPayload = {
-          ...c,
-          treeId,
-          position: i,
-          visible: c.visible ?? true,
-        };
-        const created = await this.createCard(cardPayload);
-        if (created) {
-          syncedCards.push(created);
-        } else {
-          syncedCards.push({ ...cardPayload, id: Date.now() + i });
-        }
+      // 3. Bulk insert all prepared cards in a single database roundtrip
+      if (preparedCards.length > 0) {
+        const { data, error } = await supabase.from('cards').insert(preparedCards).select();
+        if (error) throw error;
+        return (data || []).map((c) => ({
+          id: Number(c.id),
+          treeId: Number(c.tree_id),
+          type: c.type,
+          title: c.title,
+          subtitle: c.subtitle,
+          url: c.url,
+          thumbnailUrl: c.thumbnail_url,
+          clicks: c.clicks,
+          position: c.position,
+          visible: c.visible,
+          layout: c.layout,
+          animation: c.animation,
+          lockType: c.lock_type,
+          lockValue: c.lock_value,
+          settings: c.settings || {},
+        }));
       }
-      return syncedCards;
+
+      return [];
     } catch (err) {
       console.warn('[DB syncTreeCards fallback]', err.message);
       return null;

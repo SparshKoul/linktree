@@ -128,6 +128,9 @@ export function App() {
   const [isBioBannerVisible, setIsBioBannerVisible] = useState(initialSettings.bioBannerVisible);
   const [isSavingTree, setIsSavingTree] = useState(false);
   const [treeSavedRecently, setTreeSavedRecently] = useState(false);
+  const updateTreeTimerRef = useRef(null);
+  const updateTreeAbortRef = useRef(null);
+  const pendingUpdatesRef = useRef({});
 
   // Client-side SaaS routing (Main Landing '/' vs Dashboard '/dashboard' vs Public Tree '/:slug')
   const [currentPath, setCurrentPath] = useState(() => {
@@ -342,7 +345,7 @@ export function App() {
     navigate('/');
   };
 
-  const handleUpdateTree = async (updates) => {
+  const handleUpdateTree = (updates) => {
     if (!currentTree) return;
     const updated = { ...currentTree, ...updates };
     setCurrentTree(updated);
@@ -352,30 +355,68 @@ export function App() {
     storage.saveTrees(updatedAll);
     setTrees(updatedAll.filter((t) => !currentUser?.id || t.adminId === currentUser?.id));
 
-    // Sync to Supabase backend and update CDN URLs if returned
-    fetch(`/api/admin/trees/${currentTree.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {}),
-      },
-      credentials: 'include',
-      body: JSON.stringify(updates),
-    })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((updatedDb) => {
-        if (updatedDb) {
-          const freshAll = storage.getTrees().map((t) => (t.id === currentTree.id ? { ...t, ...updatedDb } : t));
-          storage.saveTrees(freshAll);
-          setCurrentTree((prev) => (prev ? { ...prev, ...updatedDb } : prev));
+    // Debounce background sync to database to avoid flooding Supabase with row-lock timeouts
+    pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
+
+    if (updateTreeTimerRef.current) {
+      clearTimeout(updateTreeTimerRef.current);
+    }
+
+    updateTreeTimerRef.current = setTimeout(async () => {
+      const payload = { ...pendingUpdatesRef.current };
+      pendingUpdatesRef.current = {};
+      if (Object.keys(payload).length === 0) return;
+
+      if (updateTreeAbortRef.current) {
+        updateTreeAbortRef.current.abort();
+      }
+      const controller = new AbortController();
+      updateTreeAbortRef.current = controller;
+
+      try {
+        const res = await fetch(`/api/admin/trees/${currentTree.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {}),
+          },
+          credentials: 'include',
+          signal: controller.signal,
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          const updatedDb = await res.json();
+          if (updatedDb) {
+            const freshAll = storage.getTrees().map((t) => (t.id === currentTree.id ? { ...t, ...updatedDb } : t));
+            storage.saveTrees(freshAll);
+            setCurrentTree((prev) => (prev && prev.id === currentTree.id ? { ...prev, ...updatedDb } : prev));
+          }
         }
-      })
-      .catch(() => {});
+      } catch (err) {
+        // Aborted or temporary network hiccup - smoothly ignored as state is safely in localStorage
+      }
+    }, 400);
   };
 
   const handleSaveTree = async () => {
     if (!currentTree || isSavingTree) return;
+
+    // Immediately flush/cancel pending debounced calls so they don't race with full sync
+    if (updateTreeTimerRef.current) {
+      clearTimeout(updateTreeTimerRef.current);
+      updateTreeTimerRef.current = null;
+    }
+    if (updateTreeAbortRef.current) {
+      updateTreeAbortRef.current.abort();
+      updateTreeAbortRef.current = null;
+    }
+    pendingUpdatesRef.current = {};
+
     setIsSavingTree(true);
+
+    // Guaranteed 15-second safety timeout so the button can NEVER hang in "Saving..."
+    const abortCtrl = new AbortController();
+    const timeoutId = setTimeout(() => abortCtrl.abort(), 15000);
 
     try {
       // 1. Immediately ensure local storage holds active state
@@ -397,6 +438,7 @@ export function App() {
           ...(currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {}),
         },
         credentials: 'include',
+        signal: abortCtrl.signal,
         body: JSON.stringify({
           treeUpdates: {
             name: currentTree.name,
@@ -439,19 +481,23 @@ export function App() {
         }),
       });
 
+      clearTimeout(timeoutId);
+
       if (res.ok) {
         const data = await res.json();
-        if (data.tree && data.cards) {
+        if (data.tree) {
           const mergedTree = {
             ...currentTree,
             ...data.tree,
-            cards: data.cards,
+            cards: data.cards || activeCards,
           };
           setCurrentTree(mergedTree);
           storage.saveTree(mergedTree);
-          const allLocal = storage.getCards();
-          const otherCards = allLocal.filter((c) => Number(c.treeId) !== Number(currentTree.id));
-          storage.saveCards([...otherCards, ...data.cards]);
+          if (data.cards && data.cards.length > 0) {
+            const allLocal = storage.getCards();
+            const otherCards = allLocal.filter((c) => Number(c.treeId) !== Number(currentTree.id));
+            storage.saveCards([...otherCards, ...data.cards]);
+          }
         }
       }
 
@@ -465,6 +511,7 @@ export function App() {
         setTopToast(null);
       }, 3500);
     } catch (err) {
+      clearTimeout(timeoutId);
       setTopToast({
         title: 'Tree Saved Locally',
         subtitle: 'Saved to local storage; will sync when server is reachable',

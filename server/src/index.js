@@ -201,10 +201,11 @@ const RESERVED_SLUGS = ['admin', 'api', 'login', 'dashboard', 'settings', 'stati
 
 // Ownership & Slug Verification Helpers
 async function resolveTreeOwner(treeId) {
+  const memTree = store.trees.find((t) => t.id === treeId && !t.deletedAt);
+  if (memTree && memTree.adminId) return memTree.adminId;
   const dbOwner = await db.getTreeOwner(treeId);
   if (dbOwner !== null) return dbOwner;
-  const memTree = store.trees.find((t) => t.id === treeId && !t.deletedAt);
-  return memTree ? memTree.adminId : null;
+  return null;
 }
 
 async function resolveCardOwner(cardId) {
@@ -1077,7 +1078,9 @@ app.post('/api/admin/trees/:id/sync', async (req, res) => {
     }
   }
 
-  const finalTree = savedTree || (await db.getTreeById(treeId)) || store.trees.find((t) => t.id === treeId);
+  const finalTree = savedTree
+    ? { ...savedTree, cards: savedCards }
+    : (await db.getTreeById(treeId)) || store.trees.find((t) => t.id === treeId);
   res.json({
     success: true,
     tree: finalTree,
