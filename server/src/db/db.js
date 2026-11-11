@@ -886,6 +886,22 @@ export const db = {
     }
   },
 
+  async getUserByUsername(username) {
+    try {
+      const clean = username.toLowerCase().trim();
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .ilike('username', clean)
+        .limit(1);
+      if (error) throw error;
+      return data?.[0] || null;
+    } catch (err) {
+      console.warn('[DB getUserByUsername fallback]', err.message);
+      return null;
+    }
+  },
+
   async createUser({ email, username, password }) {
     try {
       const hashedPassword = /^\$2[aby]\$\d+\$/.test(password)
