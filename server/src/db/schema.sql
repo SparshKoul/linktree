@@ -313,12 +313,33 @@ CREATE POLICY "Delete linktree-assets" ON storage.objects
 
 -- ------------------------------------------------------------------------------
 -- 10. Seed Initial User and Tree
+--
+-- The password below is a placeholder that nobody knows, so the account cannot
+-- be used until a password is set. Set one with the query at the end of this
+-- file, or create the account from the app instead.
 -- ------------------------------------------------------------------------------
 INSERT INTO public.users (email, username, password, display_name)
-VALUES ('sparshkoul6@gmail.com', 'riyast', '$2b$10$bsVZgzpWVq6a4VvV3M9oEeK95z74Wk9f9tJzF3hV9FwD2k3e0u8kO', 'Riyast')
+VALUES (
+  'sparshkoul6@gmail.com',
+  'riyast',
+  '$2b$10$W99UJ8q9aDFBfTQVt63JEuIcUiwt3kFghqMivlIsU4CFWcx9a7mDK',
+  'Riyast'
+)
 ON CONFLICT (username) DO NOTHING;
 
 INSERT INTO public.trees (admin_id, name, slug, status, title, bio, theme_id, header_layout, footer_enabled, footer_text)
 SELECT id, 'Riyast Boutique', 'riyast', 'live', 'riyast', '', 'classic-light', 'classic', TRUE, 'IndiaTaps'
 FROM public.users WHERE username = 'riyast'
 ON CONFLICT (slug) DO NOTHING;
+
+-- ------------------------------------------------------------------------------
+-- 11. Set the Super Admin Password
+--
+-- Run this once after the seed above (it needs pgcrypto, which Supabase has):
+--
+--   UPDATE public.users
+--      SET password = crypt('your-new-password', gen_salt('bf', 10))
+--    WHERE email = 'sparshkoul6@gmail.com';
+--
+-- The app checks this hash with bcrypt, so the account can sign in with it.
+-- ------------------------------------------------------------------------------

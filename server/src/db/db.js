@@ -1,5 +1,6 @@
 import { supabase } from './supabase.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
+import { sanitizeCardUrl, sanitizeCardSettings } from '../utils/url.js';
 
 export function formatTreeRecord(data, cards = null, cardCount = 0) {
   if (!data) return null;
@@ -403,6 +404,22 @@ export const db = {
     }
   },
 
+  async restoreTree(id) {
+    try {
+      const { data, error } = await supabase
+        .from('trees')
+        .update({ deleted_at: null })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data ? formatTreeRecord(data) : null;
+    } catch (err) {
+      console.warn('[DB restoreTree failed]', err.message);
+      throw err;
+    }
+  },
+
   async isSlugTaken(slug, excludeTreeId = null) {
     try {
       const cleanSlug = slug.toLowerCase().trim();
@@ -423,23 +440,41 @@ export const db = {
     }
   },
 
-  async getTreeInfo(treeId) {
+  async getTreeInfo(treeId, { includeDeleted = false } = {}) {
     try {
       const numId = Number(treeId);
       if (!numId || isNaN(numId)) return null;
-      const { data, error } = await supabase
+      let query = supabase
         .from('trees')
-        .select('admin_id, slug')
-        .eq('id', numId)
-        .is('deleted_at', null)
-        .maybeSingle();
+        .select('admin_id, slug, deleted_at')
+        .eq('id', numId);
+      if (!includeDeleted) query = query.is('deleted_at', null);
+      const { data, error } = await query.maybeSingle();
       if (error) throw error;
       if (!data) return null;
-      return { adminId: Number(data.admin_id), slug: data.slug };
+      return { adminId: Number(data.admin_id), slug: data.slug, deletedAt: data.deleted_at };
     } catch (err) {
       console.warn('[DB getTreeInfo fallback]', err.message);
       // undefined = the database could not answer, null = no such tree
       return undefined;
+    }
+  },
+
+  /**
+   * Is this slug used by another tree, deleted or not? A deleted tree keeps
+   * its slug, so restoring it can fail when the slug was taken meanwhile.
+   */
+  async isSlugUsedByOtherTree(slug, treeId = null) {
+    try {
+      const cleanSlug = String(slug).toLowerCase().trim();
+      let query = supabase.from('trees').select('id').eq('slug', cleanSlug);
+      if (treeId) query = query.neq('id', treeId);
+      const { data, error } = await query.limit(1);
+      if (error) throw error;
+      return Array.isArray(data) && data.length > 0;
+    } catch (err) {
+      console.warn('[DB isSlugUsedByOtherTree fallback]', err.message);
+      return false;
     }
   },
 
@@ -595,7 +630,7 @@ export const db = {
           type: cardData.type || 'link',
           title: cardData.title || '',
           subtitle: cardData.subtitle || '',
-          url: finalUrl,
+          url: sanitizeCardUrl(finalUrl),
           thumbnail_url: finalThumb,
           position: cardData.position || 0,
           visible: cardData.visible ?? true,
@@ -603,7 +638,7 @@ export const db = {
           layout: cardData.layout || cardData.settings?.layout || 'classic',
           lock_type: cardData.lockType || cardData.lock_type || 'none',
           lock_value: cardData.lockValue || cardData.lock_value || null,
-          settings: settings,
+          settings: sanitizeCardSettings(settings),
         })
         .select()
         .single();
@@ -636,9 +671,10 @@ export const db = {
             filename: isPdf ? (updates.settings?.pdfName || 'menu.pdf') : 'card-asset.jpg',
             folder: isPdf ? 'menus' : 'cards',
           });
-          payload.url = cdnPdf || updates.url;
+          payload.url = sanitizeCardUrl(cdnPdf || updates.url);
         } else {
-          payload.url = updates.url;
+          // An unsafe address (for example "javascript:") is dropped.
+          payload.url = sanitizeCardUrl(updates.url);
         }
       }
 
@@ -704,7 +740,8 @@ export const db = {
           });
           if (cdnPdf) settings.pdfUrl = cdnPdf;
         }
-        payload.settings = settings;
+        // Unsafe addresses inside the settings are dropped as well.
+        payload.settings = sanitizeCardSettings(settings);
       }
       if (updates.clicks !== undefined) payload.clicks = updates.clicks;
       payload.updated_at = new Date().toISOString();
@@ -825,7 +862,7 @@ export const db = {
             type: c.type || 'link',
             title: c.title || '',
             subtitle: c.subtitle || '',
-            url: finalUrl,
+            url: sanitizeCardUrl(finalUrl),
             thumbnail_url: finalThumb,
             position: i,
             visible: c.visible ?? true,
@@ -833,7 +870,7 @@ export const db = {
             layout: c.layout || c.settings?.layout || 'classic',
             lock_type: c.lockType || c.lock_type || 'none',
             lock_value: c.lockValue || c.lock_value || null,
-            settings: settings,
+            settings: sanitizeCardSettings(settings),
           };
         })
       );
@@ -859,7 +896,7 @@ export const db = {
             layout: prepared.layout,
             lock_type: prepared.lock_type,
             lock_value: prepared.lock_value,
-            settings: prepared.settings,
+            settings: sanitizeCardSettings(prepared.settings),
             updated_at: new Date().toISOString(),
           };
 

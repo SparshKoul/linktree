@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
+import { safeHref } from '../constants/urls.js';
 
 function loadPdfJs() {
   if (typeof window !== 'undefined' && window.pdfjsLib) {
@@ -332,7 +333,7 @@ export function PdfViewer({ url, title = 'Document', className = '', isThumbnail
         </div>
       ) : error ? (
         <iframe
-          src={`${url}#toolbar=0&navpanes=0&view=FitH`}
+          src={`${safeHref(url) || 'about:blank'}#toolbar=0&navpanes=0&view=FitH`}
           title={title}
           className="w-full h-full border-0 bg-white pointer-events-auto"
         />

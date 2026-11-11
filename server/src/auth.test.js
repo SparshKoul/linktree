@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { app, toPublicCard } from './index.js';
+import { app } from './index.js';
+import { toPublicCard } from './lib/public-payload.js';
+import { isSafeCardUrl, sanitizeCardUrl } from './utils/url.js';
 import { SESSION_COOKIE, signSession, verifySession } from './utils/session.js';
 
 let server;
@@ -112,6 +114,32 @@ describe('Public payload', () => {
   });
 });
 
+describe('Card links', () => {
+  it('allows the address types a card needs', () => {
+    expect(isSafeCardUrl('https://example.com')).toBe(true);
+    expect(isSafeCardUrl('http://example.com')).toBe(true);
+    expect(isSafeCardUrl('mailto:hello@example.com')).toBe(true);
+    expect(isSafeCardUrl('tel:+911234567890')).toBe(true);
+    expect(isSafeCardUrl('data:image/png;base64,iVBORw0KGgo=')).toBe(true);
+    expect(isSafeCardUrl('data:application/pdf;base64,JVBERi0=')).toBe(true);
+  });
+
+  it('refuses addresses that would run code', () => {
+    expect(isSafeCardUrl("javascript:alert(document.domain)")).toBe(false);
+    expect(isSafeCardUrl('JavaScript:alert(1)')).toBe(false);
+    expect(isSafeCardUrl('data:text/html,<script>alert(1)</script>')).toBe(false);
+    expect(isSafeCardUrl('data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=')).toBe(false);
+    expect(isSafeCardUrl('vbscript:msgbox(1)')).toBe(false);
+    expect(isSafeCardUrl('')).toBe(false);
+    expect(isSafeCardUrl(null)).toBe(false);
+  });
+
+  it('drops an unsafe address instead of storing it', () => {
+    expect(sanitizeCardUrl('javascript:alert(1)')).toBe('');
+    expect(sanitizeCardUrl('https://example.com')).toBe('https://example.com');
+  });
+});
+
 describe('View tracking', () => {
   it('accepts a tracked page view instead of crashing', async () => {
     const res = await fetch(`${baseUrl}/api/track`, {
@@ -150,5 +178,28 @@ describe('Passcode gate', () => {
       body: JSON.stringify({ code: 'anything' }),
     });
     expect(res.status).toBe(404);
+  });
+});
+
+describe('Undo delete', () => {
+  it('refuses to restore a tree that does not exist', async () => {
+    const res = await fetch(`${baseUrl}/api/admin/trees/999999999/restore`, {
+      method: 'POST',
+      headers: { Cookie: `${SESSION_COOKIE}=${signSession(2)}` },
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it('refuses to restore a tree of somebody else', async () => {
+    const res = await fetch(`${baseUrl}/api/admin/trees/1/restore`, {
+      method: 'POST',
+      headers: { Cookie: `${SESSION_COOKIE}=${signSession(2)}` },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it('needs a signed in owner', async () => {
+    const res = await fetch(`${baseUrl}/api/admin/trees/1/restore`, { method: 'POST' });
+    expect(res.status).toBe(401);
   });
 });

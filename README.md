@@ -58,7 +58,14 @@ Copy `server/.env.example` to `server/.env` and fill it in:
 ### 2. Database
 
 - **New database:** run `server/src/db/schema.sql` in the Supabase SQL editor.
-- **Existing database:** run `server/src/db/migrations/001_allow_all_card_types.sql`. It widens the `cards.type` and `cards.lock_type` checks so every card type the editor can create is accepted.
+- **Existing database:** run the migrations in `server/src/db/migrations/`:
+  - `001_allow_all_card_types.sql` widens the `cards.type` and `cards.lock_type`
+    checks so every card type the editor can create is accepted.
+  - `002_atomic_counters.sql` adds the functions that count clicks and views
+    inside the database, so parallel clicks are never lost.
+
+After the first install, set the super admin password with the query at the
+end of `schema.sql`.
 
 ### 3. Run
 
@@ -76,7 +83,14 @@ the user only from that cookie: a user id sent in a header or in a plain
 cookie is ignored. Everyone who was signed in before this change has to sign
 in again.
 
-### 5. Check that everything works
+### 5. Card links
+
+Card addresses are checked before they are stored and again before they are
+shown. Only `http`, `https`, `mailto` and `tel` are allowed, plus inline
+images and PDFs. Anything else (for example `javascript:`) is dropped, so it
+can never run code on the site's own address when a visitor clicks it.
+
+### 6. Check that everything works
 
 With the server running on port 3001:
 
@@ -105,7 +119,7 @@ By hand, in the browser:
    network tab: the response for `/api/public/trees/<slug>` does not contain
    the passcode.
 
-### 6. Why the public page is never cached by the edge
+### 7. Why the public page is never cached by the edge
 
 The public tree API answers with `Cache-Control: no-cache`. A shared cache
 (the Vercel edge, or a browser) would otherwise keep serving the old links
@@ -119,14 +133,20 @@ moment the owner saves, so a change is live on the next request.
 
 ```text
 .
-├── ANTIGRAVITY.md        # Core instructions & development rules
-├── README.md             # Project overview & documentation index
-└── docs/
-    ├── ANTIGRAVITY.md    # Development guidelines & rules
-    ├── ARCHITECTURE.md   # System architecture & data flow
-    ├── DESIGN.md         # Design system & UI tokens
-    ├── PRD.md            # Product requirements document
-    └── TASKS.md          # Phased implementation roadmap
+├── api/index.js            # Vercel entry point, hands over to the server
+├── client/                 # React app (Vite)
+│   └── src/
+│       ├── components/     # Screens and editors
+│       ├── cards/          # How a card looks on a public page
+│       ├── constants/      # Themes, urls, patterns
+│       └── services/       # Local storage
+└── server/
+    └── src/
+        ├── index.js        # Sets up the app and starts it
+        ├── lib/            # Caches, ownership checks, rate limits, helpers
+        ├── routes/         # The API: auth, trees, cards, public, assets
+        ├── db/             # Supabase queries and the schema
+        └── utils/          # Sessions, passwords, link safety
 ```
 
 ---

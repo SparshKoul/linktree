@@ -901,6 +901,34 @@ export function App() {
     setTreeUndoToast(false);
 
     const { tree, cards } = lastDeletedTreeData;
+
+    // Put it back on the server first. Restoring only in this browser would
+    // lose the card again on the next reload.
+    try {
+      const res = await fetch(`/api/admin/trees/${tree.id}/restore`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setTopToast({
+          title: 'Could not restore',
+          subtitle: data.error || 'The card was not restored. Try creating it again.',
+        });
+        setTimeout(() => setTopToast(null), 6000);
+        setLastDeletedTreeData(null);
+        return;
+      }
+    } catch {
+      setTopToast({
+        title: 'Could not restore',
+        subtitle: 'The server could not be reached. The card is still deleted.',
+      });
+      setTimeout(() => setTopToast(null), 6000);
+      setLastDeletedTreeData(null);
+      return;
+    }
+
     storage.restoreTree(tree, cards);
 
     const restoredTrees = storage.getTrees(currentUser?.id || 1);

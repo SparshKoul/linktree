@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import { FaviconIcon } from '../components/FaviconIcon.jsx';
 import { PdfViewer } from '../components/PdfViewer.jsx';
+import { safeHref } from '../constants/urls.js';
 
 export function CardRenderer({ card, theme, isPreview = false }) {
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
@@ -65,6 +66,9 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   const [isCopied, setIsCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+
+  // Only safe addresses become links. An unsafe one is shown without a link.
+  const cardHref = safeHref(card.url);
 
   const cardSettings =
     typeof card.settings === 'string'
@@ -335,7 +339,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     return (
       <div className="w-full flex items-center justify-center gap-3 py-2">
         <a
-          href={card.url || 'https://instagram.com'}
+          href={cardHref || 'https://instagram.com'}
           target="_blank"
           rel="noreferrer"
           className="p-2.5 rounded-full hover:scale-110 transition-transform bg-white/10 backdrop-blur-sm"
@@ -422,7 +426,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   if (card.type === 'product') {
     return (
       <a
-        href={card.url || '#'}
+        href={cardHref || '#'}
         target="_blank"
         rel="noreferrer"
         className="w-full rounded-2xl overflow-hidden text-left shadow-2xs block hover:scale-[1.01] transition-transform"
@@ -460,7 +464,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
           {['$2', '$5', '$10', '$25'].map((amt) => (
             <a
               key={amt}
-              href={card.url || '#'}
+              href={cardHref || '#'}
               target="_blank"
               rel="noreferrer"
               className="px-3 py-1.5 rounded-full bg-black/5 hover:bg-black/10 text-xs font-bold transition-colors"
@@ -484,7 +488,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
             <div className="text-[10px] opacity-70">{card.subtitle || 'Live Event'}</div>
           </div>
           <a
-            href={card.url || '#'}
+            href={cardHref || '#'}
             target="_blank"
             rel="noreferrer"
             className="px-2.5 py-1 rounded-full bg-black/10 text-[10px] font-bold hover:bg-black/20"
@@ -583,7 +587,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   if (card.type === 'booking') {
     return (
       <a
-        href={card.url || 'https://calendly.com'}
+        href={cardHref || 'https://calendly.com'}
         target="_blank"
         rel="noreferrer"
         className="w-full py-3.5 px-4 text-xs font-bold transition-all hover:scale-[1.01] flex items-center justify-between shadow-2xs"
@@ -789,7 +793,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                 </button>
               ) : isMap ? (
                 <a
-                  href={card.url || `https://maps.google.com/?q=${encodeURIComponent(subtitle || card.title)}`}
+                  href={cardHref || `https://maps.google.com/?q=${encodeURIComponent(subtitle || card.title)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => {
@@ -818,7 +822,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                 </button>
               ) : (
                 <a
-                  href={card.url || '#'}
+                  href={cardHref || '#'}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => {
@@ -860,7 +864,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   return (
     <>
       <a
-        href={isLocked ? '#' : card.url || '#'}
+        href={isLocked ? '#' : cardHref || '#'}
         onClick={handleLinkClick}
         target={isLocked ? '_self' : '_blank'}
         rel="noopener noreferrer"
@@ -1088,7 +1092,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
           <div className="space-y-2 pt-2">
             {card.url && (
               <a
-                href={card.url}
+                href={cardHref || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3 rounded-full bg-black text-white text-xs font-bold hover:bg-gray-800 transition-colors flex items-center justify-center gap-2 shadow-sm"
@@ -1279,12 +1283,12 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                       autoPlay
                       className="w-full h-auto aspect-video object-contain"
                     />
-                  ) : card.url && /youtube\.com|youtu\.be/i.test(card.url) ? (
+                  ) : card.url && /youtube\.com|youtu\.be/i.test(card.url) && safeHref(card.url) ? (
                     <div className="aspect-video w-full">
                       <iframe
                         src={
                           card.url.includes('embed/')
-                            ? card.url
+                            ? safeHref(card.url)
                             : `https://www.youtube.com/embed/${card.url.split('v=')[1]?.split('&')[0] || card.url.split('/').pop()}`
                         }
                         title={card.title || 'Video'}
