@@ -78,6 +78,8 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
       avatarUrl: tree?.avatarUrl || custom.avatarUrl || null,
       bannerUrl: tree?.bannerUrl || custom.bannerUrl || null,
       heroUrl: tree?.heroUrl || custom.heroUrl || null,
+      logoUrl: tree?.logoUrl || custom.logoUrl || null,
+      titleStyle: tree?.titleStyle || custom.titleStyle || 'text',
       title: tree?.title ?? `@${tree?.slug || 'riyast'}`,
       bio: tree?.bio ?? '',
     };
@@ -89,15 +91,26 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
 
   const current = history[historyIndex] || initialSnapshot.current;
 
-  // Re-sync if switching tree id
+  // Re-sync if tree changes externally
   useEffect(() => {
     if (currentTree) {
       const snap = extractSnapshot(currentTree);
       initialSnapshot.current = snap;
-      setHistory([snap]);
-      setHistoryIndex(0);
+      if (historyIndex === 0 && history.length <= 1) {
+        setHistory([snap]);
+      }
     }
-  }, [currentTree?.id]);
+  }, [
+    currentTree?.id,
+    currentTree?.updatedAt,
+    currentTree?.avatarUrl,
+    currentTree?.title,
+    currentTree?.bio,
+    currentTree?.titleColor,
+    currentTree?.headerLayout,
+    currentTree?.logoUrl,
+    currentTree?.titleStyle,
+  ]);
 
   const commitChange = (patch) => {
     const updated = { ...current, ...patch };
@@ -1018,12 +1031,12 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
                 ) : (
                   /* Classic Avatar matching Image */
                   <div className="w-28 h-28 sm:w-32 sm:h-32 aspect-square rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden mt-6 sm:mt-8 mb-3 shadow-md ring-4 ring-white/10 shrink-0 relative z-10">
-                    <User className="w-14 h-14 text-gray-400 absolute" />
+                    <User className="w-14 h-14 text-gray-500 absolute" />
                     {effectiveAvatar && (
                       <img
                         src={effectiveAvatar}
                         alt="Avatar"
-                        className="w-full h-full object-cover object-center relative z-1"
+                        className="w-full h-full object-cover object-center relative z-10"
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
                     )}
@@ -1035,7 +1048,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
                   <img src={logoUrl} alt="Logo" className="max-h-12 max-w-[220px] object-contain mt-2.5 mb-1.5 relative z-10" />
                 ) : (
                   <h2
-                    className="font-black text-[26px] sm:text-[30px] leading-tight text-center tracking-tight relative z-10"
+                    className="font-black text-[26px] sm:text-[30px] leading-tight text-center tracking-tight relative z-10 drop-shadow-xs"
                     style={{
                       color: titleColor,
                       fontFamily: titleFont !== 'inherit' ? `'${titleFont}', sans-serif` : 'inherit',
@@ -1048,8 +1061,8 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
                 {/* Bio */}
                 {effectiveBio ? (
                   <p
-                    className="text-sm sm:text-[15px] font-medium leading-relaxed max-w-[280px] mt-1 mb-3 text-center relative z-10"
-                    style={{ color: current.textColor ? `${current.textColor}cc` : '#6B7280' }}
+                    className="text-sm sm:text-[15px] font-medium leading-relaxed max-w-[280px] mt-1 mb-3 text-center relative z-10 drop-shadow-2xs opacity-90"
+                    style={{ color: current.textColor || currentTree?.textColor || '#6B7280' }}
                   >
                     {effectiveBio}
                   </p>

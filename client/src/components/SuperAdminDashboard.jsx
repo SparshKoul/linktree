@@ -72,7 +72,7 @@ export function SuperAdminDashboard({
   }, []);
 
   const handleToggleBlock = async (user) => {
-    if (user.isSuperAdmin || user.email?.toLowerCase() === 'india.taps7@gmail.com') {
+    if (user.isSuperAdmin || user.email?.toLowerCase() === 'sparshkoul6@gmail.com') {
       alert('Cannot block the Super Admin account.');
       return;
     }
@@ -113,7 +113,7 @@ export function SuperAdminDashboard({
   };
 
   const handleDeleteUser = async (user) => {
-    if (user.isSuperAdmin || user.email?.toLowerCase() === 'india.taps7@gmail.com') {
+    if (user.isSuperAdmin || user.email?.toLowerCase() === 'sparshkoul6@gmail.com') {
       alert('Cannot delete the Super Admin account.');
       return;
     }
@@ -236,7 +236,7 @@ export function SuperAdminDashboard({
               <ShieldCheck className="w-3.5 h-3.5 text-purple-700" />
               Super Admin Console
             </span>
-            <span className="text-xs font-mono text-gray-500">india.taps7@gmail.com</span>
+            <span className="text-xs font-mono text-gray-500">sparshkoul6@gmail.com</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-gray-950 tracking-tight">
             Client & Multi-Card Management
@@ -409,7 +409,7 @@ export function SuperAdminDashboard({
                 </tr>
               ) : (
                 filteredUsers.map((u) => {
-                  const isSparsh = u.isSuperAdmin || u.email?.toLowerCase() === 'india.taps7@gmail.com';
+                  const isSparsh = u.isSuperAdmin || u.email?.toLowerCase() === 'sparshkoul6@gmail.com';
                   return (
                     <tr
                       key={u.id}

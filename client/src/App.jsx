@@ -87,7 +87,7 @@ export function App() {
       currentUser.isSuperAdmin ||
       currentUser.role === 'super_admin' ||
       currentUser.accountType === 'super_admin' ||
-      currentUser.email?.toLowerCase() === 'india.taps7@gmail.com'
+      currentUser.email?.toLowerCase() === 'sparshkoul6@gmail.com'
     )
   );
   const [trees, setTrees] = useState([]);
@@ -3051,7 +3051,7 @@ export function App() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         currentUser={currentUser}
-        adminEmail={currentUser?.email || 'india.taps7@gmail.com'}
+        adminEmail={currentUser?.email || 'sparshkoul6@gmail.com'}
         onTreeCreated={(newTree) => {
           const treeWithAdmin = {
             ...newTree,

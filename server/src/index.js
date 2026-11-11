@@ -101,7 +101,7 @@ app.use((req, res, next) => {
 const store = {
   admin: {
     id: 1,
-    email: 'india.taps7@gmail.com',
+    email: 'sparshkoul6@gmail.com',
     username: 'riyast',
     role: 'super_admin',
     accountType: 'super_admin',
@@ -110,7 +110,7 @@ const store = {
   users: [
     {
       id: 1,
-      email: 'india.taps7@gmail.com',
+      email: 'sparshkoul6@gmail.com',
       username: 'riyast',
       password: process.env.ADMIN_INITIAL_PASSWORD ? hashPasswordSync(process.env.ADMIN_INITIAL_PASSWORD) : '$2b$10$bsVZgzpWVq6a4VvV3M9oEeK95z74Wk9f9tJzF3hV9FwD2k3e0u8kO',
       role: 'super_admin',
@@ -236,7 +236,7 @@ async function isCallerSuperAdmin(userId) {
   if (!userId) return false;
   const user = (await db.getUserById(userId)) || store.users.find((u) => u.id === userId);
   if (!user) return false;
-  return user.email?.toLowerCase() === 'india.taps7@gmail.com' || user.role === 'super_admin' || user.accountType === 'super_admin';
+  return user.email?.toLowerCase() === 'sparshkoul6@gmail.com' || user.role === 'super_admin' || user.accountType === 'super_admin';
 }
 
 // Auth Me
@@ -325,7 +325,7 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   const isSuper = await isCallerSuperAdmin(callerId);
   if (!isSuper) {
     return res.status(403).json({
-      error: 'Public registration is disabled. Accounts can only be provisioned by the Super Admin (india.taps7@gmail.com).',
+      error: 'Public registration is disabled. Accounts can only be provisioned by the Super Admin (sparshkoul6@gmail.com).',
     });
   }
 
@@ -340,7 +340,7 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   try {
     const user = await db.signUpUser({ email: cleanEmail, username: cleanUsername, password });
     if (user) {
-      const isSuperUser = user.email?.toLowerCase() === 'india.taps7@gmail.com';
+      const isSuperUser = user.email?.toLowerCase() === 'sparshkoul6@gmail.com';
       const safeUser = {
         id: user.id,
         email: user.email,
@@ -420,7 +420,7 @@ app.post('/api/admin/users', async (req, res) => {
   try {
     const user = await db.signUpUser({ email: cleanEmail, username: cleanUsername, password });
     if (user) {
-      const isSuperUser = user.email?.toLowerCase() === 'india.taps7@gmail.com';
+      const isSuperUser = user.email?.toLowerCase() === 'sparshkoul6@gmail.com';
       const safe = {
         id: user.id,
         email: user.email,
@@ -492,7 +492,7 @@ app.get('/api/admin/users', async (req, res) => {
     if (error) throw error;
     if (data) {
       dbUsers = data.map((u) => {
-        const isS = u.email?.toLowerCase() === 'india.taps7@gmail.com' || u.role === 'super_admin';
+        const isS = u.email?.toLowerCase() === 'sparshkoul6@gmail.com' || u.role === 'super_admin';
         const accountState = u.account_state || (u.tier === 'blocked' ? 'locked' : 'active');
         return {
           id: u.id,
@@ -564,7 +564,7 @@ app.patch('/api/admin/users/:id/block', async (req, res) => {
 
   const targetId = Number(req.params.id);
   const user = store.users.find((u) => u.id === targetId);
-  if (user && (user.email?.toLowerCase() === 'india.taps7@gmail.com' || user.isSuperAdmin)) {
+  if (user && (user.email?.toLowerCase() === 'sparshkoul6@gmail.com' || user.isSuperAdmin)) {
     return res.status(400).json({ error: 'Cannot block or lock the Super Admin account' });
   }
 
@@ -675,7 +675,7 @@ app.delete('/api/admin/users/:id', async (req, res) => {
 
   const targetId = Number(req.params.id);
   const user = store.users.find((u) => u.id === targetId);
-  if (user && (user.email?.toLowerCase() === 'india.taps7@gmail.com' || user.isSuperAdmin)) {
+  if (user && (user.email?.toLowerCase() === 'sparshkoul6@gmail.com' || user.isSuperAdmin)) {
     return res.status(400).json({ error: 'Cannot delete the Super Admin account' });
   }
 

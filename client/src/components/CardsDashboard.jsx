@@ -64,7 +64,7 @@ export function CardsDashboard({
   );
   const accountId = currentUser?.id || 1;
   const username = currentUser?.username || currentTree?.slug || 'riyast';
-  const email = currentUser?.email || 'india.taps7@gmail.com';
+  const email = currentUser?.email || 'sparshkoul6@gmail.com';
 
   const handleCopyUrl = (slug) => {
     const url = `https://indiataps.com/${slug}`;

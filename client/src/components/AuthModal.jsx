@@ -16,7 +16,7 @@ export function AuthModal({
       currentUser.isSuperAdmin ||
       currentUser.role === 'super_admin' ||
       currentUser.accountType === 'super_admin' ||
-      currentUser.email?.toLowerCase() === 'india.taps7@gmail.com'
+      currentUser.email?.toLowerCase() === 'sparshkoul6@gmail.com'
     )
   );
 
@@ -76,7 +76,7 @@ export function AuthModal({
   const handleRegister = async (e) => {
     e?.preventDefault();
     if (!isSuper) {
-      setError('Public self-registration is disabled. Only the Super Admin (india.taps7@gmail.com) can provision client accounts.');
+      setError('Public self-registration is disabled. Only the Super Admin (sparshkoul6@gmail.com) can provision client accounts.');
       return;
     }
     setError('');
@@ -369,7 +369,7 @@ export function AuthModal({
                   <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 text-[11px] text-gray-500 text-center leading-relaxed">
                     <p className="font-semibold text-gray-700">Invite-Only Access</p>
                     <p className="mt-0.5">
-                      Client accounts are provisioned exclusively by Super Admin (<span className="font-mono text-gray-700">india.taps7@gmail.com</span>). Under your account, you can create and manage unlimited digital cards.
+                      Client accounts are provisioned exclusively by Super Admin (<span className="font-mono text-gray-700">sparshkoul6@gmail.com</span>). Under your account, you can create and manage unlimited digital cards.
                     </p>
                   </div>
                 )}
