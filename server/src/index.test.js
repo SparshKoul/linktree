@@ -264,7 +264,7 @@ describe('SaaS Security & Ownership Verification Logic', () => {
 
 describe('Super Admin & Authentication Restrictions', () => {
   const users = [
-    { id: 1, email: 'sparshkoul6@gmail.com', username: 'sparshkoul6', role: 'super_admin', accountType: 'super_admin', password: hashPasswordSync('mockAdminPass!2026') },
+    { id: 1, email: 'india.taps7@gmail.com', username: 'sparshkoul6', role: 'super_admin', accountType: 'super_admin', password: hashPasswordSync('mockAdminPass!2026') },
     { id: 2, email: 'riyast@example.com', username: 'riyast', role: 'client', accountType: 'client', password: hashPasswordSync('mockClientPass!2026') },
   ];
 
@@ -273,13 +273,13 @@ describe('Super Admin & Authentication Restrictions', () => {
     return (
       user.role === 'super_admin' ||
       user.accountType === 'super_admin' ||
-      user.email?.toLowerCase() === 'sparshkoul6@gmail.com'
+      user.email?.toLowerCase() === 'india.taps7@gmail.com'
     );
   }
 
   function handleRegisterAttempt(callerUser, newUserData) {
     if (!isSuperAdmin(callerUser)) {
-      return { status: 403, error: 'Public registration is disabled. Accounts can only be provisioned by the Super Admin (sparshkoul6@gmail.com).' };
+      return { status: 403, error: 'Public registration is disabled. Accounts can only be provisioned by the Super Admin (india.taps7@gmail.com).' };
     }
     return {
       status: 201,
@@ -306,7 +306,7 @@ describe('Super Admin & Authentication Restrictions', () => {
     return { status: 200, user };
   }
 
-  it('recognizes sparshkoul6@gmail.com as Super Admin', () => {
+  it('recognizes india.taps7@gmail.com as Super Admin', () => {
     expect(isSuperAdmin(users[0])).toBe(true);
     expect(isSuperAdmin(users[1])).toBe(false);
     expect(isSuperAdmin(null)).toBe(false);
@@ -325,7 +325,7 @@ describe('Super Admin & Authentication Restrictions', () => {
     expect(res.error).toContain('Super Admin');
   });
 
-  it('allows Super Admin (sparshkoul6@gmail.com) to provision new client accounts with only email and password', () => {
+  it('allows Super Admin (india.taps7@gmail.com) to provision new client accounts with only email and password', () => {
     const superAdmin = users[0];
     const res = handleRegisterAttempt(superAdmin, { email: 'cafe@delight.com' });
     expect(res.status).toBe(201);
@@ -353,7 +353,7 @@ describe('Super Admin & Authentication Restrictions', () => {
 
   it('allows authorized users to sign in with email and password', async () => {
     // Via email
-    const loginEmail = await handleEmailPasswordLogin('sparshkoul6@gmail.com', 'mockAdminPass!2026');
+    const loginEmail = await handleEmailPasswordLogin('india.taps7@gmail.com', 'mockAdminPass!2026');
     expect(loginEmail.status).toBe(200);
     expect(loginEmail.user.username).toBe('sparshkoul6');
 
@@ -394,7 +394,7 @@ describe('Super Admin & Authentication Restrictions', () => {
     // Toggle block / account_state logic
     function toggleAccountState(caller, targetUser, isLocked) {
       if (!isSuperAdmin(caller)) return { status: 403, error: 'Forbidden' };
-      if (targetUser.email === 'sparshkoul6@gmail.com') return { status: 400, error: 'Cannot block Super Admin' };
+      if (targetUser.email === 'india.taps7@gmail.com') return { status: 400, error: 'Cannot block Super Admin' };
       targetUser.account_state = isLocked ? 'locked' : 'active';
       targetUser.isBlocked = isLocked;
       return { status: 200, account_state: targetUser.account_state, isBlocked: targetUser.isBlocked };
@@ -484,7 +484,7 @@ describe('Super Admin & Authentication Restrictions', () => {
           status: 403,
           error: 'Account Suspended',
           isBlocked: true,
-          message: 'This digital card is temporarily unavailable because the account has been locked. Please contact the administrator at indiataps.vercel.app or sparshkoul6@gmail.com.',
+          message: 'This digital card is temporarily unavailable because the account has been locked. Please contact the administrator at indiataps.vercel.app or india.taps7@gmail.com.',
         };
       }
       return { status: 200, tree: currentTree, cards: currentCards };

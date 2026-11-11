@@ -748,7 +748,7 @@ export function LandingPage({ onNavigate, onOpenAuth, currentUser, onLogout }) {
         </div>
 
         <div className="max-w-7xl mx-auto pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 gap-4">
-          <div>© {new Date().getFullYear()} IndiaTaps. Direct inquiries: <a href="mailto:sparshkoul6@gmail.com" className="text-white underline font-bold">sparshkoul6@gmail.com</a></div>
+          <div>© {new Date().getFullYear()} IndiaTaps. Direct inquiries: <a href="mailto:india.taps7@gmail.com" className="text-white underline font-bold">india.taps7@gmail.com</a></div>
           <div className="flex items-center gap-6">
             <button onClick={() => onNavigate('/contact')} className="hover:text-white transition-colors cursor-pointer">Features</button>
             <button onClick={() => onNavigate('/contact')} className="hover:text-white transition-colors cursor-pointer">Pricing</button>

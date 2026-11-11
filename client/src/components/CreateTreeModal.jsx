@@ -6,7 +6,7 @@ export function CreateTreeModal({
   onClose,
   onTreeCreated,
   currentUser,
-  adminEmail = 'sparshkoul6@gmail.com',
+  adminEmail = 'india.taps7@gmail.com',
 }) {
   const [step, setStep] = useState('input'); // 'input' | 'success'
   const [slug, setSlug] = useState('');

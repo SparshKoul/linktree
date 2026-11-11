@@ -202,7 +202,7 @@ export function PublicTreePage({ slug }) {
                 indiataps.vercel.app
               </a>
               <a
-                href="mailto:sparshkoul6@gmail.com?subject=Reactivate%20IndiaTaps%20Card%20Account"
+                href="mailto:india.taps7@gmail.com?subject=Reactivate%20IndiaTaps%20Card%20Account"
                 className="flex-1 py-3 px-4 rounded-full bg-gray-800 hover:bg-gray-700 text-white font-bold text-xs transition-all text-center border border-gray-700"
               >
                 Email Administrator

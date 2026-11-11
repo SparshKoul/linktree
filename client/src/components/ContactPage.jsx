@@ -27,7 +27,7 @@ export function ContactPage({ onNavigate, onOpenAuth, currentUser }) {
   const [copied, setCopied] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const contactEmail = 'sparshkoul6@gmail.com';
+  const contactEmail = 'india.taps7@gmail.com';
 
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(contactEmail);
@@ -83,7 +83,7 @@ export function ContactPage({ onNavigate, onOpenAuth, currentUser }) {
     },
     {
       q: 'How do I subscribe and get my account?',
-      a: 'Email Sparsh directly at sparshkoul6@gmail.com. We will set up your subscription plan, activate your account, and help you build your first batch of cards.',
+      a: 'Email Sparsh directly at india.taps7@gmail.com. We will set up your subscription plan, activate your account, and help you build your first batch of cards.',
     },
     {
       q: 'Can I use custom URLs and QR codes?',
@@ -509,7 +509,7 @@ export function ContactPage({ onNavigate, onOpenAuth, currentUser }) {
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-2 my-2 flex items-center justify-between gap-2 shadow-inner">
                   <div className="flex items-center gap-2 truncate px-2 text-gray-300">
                     <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span className="text-xs font-mono truncate">sparshkoul6@gmail.com</span>
+                    <span className="text-xs font-mono truncate">india.taps7@gmail.com</span>
                   </div>
                   <span className="px-3 py-1 rounded-xl bg-[#00E575] text-[#111111] font-black text-xs shrink-0 flex items-center gap-1 shadow-md">
                     <span>Captured</span>

@@ -853,7 +853,7 @@ export const db = {
         .single();
       if (error) throw error;
       if (!data) return null;
-      const isSuper = data.email?.toLowerCase() === 'sparshkoul6@gmail.com' || data.role === 'super_admin';
+      const isSuper = data.email?.toLowerCase() === 'india.taps7@gmail.com' || data.role === 'super_admin';
       return {
         ...data,
         role: isSuper ? 'super_admin' : (data.role || 'client'),
@@ -876,7 +876,7 @@ export const db = {
       if (error) throw error;
       const user = data?.[0];
       if (!user) return null;
-      const isSuper = user.email?.toLowerCase() === 'sparshkoul6@gmail.com' || user.role === 'super_admin';
+      const isSuper = user.email?.toLowerCase() === 'india.taps7@gmail.com' || user.role === 'super_admin';
       const accountState = user.account_state || (user.tier === 'blocked' ? 'locked' : 'active');
       return {
         ...user,

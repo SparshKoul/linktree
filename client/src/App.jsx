@@ -87,7 +87,7 @@ export function App() {
       currentUser.isSuperAdmin ||
       currentUser.role === 'super_admin' ||
       currentUser.accountType === 'super_admin' ||
-      currentUser.email?.toLowerCase() === 'sparshkoul6@gmail.com'
+      currentUser.email?.toLowerCase() === 'india.taps7@gmail.com'
     )
   );
   const [trees, setTrees] = useState([]);
@@ -3041,7 +3041,7 @@ export function App() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         currentUser={currentUser}
-        adminEmail={currentUser?.email || 'sparshkoul6@gmail.com'}
+        adminEmail={currentUser?.email || 'india.taps7@gmail.com'}
         onTreeCreated={(newTree) => {
           const treeWithAdmin = {
             ...newTree,
@@ -3095,12 +3095,12 @@ export function App() {
               </div>
               <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-white border border-gray-200 shadow-2xs">
                 <span className="font-mono font-bold text-sm text-gray-900 truncate">
-                  sparshkoul6@gmail.com
+                  india.taps7@gmail.com
                 </span>
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard?.writeText('sparshkoul6@gmail.com');
+                    navigator.clipboard?.writeText('india.taps7@gmail.com');
                     setCopiedSupportEmail(true);
                     setTimeout(() => setCopiedSupportEmail(false), 2000);
                   }}
@@ -3127,7 +3127,7 @@ export function App() {
 
             <div className="flex gap-2.5">
               <a
-                href="mailto:sparshkoul6@gmail.com?subject=IndiaTaps%20Help%20%26%20Support"
+                href="mailto:india.taps7@gmail.com?subject=IndiaTaps%20Help%20%26%20Support"
                 className="flex-1 py-3 px-4 rounded-full bg-[#1E2330] hover:bg-black text-white font-bold text-xs sm:text-sm transition-all shadow-sm text-center flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Mail className="w-4 h-4" />

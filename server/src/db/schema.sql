@@ -36,7 +36,7 @@ ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NUL
 UPDATE public.users SET account_state = 'locked' WHERE tier = 'blocked';
 
 -- Super Admin Provisioning
-UPDATE public.users SET role = 'super_admin', account_type = 'super_admin' WHERE LOWER(email) = 'sparshkoul6@gmail.com';
+UPDATE public.users SET role = 'super_admin', account_type = 'super_admin' WHERE LOWER(email) = 'india.taps7@gmail.com';
 
 -- ------------------------------------------------------------------------------
 -- 2. Trees Table (Modular Profiles, Design, Header & Footer Settings)
@@ -271,7 +271,7 @@ CREATE POLICY "Delete linktree-assets" ON storage.objects
 -- 10. Seed Initial User and Tree
 -- ------------------------------------------------------------------------------
 INSERT INTO public.users (email, username, password, display_name)
-VALUES ('sparshkoul6@gmail.com', 'riyast', '$2b$10$bsVZgzpWVq6a4VvV3M9oEeK95z74Wk9f9tJzF3hV9FwD2k3e0u8kO', 'Riyast')
+VALUES ('india.taps7@gmail.com', 'riyast', '$2b$10$bsVZgzpWVq6a4VvV3M9oEeK95z74Wk9f9tJzF3hV9FwD2k3e0u8kO', 'Riyast')
 ON CONFLICT (username) DO NOTHING;
 
 INSERT INTO public.trees (admin_id, name, slug, status, title, bio, theme_id, header_layout, footer_enabled, footer_text)
