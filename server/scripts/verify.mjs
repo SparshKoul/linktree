@@ -43,6 +43,14 @@ res = await fetch(`${BASE}/api/auth/me`);
 check('anonymous profile request is refused', res.status === 401, `status ${res.status}`);
 
 res = await fetch(`${BASE}/api/admin/trees`, { headers: asUser() });
+if (res.status === 401) {
+  console.log(
+    `\nThe signed session was refused by ${BASE}.\n` +
+      'When testing another server, its SESSION_SECRET must match the one used\n' +
+      'to sign this session, for example:\n' +
+      `  SESSION_SECRET=<the value of that server> BASE_URL=${BASE} npm run verify --workspace=server\n`
+  );
+}
 check('signed session works', res.status === 200, `status ${res.status}`);
 const trees = res.status === 200 ? await res.json() : [];
 const tree = Array.isArray(trees) ? trees[0] : null;
