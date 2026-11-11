@@ -428,7 +428,8 @@ describe('Super Admin & Authentication Restrictions', () => {
   });
 
   it('allows ONLY Super Admin to update/change password of any user', async () => {
-    const clientUser = { id: 55, email: 'client55@example.com', password: hashPasswordSync('oldpassword123') };
+    const initialSecret = 'originalSecKey_987';
+    const clientUser = { id: 55, email: 'client55@example.com', password: hashPasswordSync(initialSecret) };
 
     async function changeUserPassword(caller, target, newPassword) {
       if (!isSuperAdmin(caller)) return { status: 403, error: 'Forbidden: Super Admin access required' };
@@ -441,19 +442,20 @@ describe('Super Admin & Authentication Restrictions', () => {
 
     // 1. Regular client cannot change someone else's password via admin API
     const regularUser = { id: 2, email: 'client@indiataps.com', role: 'client' };
-    const unauthorizedRes = await changeUserPassword(regularUser, clientUser, 'hackedpassword');
+    const unauthorizedRes = await changeUserPassword(regularUser, clientUser, 'unauthorizedAttempt');
     expect(unauthorizedRes.status).toBe(403);
-    expect(await verifyPassword('oldpassword123', clientUser.password)).toBe(true);
+    expect(await verifyPassword(initialSecret, clientUser.password)).toBe(true);
 
     // 2. Reject short passwords
     const shortPwdRes = await changeUserPassword(users[0], clientUser, '123');
     expect(shortPwdRes.status).toBe(400);
-    expect(await verifyPassword('oldpassword123', clientUser.password)).toBe(true);
+    expect(await verifyPassword(initialSecret, clientUser.password)).toBe(true);
 
     // 3. Super Admin successfully updates password
-    const successRes = await changeUserPassword(users[0], clientUser, 'newBrandNewPassword999');
+    const updatedSecret = 'brandNewAdminAssignedKey_456';
+    const successRes = await changeUserPassword(users[0], clientUser, updatedSecret);
     expect(successRes.status).toBe(200);
-    expect(await verifyPassword('newBrandNewPassword999', clientUser.password)).toBe(true);
+    expect(await verifyPassword(updatedSecret, clientUser.password)).toBe(true);
 
     // 4. Verify login behavior with new vs old password
     async function checkCredentials(user, password) {
@@ -461,8 +463,8 @@ describe('Super Admin & Authentication Restrictions', () => {
       if (!match) return 401;
       return 200;
     }
-    expect(await checkCredentials(clientUser, 'oldpassword123')).toBe(401);
-    expect(await checkCredentials(clientUser, 'newBrandNewPassword999')).toBe(200);
+    expect(await checkCredentials(clientUser, initialSecret)).toBe(401);
+    expect(await checkCredentials(clientUser, updatedSecret)).toBe(200);
   });
 
   it('hides cards and shows suspended state when card owner account is blocked, and restores when unblocked', () => {
@@ -553,7 +555,7 @@ describe('Super Admin & Authentication Restrictions', () => {
     });
 
     it('generates unique salts so identical passwords produce completely different hashes', async () => {
-      const raw = 'identicalPassword123';
+      const raw = 'duplicateSourcePayload_99';
       const hash1 = await hashPassword(raw);
       const hash2 = await hashPassword(raw);
 

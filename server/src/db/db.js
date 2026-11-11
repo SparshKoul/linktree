@@ -846,7 +846,7 @@ export const db = {
 
       let user = await this.getUserByEmailOrUsername(cleanEmail);
       if (!user) {
-        user = await this.createUser({ email: cleanEmail, username: cleanUsername, password: 'oauth_user' });
+        user = await this.createUser({ email: cleanEmail, username: cleanUsername, password: crypto.randomUUID() });
       }
       if (user) {
         const trees = await this.getTrees(user.id);

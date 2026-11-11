@@ -686,7 +686,7 @@ export function SuperAdminDashboard({
                       required
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="e.g. client123 or strong password"
+                      placeholder="Enter secure password (min 6 characters)"
                       className="w-full bg-transparent focus:outline-none text-black font-medium"
                     />
                   </div>
