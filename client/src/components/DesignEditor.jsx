@@ -186,14 +186,24 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
   const handleSave = async () => {
     setIsSaving(true);
     onUpdateTree({
+      ...current,
       themeId: current.themeId,
       customTheme: { ...(currentTree?.customTheme || {}), ...current },
       headerLayout: current.headerLayout,
       avatarUrl: current.avatarUrl,
       bannerUrl: current.bannerUrl,
       heroUrl: current.heroUrl,
+      logoUrl: current.logoUrl,
+      titleStyle: current.titleStyle,
       title: current.title,
       bio: current.bio,
+      titleColor: current.titleColor,
+      titleFont: current.titleFont,
+      altFontEnabled: current.altFontEnabled,
+      textColor: current.textColor,
+      fontFamily: current.fontFamily,
+      footerEnabled: current.footerEnabled,
+      footerText: current.footerText,
     });
     try {
       if (typeof onSaveTree === 'function') {
@@ -371,15 +381,13 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
     footerText: current.footerText,
   };
 
-  const isLogo = (currentTree?.titleStyle || currentTree?.customTheme?.titleStyle) === 'logo';
-  const logoUrl = currentTree?.logoUrl || currentTree?.customTheme?.logoUrl;
+  const isLogo = (current.titleStyle || currentTree?.titleStyle || currentTree?.customTheme?.titleStyle) === 'logo';
+  const logoUrl = current.logoUrl || currentTree?.logoUrl || currentTree?.customTheme?.logoUrl;
   const effectiveTitle = current.title || currentTree?.title || `@${currentTree?.slug || 'riyast'}`;
   const effectiveBio = current.bio !== undefined ? current.bio : (currentTree?.bio || '');
   const effectiveAvatar = current.avatarUrl || currentTree?.avatarUrl || currentTree?.customTheme?.avatarUrl;
   const titleFont = current.altFontEnabled ? (current.titleFont || 'Manrope') : (current.fontFamily || 'inherit');
-  const titleColor = current.altFontEnabled
-    ? (current.titleColor || current.textColor || currentTree?.textColor || '#111111')
-    : (current.textColor || currentTree?.textColor || '#111111');
+  const titleColor = current.titleColor || currentTree?.titleColor || current.textColor || currentTree?.textColor || '#111111';
   const visibleCards = (currentTree?.cards || []).filter((c) => c.visible !== false);
 
   const currentHeaderLayout = current.headerLayout || currentTree?.headerLayout || currentTree?.customTheme?.headerLayout || 'classic';

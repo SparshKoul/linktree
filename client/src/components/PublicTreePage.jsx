@@ -413,10 +413,8 @@ export function PublicTreePage({ slug }) {
             const altFontEnabled = tree.altFontEnabled ?? tree.customTheme?.altFontEnabled ?? false;
             const titleFont = altFontEnabled
               ? (tree.titleFont || tree.customTheme?.titleFont || 'Manrope')
-              : 'inherit';
-            const titleColor = altFontEnabled
-              ? (tree.titleColor || tree.customTheme?.titleColor || tree.textColor || tree.customTheme?.textColor || '#111111')
-              : (tree.textColor || tree.customTheme?.textColor || '#111111');
+              : (tree.fontFamily || tree.customTheme?.fontFamily || 'inherit');
+            const titleColor = tree.titleColor || tree.customTheme?.titleColor || tree.textColor || tree.customTheme?.textColor || '#111111';
 
             const renderTitleBio = (isHero = false) => (
               <div className="flex flex-col items-center text-center space-y-1 mt-1">

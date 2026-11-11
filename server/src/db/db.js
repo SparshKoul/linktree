@@ -1,6 +1,79 @@
 import { supabase } from './supabase.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 
+export function formatTreeRecord(data, cards = null, cardCount = 0) {
+  if (!data) return null;
+  const custom = data.custom_theme || {};
+
+  const headerLayout = custom.headerLayout || data.header_layout || 'classic';
+  const bannerUrl = custom.bannerUrl || data.banner_url || null;
+  const heroUrl = custom.heroUrl || data.hero_url || null;
+  const logoUrl = custom.logoUrl || data.logo_url || null;
+  const titleStyle = custom.titleStyle || data.title_style || 'text';
+  const altFontEnabled = custom.altFontEnabled !== undefined ? custom.altFontEnabled : (data.alt_font_enabled ?? false);
+  const titleFont = custom.titleFont || data.title_font || 'Inter';
+  const titleColor = custom.titleColor || data.title_color || '#111111';
+  const footerEnabled = custom.footerEnabled !== undefined ? custom.footerEnabled : (data.footer_enabled ?? true);
+  const footerText = custom.footerText || data.footer_text || 'IndiaTaps';
+  const socialLinks = custom.socialLinks || data.social_links || [];
+  const seo = custom.seo || data.seo || { title: '', description: '', faviconUrl: '' };
+
+  const syncedCustomTheme = {
+    ...custom,
+    headerLayout,
+    bannerUrl,
+    heroUrl,
+    logoUrl,
+    titleStyle,
+    altFontEnabled,
+    titleFont,
+    titleColor,
+    footerEnabled,
+    footerText,
+    socialLinks,
+    seo,
+  };
+
+  const formatted = {
+    ...data,
+    id: Number(data.id),
+    adminId: Number(data.admin_id),
+    name: data.name,
+    slug: data.slug,
+    status: data.status,
+    title: data.title,
+    bio: data.bio || '',
+    avatarUrl: data.avatar_url,
+    themeId: data.theme_id,
+    customTheme: syncedCustomTheme,
+    headerLayout,
+    bannerUrl,
+    heroUrl,
+    logoUrl,
+    titleStyle,
+    altFontEnabled,
+    titleFont,
+    titleColor,
+    footerEnabled,
+    footerText,
+    socialLinks,
+    seo,
+    viewsCount: Number(data.views_count || 0),
+    clicksCount: Number(data.clicks_count || 0),
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+
+  if (cards !== null) {
+    formatted.cards = cards;
+  }
+  if (cardCount !== undefined && cardCount !== null) {
+    formatted.cardCount = cardCount;
+  }
+
+  return formatted;
+}
+
 export const db = {
   // --- Trees ---
   async getTrees(adminId) {
@@ -11,31 +84,7 @@ export const db = {
       }
       const { data, error } = await query.order('id', { ascending: true });
       if (error) throw error;
-      return data.map((t) => ({
-        id: Number(t.id),
-        adminId: Number(t.admin_id),
-        name: t.name,
-        slug: t.slug,
-        status: t.status,
-        title: t.title,
-        bio: t.bio,
-        avatarUrl: t.avatar_url,
-        themeId: t.theme_id,
-        customTheme: t.custom_theme,
-        headerLayout: t.header_layout || t.custom_theme?.headerLayout || 'classic',
-        bannerUrl: t.banner_url || t.custom_theme?.bannerUrl || null,
-        heroUrl: t.hero_url || t.custom_theme?.heroUrl || null,
-        logoUrl: t.logo_url || t.custom_theme?.logoUrl || null,
-        titleStyle: t.title_style || t.custom_theme?.titleStyle || 'text',
-        altFontEnabled: t.alt_font_enabled ?? t.custom_theme?.altFontEnabled ?? false,
-        titleFont: t.title_font || t.custom_theme?.titleFont || 'Inter',
-        titleColor: t.title_color || t.custom_theme?.titleColor || '#111111',
-        footerEnabled: t.footer_enabled ?? t.custom_theme?.footerEnabled ?? true,
-        footerText: t.footer_text || t.custom_theme?.footerText || 'IndiaTaps',
-        cardCount: t.cards?.[0]?.count || 0,
-        createdAt: t.created_at,
-        updatedAt: t.updated_at,
-      }));
+      return data.map((t) => formatTreeRecord(t, null, t.cards?.[0]?.count || 0));
     } catch (err) {
       console.warn('[DB getTrees fallback]', err.message);
       return null;
@@ -54,35 +103,7 @@ export const db = {
       if (!data) return null;
 
       const cards = await this.getCards(id);
-      return {
-        id: Number(data.id),
-        adminId: Number(data.admin_id),
-        name: data.name,
-        slug: data.slug,
-        status: data.status,
-        title: data.title,
-        bio: data.bio,
-        avatarUrl: data.avatar_url,
-        themeId: data.theme_id,
-        customTheme: data.custom_theme,
-        headerLayout: data.header_layout || data.custom_theme?.headerLayout || 'classic',
-        bannerUrl: data.banner_url || data.custom_theme?.bannerUrl || null,
-        heroUrl: data.hero_url || data.custom_theme?.heroUrl || null,
-        logoUrl: data.logo_url || data.custom_theme?.logoUrl || null,
-        titleStyle: data.title_style || data.custom_theme?.titleStyle || 'text',
-        altFontEnabled: data.alt_font_enabled ?? data.custom_theme?.altFontEnabled ?? false,
-        titleFont: data.title_font || data.custom_theme?.titleFont || 'Inter',
-        titleColor: data.title_color || data.custom_theme?.titleColor || '#111111',
-        footerEnabled: data.footer_enabled ?? data.custom_theme?.footerEnabled ?? true,
-        footerText: data.footer_text || data.custom_theme?.footerText || 'IndiaTaps',
-        socialLinks: data.social_links || data.custom_theme?.socialLinks || [],
-        seo: data.seo || data.custom_theme?.seo || { title: '', description: '', faviconUrl: '' },
-        viewsCount: Number(data.views_count || 0),
-        clicksCount: Number(data.clicks_count || 0),
-        cards: cards || [],
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
+      return formatTreeRecord(data, cards);
     } catch (err) {
       console.warn('[DB getTreeById fallback]', err.message);
       return null;
@@ -134,35 +155,7 @@ export const db = {
         updatedAt: c.updated_at ?? c.updatedAt,
       }));
 
-      return {
-        id: Number(data.id),
-        adminId: Number(data.admin_id),
-        name: data.name,
-        slug: data.slug,
-        status: data.status,
-        title: data.title,
-        bio: data.bio,
-        avatarUrl: data.avatar_url,
-        themeId: data.theme_id,
-        customTheme: data.custom_theme,
-        headerLayout: data.header_layout || data.custom_theme?.headerLayout || 'classic',
-        bannerUrl: data.banner_url || data.custom_theme?.bannerUrl || null,
-        heroUrl: data.hero_url || data.custom_theme?.heroUrl || null,
-        logoUrl: data.logo_url || data.custom_theme?.logoUrl || null,
-        titleStyle: data.title_style || data.custom_theme?.titleStyle || 'text',
-        altFontEnabled: data.alt_font_enabled ?? data.custom_theme?.altFontEnabled ?? false,
-        titleFont: data.title_font || data.custom_theme?.titleFont || 'Inter',
-        titleColor: data.title_color || data.custom_theme?.titleColor || '#111111',
-        footerEnabled: data.footer_enabled ?? data.custom_theme?.footerEnabled ?? true,
-        footerText: data.footer_text || data.custom_theme?.footerText || 'IndiaTaps',
-        socialLinks: data.social_links || data.custom_theme?.socialLinks || [],
-        seo: data.seo || data.custom_theme?.seo || { title: '', description: '', faviconUrl: '' },
-        viewsCount: Number(data.views_count || 0),
-        clicksCount: Number(data.clicks_count || 0),
-        cards: cards || [],
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
+      return formatTreeRecord(data, cards);
     } catch (err) {
       console.warn('[DB getTreeBySlug fallback]', err.message);
       return null;
@@ -186,20 +179,7 @@ export const db = {
         .select()
         .single();
       if (error) throw error;
-      return {
-        id: Number(data.id),
-        adminId: Number(data.admin_id),
-        name: data.name,
-        slug: data.slug,
-        status: data.status,
-        title: data.title,
-        bio: data.bio,
-        avatarUrl: data.avatar_url,
-        themeId: data.theme_id,
-        customTheme: data.custom_theme,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
+      return formatTreeRecord(data);
     } catch (err) {
       console.warn('[DB createTree fallback]', err.message);
       return null;
@@ -295,49 +275,65 @@ export const db = {
       if (updates.themeId !== undefined || updates.theme_id !== undefined) {
         payload.theme_id = updates.themeId || updates.theme_id;
       }
-      if (
-        updates.customTheme !== undefined ||
-        updates.custom_theme !== undefined ||
-        updates.headerLayout !== undefined ||
-        updates.bannerUrl !== undefined ||
-        updates.heroUrl !== undefined ||
-        updates.titleStyle !== undefined ||
-        updates.logoUrl !== undefined ||
-        updates.altFontEnabled !== undefined ||
-        updates.titleFont !== undefined ||
-        updates.titleColor !== undefined ||
-        updates.footerEnabled !== undefined ||
-        updates.footerText !== undefined ||
-        updates.socialLinks !== undefined ||
-        updates.seo !== undefined
-      ) {
-        let existingTheme = {};
-        if (!updates.customTheme && !updates.custom_theme) {
-          try {
-            const { data: curr } = await supabase.from('trees').select('custom_theme').eq('id', id).single();
-            if (curr?.custom_theme) existingTheme = curr.custom_theme;
-          } catch {}
-        }
 
-        const baseTheme = updates.customTheme || updates.custom_theme || {};
-        payload.custom_theme = {
-          ...existingTheme,
-          ...baseTheme,
-          ...(updates.headerLayout !== undefined ? { headerLayout: updates.headerLayout } : {}),
-          ...(banner !== undefined ? { bannerUrl: banner } : {}),
-          ...(hero !== undefined ? { heroUrl: hero } : {}),
-          ...(updates.titleStyle !== undefined ? { titleStyle: updates.titleStyle } : {}),
-          ...(logo !== undefined ? { logoUrl: logo } : {}),
-          ...(bgImg !== undefined ? { backgroundImageUrl: bgImg } : {}),
-          ...(updates.altFontEnabled !== undefined ? { altFontEnabled: updates.altFontEnabled } : {}),
-          ...(updates.titleFont !== undefined ? { titleFont: updates.titleFont } : {}),
-          ...(updates.titleColor !== undefined ? { titleColor: updates.titleColor } : {}),
-          ...(updates.footerEnabled !== undefined ? { footerEnabled: updates.footerEnabled } : {}),
-          ...(updates.footerText !== undefined ? { footerText: updates.footerText } : {}),
-          ...(updates.socialLinks !== undefined ? { socialLinks: updates.socialLinks } : {}),
-          ...(updates.seo !== undefined ? { seo: updates.seo } : {}),
-        };
-      }
+      // Sync top-level table columns and custom_theme in parallel
+      const headerLayoutVal = updates.headerLayout ?? updates.header_layout ?? updates.customTheme?.headerLayout ?? updates.custom_theme?.headerLayout;
+      if (headerLayoutVal !== undefined) payload.header_layout = headerLayoutVal;
+
+      if (banner !== undefined) payload.banner_url = banner;
+      if (hero !== undefined) payload.hero_url = hero;
+      if (logo !== undefined) payload.logo_url = logo;
+
+      const titleStyleVal = updates.titleStyle ?? updates.title_style ?? updates.customTheme?.titleStyle ?? updates.custom_theme?.titleStyle;
+      if (titleStyleVal !== undefined) payload.title_style = titleStyleVal;
+
+      const titleFontVal = updates.titleFont ?? updates.title_font ?? updates.customTheme?.titleFont ?? updates.custom_theme?.titleFont;
+      if (titleFontVal !== undefined) payload.title_font = titleFontVal;
+
+      const titleColorVal = updates.titleColor ?? updates.title_color ?? updates.customTheme?.titleColor ?? updates.custom_theme?.titleColor;
+      if (titleColorVal !== undefined) payload.title_color = titleColorVal;
+
+      const altFontVal = updates.altFontEnabled ?? updates.alt_font_enabled ?? updates.customTheme?.altFontEnabled ?? updates.custom_theme?.altFontEnabled;
+      if (altFontVal !== undefined) payload.alt_font_enabled = altFontVal;
+
+      const footerEnabledVal = updates.footerEnabled ?? updates.footer_enabled ?? updates.customTheme?.footerEnabled ?? updates.custom_theme?.footerEnabled;
+      if (footerEnabledVal !== undefined) payload.footer_enabled = footerEnabledVal;
+
+      const footerTextVal = updates.footerText ?? updates.footer_text ?? updates.customTheme?.footerText ?? updates.custom_theme?.footerText;
+      if (footerTextVal !== undefined) payload.footer_text = footerTextVal;
+
+      const socialLinksVal = updates.socialLinks ?? updates.social_links ?? updates.customTheme?.socialLinks ?? updates.custom_theme?.socialLinks;
+      if (socialLinksVal !== undefined) payload.social_links = socialLinksVal;
+
+      const seoVal = updates.seo ?? updates.customTheme?.seo ?? updates.custom_theme?.seo;
+      if (seoVal !== undefined) payload.seo = seoVal;
+
+      // Ensure custom_theme has all properties synced
+      let existingTheme = {};
+      try {
+        const { data: curr } = await supabase.from('trees').select('custom_theme').eq('id', id).single();
+        if (curr?.custom_theme) existingTheme = curr.custom_theme;
+      } catch {}
+
+      const baseTheme = updates.customTheme || updates.custom_theme || {};
+      payload.custom_theme = {
+        ...existingTheme,
+        ...baseTheme,
+        ...(headerLayoutVal !== undefined ? { headerLayout: headerLayoutVal } : {}),
+        ...(banner !== undefined ? { bannerUrl: banner } : {}),
+        ...(hero !== undefined ? { heroUrl: hero } : {}),
+        ...(titleStyleVal !== undefined ? { titleStyle: titleStyleVal } : {}),
+        ...(logo !== undefined ? { logoUrl: logo } : {}),
+        ...(bgImg !== undefined ? { backgroundImageUrl: bgImg } : {}),
+        ...(altFontVal !== undefined ? { altFontEnabled: altFontVal } : {}),
+        ...(titleFontVal !== undefined ? { titleFont: titleFontVal } : {}),
+        ...(titleColorVal !== undefined ? { titleColor: titleColorVal } : {}),
+        ...(footerEnabledVal !== undefined ? { footerEnabled: footerEnabledVal } : {}),
+        ...(footerTextVal !== undefined ? { footerText: footerTextVal } : {}),
+        ...(socialLinksVal !== undefined ? { socialLinks: socialLinksVal } : {}),
+        ...(seoVal !== undefined ? { seo: seoVal } : {}),
+      };
+
       if (updates.status !== undefined) payload.status = updates.status;
       payload.deleted_at = null;
       payload.updated_at = new Date().toISOString();
@@ -367,24 +363,7 @@ export const db = {
       }
 
       if (error) throw error;
-      return {
-        ...data,
-        id: Number(data.id),
-        adminId: Number(data.admin_id),
-        avatarUrl: data.avatar_url,
-        themeId: data.theme_id,
-        customTheme: data.custom_theme,
-        headerLayout: data.header_layout || data.custom_theme?.headerLayout || 'classic',
-        bannerUrl: data.banner_url || data.custom_theme?.bannerUrl || null,
-        heroUrl: data.hero_url || data.custom_theme?.heroUrl || null,
-        logoUrl: data.logo_url || data.custom_theme?.logoUrl || null,
-        titleStyle: data.title_style || data.custom_theme?.titleStyle || 'text',
-        altFontEnabled: data.alt_font_enabled ?? data.custom_theme?.altFontEnabled ?? false,
-        titleFont: data.title_font || data.custom_theme?.titleFont || 'Inter',
-        titleColor: data.title_color || data.custom_theme?.titleColor || '#111111',
-        footerEnabled: data.footer_enabled ?? data.custom_theme?.footerEnabled ?? true,
-        footerText: data.footer_text || data.custom_theme?.footerText || 'IndiaTaps',
-      };
+      return formatTreeRecord(data);
     } catch (err) {
       console.warn('[DB updateTree fallback]', err.message);
       return null;

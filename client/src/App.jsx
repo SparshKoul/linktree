@@ -448,10 +448,19 @@ export function App() {
             title: currentTree.title,
             bio: currentTree.bio,
             avatarUrl: currentTree.avatarUrl,
-            bannerUrl: currentTree.bannerUrl || currentTree.customTheme?.bannerUrl,
-            heroUrl: currentTree.heroUrl || currentTree.customTheme?.heroUrl,
-            logoUrl: currentTree.logoUrl || currentTree.customTheme?.logoUrl,
+            bannerUrl: currentTree.bannerUrl || currentTree.customTheme?.bannerUrl || null,
+            heroUrl: currentTree.heroUrl || currentTree.customTheme?.heroUrl || null,
+            logoUrl: currentTree.logoUrl || currentTree.customTheme?.logoUrl || null,
             themeId: currentTree.themeId,
+            headerLayout: currentTree.headerLayout || currentTree.customTheme?.headerLayout || 'classic',
+            titleStyle: currentTree.titleStyle || currentTree.customTheme?.titleStyle || 'text',
+            titleFont: currentTree.titleFont || currentTree.customTheme?.titleFont || 'Inter',
+            titleColor: currentTree.titleColor || currentTree.customTheme?.titleColor || '#111111',
+            altFontEnabled: currentTree.altFontEnabled !== undefined ? currentTree.altFontEnabled : (currentTree.customTheme?.altFontEnabled ?? false),
+            footerEnabled: currentTree.footerEnabled !== undefined ? currentTree.footerEnabled : (currentTree.customTheme?.footerEnabled ?? true),
+            footerText: currentTree.footerText || currentTree.customTheme?.footerText || 'IndiaTaps',
+            socialLinks: currentTree.socialLinks || currentTree.customTheme?.socialLinks || [],
+            seo: currentTree.seo || currentTree.customTheme?.seo || { title: '', description: '', faviconUrl: '' },
             customTheme: {
               ...(currentTree.customTheme || {}),
               backgroundType: activeTheme.backgroundType,
@@ -471,15 +480,18 @@ export function App() {
               buttonRadius: activeTheme.buttonRadius,
               fontFamily: activeTheme.fontFamily,
               textColor: activeTheme.textColor,
+              headerLayout: currentTree.headerLayout || currentTree.customTheme?.headerLayout || 'classic',
+              titleStyle: currentTree.titleStyle || currentTree.customTheme?.titleStyle || 'text',
+              titleFont: currentTree.titleFont || currentTree.customTheme?.titleFont || 'Inter',
+              titleColor: currentTree.titleColor || currentTree.customTheme?.titleColor || '#111111',
+              altFontEnabled: currentTree.altFontEnabled !== undefined ? currentTree.altFontEnabled : (currentTree.customTheme?.altFontEnabled ?? false),
+              bannerUrl: currentTree.bannerUrl || currentTree.customTheme?.bannerUrl || null,
+              heroUrl: currentTree.heroUrl || currentTree.customTheme?.heroUrl || null,
+              logoUrl: currentTree.logoUrl || currentTree.customTheme?.logoUrl || null,
+              avatarUrl: currentTree.avatarUrl || currentTree.customTheme?.avatarUrl || null,
+              footerEnabled: currentTree.footerEnabled !== undefined ? currentTree.footerEnabled : (currentTree.customTheme?.footerEnabled ?? true),
+              footerText: currentTree.footerText || currentTree.customTheme?.footerText || 'IndiaTaps',
             },
-            headerLayout: currentTree.headerLayout,
-            titleStyle: currentTree.titleStyle,
-            titleFont: currentTree.titleFont,
-            titleColor: currentTree.titleColor,
-            footerEnabled: currentTree.footerEnabled,
-            footerText: currentTree.footerText,
-            socialLinks: currentTree.socialLinks,
-            seo: currentTree.seo,
           },
           cards: activeCards,
         }),
@@ -970,10 +982,8 @@ export function App() {
     const altFontEnabled = currentTree?.altFontEnabled ?? currentTree?.customTheme?.altFontEnabled ?? false;
     const titleFont = altFontEnabled
       ? (currentTree?.titleFont || currentTree?.customTheme?.titleFont || 'Manrope')
-      : 'inherit';
-    const titleColor = altFontEnabled
-      ? (currentTree?.titleColor || currentTree?.customTheme?.titleColor || currentTree?.textColor || currentTree?.customTheme?.textColor || '#111111')
-      : (currentTree?.textColor || currentTree?.customTheme?.textColor || '#111111');
+      : (currentTree?.fontFamily || currentTree?.customTheme?.fontFamily || 'inherit');
+    const titleColor = currentTree?.titleColor || currentTree?.customTheme?.titleColor || currentTree?.textColor || currentTree?.customTheme?.textColor || '#111111';
 
     const renderTitleBlock = (isHero = false) => (
       <div className="flex flex-col items-center text-center space-y-1 mt-1">

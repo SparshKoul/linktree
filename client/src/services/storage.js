@@ -58,6 +58,12 @@ export const storage = {
         heroUrl: t.heroUrl || t.customTheme?.heroUrl || null,
         logoUrl: t.logoUrl || t.customTheme?.logoUrl || null,
         headerLayout: t.headerLayout || t.customTheme?.headerLayout || 'classic',
+        titleStyle: t.titleStyle || t.customTheme?.titleStyle || 'text',
+        titleFont: t.titleFont || t.customTheme?.titleFont || 'Inter',
+        titleColor: t.titleColor || t.customTheme?.titleColor || '#111111',
+        altFontEnabled: t.altFontEnabled !== undefined ? t.altFontEnabled : (t.customTheme?.altFontEnabled ?? false),
+        footerEnabled: t.footerEnabled !== undefined ? t.footerEnabled : (t.customTheme?.footerEnabled ?? true),
+        footerText: t.footerText || t.customTheme?.footerText || 'IndiaTaps',
       }));
       return userId ? normalized.filter((t) => t.adminId === userId) : normalized;
     } catch {
