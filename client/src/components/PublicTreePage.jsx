@@ -250,127 +250,142 @@ export function PublicTreePage({ slug }) {
   };
 
   return (
-    <div className="min-h-screen w-full relative selection:bg-white/20 selection:text-white transition-colors">
-      {/* 1. FIXED WALLPAPER BACKGROUND: Fixed to viewport, content scrolls smoothly over it */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        {/* Base Layer (Image, Gradient, or Solid) */}
+    <div className="min-h-screen w-full flex flex-col items-center justify-start sm:justify-center bg-[#181A1E] sm:py-6 sm:px-4 font-sans selection:bg-white/20 selection:text-white transition-colors relative">
+      {/* Outer subtle ambient glow on large desktop screens */}
+      <div className="hidden sm:block fixed inset-0 pointer-events-none opacity-25 blur-[120px] -z-10 overflow-hidden">
         <div
-          className="w-full h-full absolute inset-0"
+          className="w-full h-full"
           style={{
-            background:
-              activeTheme?.wallpaperStyle === 'video'
-                ? 'transparent'
-                : activeTheme?.backgroundType === 'solid' || activeTheme?.wallpaperStyle === 'fill'
-                ? (activeTheme?.backgroundValue?.startsWith('#') ? activeTheme.backgroundValue : (activeTheme?.backgroundColor || '#F3F3F1'))
-                : activeTheme?.backgroundImageUrl
-                ? `url("${activeTheme.backgroundImageUrl}") center / cover no-repeat`
-                : activeTheme?.backgroundValue || '#F3F3F1',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            filter:
-              activeTheme?.wallpaperStyle === 'blur'
-                ? `blur(${activeTheme?.blurAmount ?? 20}px)`
-                : activeTheme?.effect === 'mono'
-                ? 'grayscale(100%)'
-                : activeTheme?.effect === 'blur'
-                ? `blur(${activeTheme?.blurAmount ?? 10}px)`
-                : activeTheme?.effect === 'halftone'
-                ? 'contrast(200%) grayscale(100%)'
-                : 'none',
-            transform:
-              activeTheme?.wallpaperStyle === 'blur' || activeTheme?.effect === 'blur'
-                ? 'scale(1.12)'
-                : 'none',
+            background: activeTheme?.backgroundColor || activeTheme?.backgroundValue || '#111111',
           }}
         />
-
-        {/* 1.1 Video Layer (if video style) */}
-        {activeTheme?.wallpaperStyle === 'video' &&
-          (activeTheme?.wallpaperVideoUrl || activeTheme?.backgroundImageUrl) && (
-            <video
-              src={activeTheme.wallpaperVideoUrl || activeTheme.backgroundImageUrl}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-full object-cover absolute inset-0"
-            />
-          )}
-
-        {/* 2. Gradient Overlay (if gradient style) */}
-        {activeTheme?.wallpaperStyle === 'gradient' && (
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(180deg, ${activeTheme?.backgroundColor || '#638873'} 0%, rgba(0,0,0,0.85) 100%)`,
-              mixBlendMode: activeTheme?.backgroundImageUrl ? 'multiply' : 'normal',
-            }}
-          />
-        )}
-
-        {/* 3. Pattern Overlay (if pattern style) */}
-        {activeTheme?.wallpaperStyle === 'pattern' && (
-          <div
-            className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{
-              backgroundColor: activeTheme?.backgroundImageUrl
-                ? 'transparent'
-                : activeTheme?.backgroundColor || '#050F15',
-              backgroundImage: `url("${getPatternSvg(
-                activeTheme?.patternType || 'organic',
-                activeTheme?.backgroundImageUrl
-                  ? (activeTheme?.backgroundColor || '#050F15')
-                  : getContrastingPatternColor(activeTheme?.backgroundColor || '#050F15'),
-                activeTheme?.backgroundImageUrl ? 0.45 : 0.3
-              )}")`,
-              backgroundRepeat: 'repeat',
-              mixBlendMode: activeTheme?.backgroundImageUrl ? 'multiply' : 'normal',
-            }}
-          />
-        )}
-
-        {/* 4. Tint Overlay */}
-        {typeof activeTheme?.tint === 'number' && activeTheme.tint !== 0 && (
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundColor:
-                activeTheme.tint < 0
-                  ? `rgba(0, 0, 0, ${(Math.abs(activeTheme.tint) / 100) * 0.75})`
-                  : `rgba(255, 255, 255, ${(activeTheme.tint / 100) * 0.75})`,
-            }}
-          />
-        )}
-
-        {/* 5. Noise Texture Overlay */}
-        {activeTheme?.noise && (
-          <div
-            className="absolute inset-0 opacity-25 mix-blend-overlay"
-            style={{
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.6'/%3E%3C/svg%3E")`,
-            }}
-          />
-        )}
       </div>
 
-      <svg className="absolute w-0 h-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        <defs>
-          <clipPath id="linktree-organic-shape" clipPathUnits="objectBoundingBox">
-            <path d="M 0.5,0.02 C 0.72,0.02, 0.94,0.12, 0.98,0.32 C 1.01,0.42, 0.95,0.48, 0.91,0.5 C 0.95,0.52, 1.01,0.58, 0.98,0.68 C 0.94,0.88, 0.72,0.98, 0.5,0.98 C 0.28,0.98, 0.06,0.88, 0.02,0.68 C -0.01,0.58, 0.05,0.52, 0.09,0.5 C 0.05,0.48, -0.01,0.42, 0.02,0.32 C 0.06,0.12, 0.28,0.02, 0.5,0.02 Z" />
-          </clipPath>
-        </defs>
-      </svg>
-
-      {/* 2. SCROLLABLE CONTENT: Cards & Header glide over the fixed wallpaper */}
+      {/* Centered Mobile/Card Container matching Linktree Desktop UI */}
       <div
-        className="w-full sm:max-w-[580px] md:max-w-[620px] min-h-screen mx-auto flex flex-col justify-between p-5 sm:p-8 relative z-10 transition-all duration-200"
+        className="w-full sm:max-w-[480px] md:max-w-[520px] min-h-screen sm:min-h-[min(94vh,940px)] sm:max-h-[94vh] flex flex-col justify-between relative overflow-hidden transition-all duration-200 sm:rounded-[44px] sm:shadow-[0_24px_70px_-15px_rgba(0,0,0,0.75)] sm:border sm:border-white/10"
         style={{
           color: activeTheme.textColor,
           fontFamily: activeTheme.fontFamily,
         }}
       >
-        <div className="relative z-10 w-full flex items-center justify-between py-1 mb-3">
+        {/* 1. FIXED WALLPAPER BACKGROUND: Fixed to viewport on mobile, pinned to card on desktop */}
+        <div className="fixed sm:absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          {/* Base Layer (Image, Gradient, or Solid) */}
+          <div
+            className="w-full h-full absolute inset-0"
+            style={{
+              background:
+                activeTheme?.wallpaperStyle === 'video'
+                  ? 'transparent'
+                  : activeTheme?.backgroundType === 'solid' || activeTheme?.wallpaperStyle === 'fill'
+                  ? (activeTheme?.backgroundValue?.startsWith('#') ? activeTheme.backgroundValue : (activeTheme?.backgroundColor || '#F3F3F1'))
+                  : activeTheme?.backgroundImageUrl
+                  ? `url("${activeTheme.backgroundImageUrl}") center / cover no-repeat`
+                  : activeTheme?.backgroundValue || '#F3F3F1',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              filter:
+                activeTheme?.wallpaperStyle === 'blur'
+                  ? `blur(${activeTheme?.blurAmount ?? 20}px)`
+                  : activeTheme?.effect === 'mono'
+                  ? 'grayscale(100%)'
+                  : activeTheme?.effect === 'blur'
+                  ? `blur(${activeTheme?.blurAmount ?? 10}px)`
+                  : activeTheme?.effect === 'halftone'
+                  ? 'contrast(200%) grayscale(100%)'
+                  : 'none',
+              transform:
+                activeTheme?.wallpaperStyle === 'blur' || activeTheme?.effect === 'blur'
+                  ? 'scale(1.12)'
+                  : 'none',
+            }}
+          />
+
+          {/* 1.1 Video Layer (if video style) */}
+          {activeTheme?.wallpaperStyle === 'video' &&
+            (activeTheme?.wallpaperVideoUrl || activeTheme?.backgroundImageUrl) && (
+              <video
+                src={activeTheme.wallpaperVideoUrl || activeTheme.backgroundImageUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover absolute inset-0"
+              />
+            )}
+
+          {/* 2. Gradient Overlay (if gradient style) */}
+          {activeTheme?.wallpaperStyle === 'gradient' && (
+            <div
+              className="absolute inset-0"
+              style={{
+                background: `linear-gradient(180deg, ${activeTheme?.backgroundColor || '#638873'} 0%, rgba(0,0,0,0.85) 100%)`,
+                mixBlendMode: activeTheme?.backgroundImageUrl ? 'multiply' : 'normal',
+              }}
+            />
+          )}
+
+          {/* 3. Pattern Overlay (if pattern style) */}
+          {activeTheme?.wallpaperStyle === 'pattern' && (
+            <div
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{
+                backgroundColor: activeTheme?.backgroundImageUrl
+                  ? 'transparent'
+                  : activeTheme?.backgroundColor || '#050F15',
+                backgroundImage: `url("${getPatternSvg(
+                  activeTheme?.patternType || 'organic',
+                  activeTheme?.backgroundImageUrl
+                    ? (activeTheme?.backgroundColor || '#050F15')
+                    : getContrastingPatternColor(activeTheme?.backgroundColor || '#050F15'),
+                  activeTheme?.backgroundImageUrl ? 0.45 : 0.3
+                )}")`,
+                backgroundRepeat: 'repeat',
+                mixBlendMode: activeTheme?.backgroundImageUrl ? 'multiply' : 'normal',
+              }}
+            />
+          )}
+
+          {/* 4. Tint Overlay */}
+          {typeof activeTheme?.tint === 'number' && activeTheme.tint !== 0 && (
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundColor:
+                  activeTheme.tint < 0
+                    ? `rgba(0, 0, 0, ${(Math.abs(activeTheme.tint) / 100) * 0.75})`
+                    : `rgba(255, 255, 255, ${(activeTheme.tint / 100) * 0.75})`,
+              }}
+            />
+          )}
+
+          {/* 5. Noise Texture Overlay */}
+          {activeTheme?.noise && (
+            <div
+              className="absolute inset-0 opacity-25 mix-blend-overlay"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.6'/%3E%3C/svg%3E")`,
+              }}
+            />
+          )}
+        </div>
+
+        <svg className="absolute w-0 h-0 overflow-hidden pointer-events-none" aria-hidden="true">
+          <defs>
+            <clipPath id="linktree-organic-shape" clipPathUnits="objectBoundingBox">
+              <path d="M 0.5,0.02 C 0.72,0.02, 0.94,0.12, 0.98,0.32 C 1.01,0.42, 0.95,0.48, 0.91,0.5 C 0.95,0.52, 1.01,0.58, 0.98,0.68 C 0.94,0.88, 0.72,0.98, 0.5,0.98 C 0.28,0.98, 0.06,0.88, 0.02,0.68 C -0.01,0.58, 0.05,0.52, 0.09,0.5 C 0.05,0.48, -0.01,0.42, 0.02,0.32 C 0.06,0.12, 0.28,0.02, 0.5,0.02 Z" />
+            </clipPath>
+          </defs>
+        </svg>
+
+        {/* 2. SCROLLABLE CONTENT: Cards & Header glide over the fixed wallpaper */}
+        <div
+          data-lenis-prevent
+          className="w-full flex-1 flex flex-col justify-between p-5 sm:p-7 relative z-10 overflow-y-auto no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <div className="relative z-10 w-full flex items-center justify-between py-1 mb-3">
           <a
             href="/"
             className="w-9 h-9 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-base font-black shadow-xs hover:bg-white/30 transition-all select-none"
@@ -564,6 +579,7 @@ export function PublicTreePage({ slug }) {
         <div className="w-full h-8 shrink-0 pointer-events-none" aria-hidden="true" />
       </div>
     </div>
-  );
+  </div>
+);
 }
 
