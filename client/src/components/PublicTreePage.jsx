@@ -561,15 +561,9 @@ export function PublicTreePage({ slug }) {
           </div>
         </main>
 
-        {/* Footer Branding inside Card */}
+        {/* Footer Branding inside Card (controlled by Admin Content settings) */}
         {(tree.footerEnabled !== false && tree.customTheme?.footerEnabled !== false) && (
-          <footer className="relative z-10 w-full text-center pt-6 pb-2 space-y-3">
-            <a
-              href="/"
-              className="w-full max-w-[210px] py-2.5 px-5 rounded-full bg-white text-[#111111] text-xs font-extrabold shadow-md hover:scale-[1.03] active:scale-95 transition-all mx-auto flex items-center justify-center gap-1.5 cursor-pointer border border-gray-100"
-            >
-              {tree.footerText && tree.footerText !== 'IndiaTaps' ? `Get your own ${tree.footerText}` : 'Get your own IndiaTaps'}
-            </a>
+          <footer className="relative z-10 w-full text-center pt-6 pb-2">
             <div className="text-[10px] opacity-40 font-semibold tracking-wider uppercase">
               {tree.footerText || tree.name}
             </div>
@@ -578,17 +572,6 @@ export function PublicTreePage({ slug }) {
 
         {/* Guaranteed Bottom Spacer */}
         <div className="w-full h-8 shrink-0 pointer-events-none" aria-hidden="true" />
-      </div>
-
-      {/* Desktop External Sub-Footer Links matching Linktree Image 2 */}
-      <div className="hidden sm:flex items-center justify-center gap-3 py-4 text-[11px] text-white/40 font-medium">
-        <span>IndiaTaps</span>
-        <span>•</span>
-        <a href="/" className="hover:text-white/70 transition-colors">Privacy</a>
-        <span>•</span>
-        <a href="/" className="hover:text-white/70 transition-colors">Terms</a>
-        <span>•</span>
-        <a href="/" className="hover:text-white/70 transition-colors">Report</a>
       </div>
     </div>
   );
