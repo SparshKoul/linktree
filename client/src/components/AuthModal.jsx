@@ -369,7 +369,7 @@ export function AuthModal({
                   <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 text-[11px] text-gray-500 text-center leading-relaxed">
                     <p className="font-semibold text-gray-700">Invite-Only Access</p>
                     <p className="mt-0.5">
-                      Client accounts are provisioned exclusively by Super Admin (<span className="font-mono text-gray-700">sparshkoul6@gmail.com</span>). Under your account, you can create and manage unlimited digital cards.
+                      Client accounts are provisioned exclusively by Super Admin (<span className="font-mono text-gray-700">india.taps7@gmail.com</span>). Under your account, you can create and manage unlimited digital cards.
                     </p>
                   </div>
                 )}
