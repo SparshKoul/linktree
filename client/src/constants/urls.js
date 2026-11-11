@@ -10,7 +10,7 @@ export function getCanonicalTreeUrl(slug) {
     /^192\.168\./.test(window.location.hostname)
   );
   const host = isLocal ? 'indiataps.vercel.app' : (window?.location?.host || 'indiataps.vercel.app');
-  return `https://${host}/@${cleanSlug}`;
+  return `https://${host}/${cleanSlug}`;
 }
 
 export function getCanonicalDisplayDomain() {
