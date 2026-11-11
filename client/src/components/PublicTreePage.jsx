@@ -6,6 +6,10 @@ import { getPatternSvg, getContrastingPatternColor } from './WallpaperEditor.jsx
 import { TreeSkeleton } from './TreeSkeleton.jsx';
 import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
 
+// How long a saved copy of a public page may be shown before it is fetched
+// again. Short enough that an owner never sees their own old links.
+const PUBLIC_PAGE_CACHE_MAX_AGE_MS = 10 * 1000;
+
 export function PublicTreePage({ slug }) {
   const [treeData, setTreeData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,15 +32,18 @@ export function PublicTreePage({ slug }) {
     setError(null);
     setIsBlocked(false);
 
-    // Stale-While-Revalidate: Instant render from localStorage / sessionStorage if visited before
+    // Show the last known copy straight away, but only when it is fresh
+    // enough. An old copy must never be what a visitor sees: the owner is
+    // checking their own page right after saving.
     let hasCache = false;
     const cacheKey = `indiataps_tree_${slug.toLowerCase()}`;
     try {
       const cachedStr = localStorage.getItem(cacheKey) || sessionStorage.getItem(cacheKey);
       if (cachedStr) {
         const cached = JSON.parse(cachedStr);
-        if (cached?.tree) {
-          setTreeData(cached);
+        const age = Date.now() - Number(cached?.cachedAt || 0);
+        if (cached?.tree && age < PUBLIC_PAGE_CACHE_MAX_AGE_MS) {
+          setTreeData({ tree: cached.tree, cards: cached.cards || [] });
           setLoading(false);
           hasCache = true;
         }
@@ -76,19 +83,25 @@ export function PublicTreePage({ slug }) {
           };
           setTreeData(freshData);
           try {
-            const jsonStr = JSON.stringify(freshData);
+            const jsonStr = JSON.stringify({ ...freshData, cachedAt: Date.now() });
             localStorage.setItem(cacheKey, jsonStr);
             sessionStorage.setItem(cacheKey, jsonStr);
           } catch {}
         }
         setLoading(false);
 
-        // Record first-party cookieless view
+        // Record first-party cookieless view.
+        // sendBeacon sends text/plain by default, which Express does not parse
+        // as JSON, so the payload is sent as a JSON blob instead.
         try {
           if (navigator.sendBeacon) {
+            const payload = JSON.stringify({
+              treeId: data?.tree?.id || 1,
+              eventType: 'page_view',
+            });
             navigator.sendBeacon(
               '/api/track',
-              JSON.stringify({ treeId: data?.tree?.id || 1, eventType: 'view' })
+              new Blob([payload], { type: 'application/json' })
             );
           }
         } catch {

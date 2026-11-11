@@ -1,17 +1,57 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import crypto from 'crypto';
 import dotenv from 'dotenv';
 import { db } from './db/db.js';
 import { supabase } from './db/supabase.js';
 import { hashPassword, hashPasswordSync, verifyPassword } from './utils/password.js';
+import { SESSION_COOKIE, verifySession, setSessionCookie, clearSessionCookie } from './utils/session.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({ origin: true, credentials: true }));
+// Only these origins may call the API with credentials. The site itself is
+// same-origin, so this list exists to keep other websites from acting as a
+// signed-in visitor.
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const DEV_ORIGINS = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
+];
+
+function isAllowedOrigin(origin, req) {
+  if (!origin) return false;
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  if (DEV_ORIGINS.includes(origin)) return true;
+  try {
+    // Same host as the request itself (the normal case) is always allowed.
+    return new URL(origin).host === req.headers.host;
+  } catch {
+    return false;
+  }
+}
+
+app.use(
+  cors((req, callback) => {
+    const origin = req.headers.origin;
+    const allowed = isAllowedOrigin(origin, req);
+    callback(null, {
+      origin: allowed ? origin : false,
+      credentials: true,
+      allowedHeaders: ['Content-Type', 'X-User-Id'],
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    });
+  })
+);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
@@ -82,18 +122,11 @@ const trackRateLimiter = createRateLimiter({
   message: 'Analytics tracking rate limit exceeded.',
 });
 
-// Multi-device session & authentication middleware
+// Identity comes from the signed session cookie only.
+// The x-user-id header and the legacy userId/token cookies are ignored on
+// purpose: they are caller-supplied and were used to impersonate any account.
 app.use((req, res, next) => {
-  const headerId = req.headers['x-user-id'];
-  const cookieId = req.cookies?.userId || req.cookies?.token;
-  if (headerId && !isNaN(parseInt(headerId, 10))) {
-    req.userId = parseInt(headerId, 10);
-  } else if (cookieId && !isNaN(parseInt(cookieId, 10))) {
-    req.userId = parseInt(cookieId, 10);
-  } else {
-    // Unauthenticated callers get null userId (no auto-impersonating user 1)
-    req.userId = null;
-  }
+  req.userId = verifySession(req.cookies?.[SESSION_COOKIE]) || null;
   next();
 });
 
@@ -127,7 +160,6 @@ const store = {
       isSuperAdmin: false,
     },
   ],
-  currentUserId: null,
   trees: [
     {
       id: 1,
@@ -199,18 +231,72 @@ const store = {
 
 const RESERVED_SLUGS = ['admin', 'api', 'login', 'dashboard', 'settings', 'static', 'auth'];
 
-// Ownership & Slug Verification Helpers
-async function resolveTreeOwner(treeId) {
-  const memTree = store.trees.find((t) => t.id === treeId && !t.deletedAt);
-  if (memTree && memTree.adminId) return memTree.adminId;
-  const dbOwner = await db.getTreeOwner(treeId);
-  if (dbOwner !== null) return dbOwner;
+/**
+ * Compare two secrets without leaking how much of them matched.
+ * Both sides are hashed first, so different lengths are handled safely.
+ */
+function safeEqual(a, b) {
+  const hashA = crypto.createHash('sha256').update(String(a)).digest();
+  const hashB = crypto.createHash('sha256').update(String(b)).digest();
+  return crypto.timingSafeEqual(hashA, hashB);
+}
+
+/**
+ * Turn a database error into something the owner can act on.
+ * A rejected card type means the database is missing the migration.
+ */
+function dbErrorHint(err) {
+  const message = err?.message || '';
+  if (message.includes('check constraint')) {
+    return 'The database does not know this card type yet. Run server/src/db/migrations/001_allow_all_card_types.sql in the Supabase SQL editor.';
+  }
+  if (message.includes('row-level security') || message.includes('RLS')) {
+    return 'The database refused the write because of its row level security rules.';
+  }
   return null;
+}
+
+// Ownership & Slug Verification Helpers
+// The database is the source of truth. The in-memory store only answers when
+// the database has no such row, so its seed ids can never shadow a real tree.
+//
+// The owner and the slug are cached for a short time: every admin request
+// needs them, and a database round trip takes about half a second.
+const treeInfoCache = new Map();
+const TREE_INFO_CACHE_TTL_MS = 30 * 1000;
+
+async function getTreeInfo(treeId) {
+  const cached = treeInfoCache.get(treeId);
+  if (cached && Date.now() - cached.timestamp < TREE_INFO_CACHE_TTL_MS) {
+    return cached.info;
+  }
+  const info = await db.getTreeInfo(treeId);
+  if (info) {
+    treeInfoCache.set(treeId, { info, timestamp: Date.now() });
+  }
+  return info;
+}
+
+/**
+ * Owner and slug of a tree, or null when there is no such tree.
+ */
+async function resolveTree(treeId) {
+  const info = await getTreeInfo(treeId);
+  if (info) return { ownerId: info.adminId, slug: info.slug };
+
+  const memTree = store.trees.find((t) => t.id === treeId && !t.deletedAt);
+  if (memTree) return { ownerId: memTree.adminId, slug: memTree.slug };
+  return null;
+}
+
+async function resolveTreeOwner(treeId) {
+  const tree = await resolveTree(treeId);
+  return tree ? tree.ownerId : null;
 }
 
 async function resolveCardOwner(cardId) {
   const dbOwner = await db.getCardOwner(cardId);
-  if (dbOwner !== null) return dbOwner;
+  if (dbOwner !== null && dbOwner !== undefined) return dbOwner;
   const memCard = store.cards.find((c) => c.id === cardId);
   if (!memCard) return null;
   const memTree = store.trees.find((t) => t.id === memCard.treeId && !t.deletedAt);
@@ -241,7 +327,7 @@ async function isCallerSuperAdmin(userId) {
 
 // Auth Me
 app.get('/api/auth/me', async (req, res) => {
-  const userId = req.userId || store.currentUserId;
+  const userId = req.userId;
   if (!userId) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
@@ -265,15 +351,10 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
   }
 
   const setAuthCookies = (u) => {
-    res.cookie('userId', String(u.id), {
-      sameSite: 'lax',
-      maxAge: 365 * 24 * 60 * 60 * 1000,
-    });
-    res.cookie('token', String(u.id), {
-      httpOnly: true,
-      sameSite: 'lax',
-      maxAge: 365 * 24 * 60 * 60 * 1000,
-    });
+    setSessionCookie(res, u.id);
+    // Drop the old unsigned cookies so nothing keeps using them.
+    res.clearCookie('userId', { path: '/' });
+    res.clearCookie('token', { path: '/' });
   };
 
   try {
@@ -282,7 +363,6 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
       if (user.isBlocked || user.is_blocked || user.status === 'blocked' || user.account_state === 'locked' || user.accountState === 'locked' || user.tier === 'blocked') {
         return res.status(403).json({ error: 'Your account has been locked by the administrator. Contact india.taps7@gmail.com for assistance.' });
       }
-      store.currentUserId = user.id;
       setAuthCookies(user);
       const { password: _, ...safeUser } = user;
       return res.json({ user: safeUser, message: 'Logged in successfully via Supabase' });
@@ -313,7 +393,6 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
   if (user.isBlocked || user.is_blocked || user.status === 'blocked' || user.account_state === 'locked' || user.accountState === 'locked' || user.tier === 'blocked') {
     return res.status(403).json({ error: 'Your account has been locked by the administrator. Contact india.taps7@gmail.com for assistance.' });
   }
-  store.currentUserId = user.id;
   setAuthCookies(user);
   const { password: _, ...safeUser } = user;
   res.json({ user: safeUser, message: 'Logged in successfully' });
@@ -714,9 +793,9 @@ app.post('/api/auth/oauth-callback', (req, res) => {
 
 // Auth Logout
 app.post('/api/auth/logout', (req, res) => {
-  store.currentUserId = null;
-  res.clearCookie('userId');
-  res.clearCookie('token');
+  clearSessionCookie(res);
+  res.clearCookie('userId', { path: '/' });
+  res.clearCookie('token', { path: '/' });
   res.json({ success: true, message: 'Logged out successfully' });
 });
 
@@ -866,25 +945,47 @@ app.put('/api/admin/trees/:id', async (req, res) => {
   }
 
   const treeId = parseInt(req.params.id, 10);
-  const ownerId = await resolveTreeOwner(treeId);
-  if (ownerId === null) {
+  const tree = await resolveTree(treeId);
+  if (!tree) {
     return res.status(404).json({ error: 'Tree not found' });
   }
-  if (ownerId !== currentId) {
+  if (tree.ownerId !== currentId) {
     return res.status(403).json({ error: 'Forbidden: You do not have permission to edit this tree' });
   }
 
   if (req.body.slug) {
     const cleanSlug = req.body.slug.toLowerCase().trim();
-    const available = await isSlugAvailableGlobally(cleanSlug, treeId);
-    if (!available) {
-      return res.status(409).json({ error: 'This URL slug is already taken or invalid' });
+    // Only a real change needs the uniqueness check. Checking every time
+    // costs a database round trip on every save.
+    if (cleanSlug !== tree.slug) {
+      const available = await isSlugAvailableGlobally(cleanSlug, treeId);
+      if (!available) {
+        return res.status(409).json({ error: 'This URL slug is already taken or invalid' });
+      }
     }
   }
 
-  const updatedDb = await db.updateTree(treeId, req.body);
+  // Remember the slug the tree had before this change. A renamed tree must
+  // also stop being served under its old URL.
+  const previousSlug = (await db.getTreeById(treeId))?.slug;
+
+  let updatedDb;
+  try {
+    updatedDb = await db.updateTree(treeId, req.body);
+  } catch (err) {
+    return res.status(503).json({
+      error: 'This tree could not be saved to the database. Nothing was changed.',
+      details: err?.message || null,
+      hint: dbErrorHint(err),
+    });
+  }
   if (updatedDb) {
     invalidatePublicTreeCache(updatedDb.slug || req.body?.slug);
+    if (previousSlug && previousSlug !== updatedDb.slug) {
+      invalidatePublicTreeCache(previousSlug);
+    }
+    // The slug may have changed, so the cached copy is stale now.
+    treeInfoCache.delete(treeId);
     return res.json(updatedDb);
   }
 
@@ -924,6 +1025,9 @@ app.delete('/api/admin/trees/:id', async (req, res) => {
   if (treeIndex !== -1) {
     store.trees[treeIndex].deletedAt = new Date().toISOString();
   }
+  // A deleted tree must stop being public right away.
+  await invalidatePublicTreeCacheForTree(treeId);
+  treeInfoCache.delete(treeId);
   res.json({ success: true, id: treeId });
 });
 
@@ -943,17 +1047,30 @@ app.post('/api/admin/trees/:id/cards', async (req, res) => {
     return res.status(403).json({ error: 'Forbidden: You do not have permission to add cards to this tree' });
   }
 
-  const createdCard = await db.createCard({
-    treeId,
-    type: req.body.type || 'link',
-    title: req.body.title || 'New Link',
-    url: req.body.url || 'https://',
-    thumbnailUrl: req.body.thumbnailUrl || null,
-    position: req.body.position || 0,
-    settings: req.body.settings || {},
-  });
+  let createdCard;
+  try {
+    createdCard = await db.createCard({
+      treeId,
+      type: req.body.type || 'link',
+      title: req.body.title || 'New Link',
+      url: req.body.url || 'https://',
+      thumbnailUrl: req.body.thumbnailUrl || null,
+      position: req.body.position || 0,
+      lockType: req.body.lockType || req.body.lock_type || 'none',
+      lockValue: req.body.lockValue || req.body.lock_value || null,
+      settings: req.body.settings || {},
+    });
+  } catch (err) {
+    return res.status(503).json({
+      error: 'This card could not be saved to the database. Nothing was changed.',
+      details: err?.message || null,
+      hint: dbErrorHint(err),
+    });
+  }
+
   if (createdCard) {
     store.cards.push(createdCard);
+    await invalidatePublicTreeCacheForTree(treeId);
     return res.status(201).json(createdCard);
   }
 
@@ -995,8 +1112,18 @@ app.put('/api/admin/cards/:id', async (req, res) => {
     return res.status(403).json({ error: 'Forbidden: You do not have permission to edit this card' });
   }
 
-  const updatedDb = await db.updateCard(cardId, req.body);
+  let updatedDb;
+  try {
+    updatedDb = await db.updateCard(cardId, req.body);
+  } catch (err) {
+    return res.status(503).json({
+      error: 'This card could not be saved to the database. Nothing was changed.',
+      details: err?.message || null,
+      hint: dbErrorHint(err),
+    });
+  }
   if (updatedDb) {
+    await invalidatePublicTreeCacheForTree(updatedDb.treeId ?? updatedDb.tree_id);
     return res.json(updatedDb);
   }
 
@@ -1033,6 +1160,7 @@ app.delete('/api/admin/cards/:id', async (req, res) => {
   if (cardIndex !== -1) {
     store.cards.splice(cardIndex, 1);
   }
+  await invalidatePublicTreeCacheForTree(await db.getCardTreeId(cardId));
   res.json({ success: true, id: cardId });
 });
 
@@ -1044,46 +1172,71 @@ app.post('/api/admin/trees/:id/sync', async (req, res) => {
   }
 
   const treeId = parseInt(req.params.id, 10);
-  const ownerId = await resolveTreeOwner(treeId);
-  if (ownerId === null) {
+  const tree = await resolveTree(treeId);
+  if (!tree) {
     return res.status(404).json({ error: 'Tree not found' });
   }
-  if (ownerId !== currentId) {
+  if (tree.ownerId !== currentId) {
     return res.status(403).json({ error: 'Forbidden: You do not have permission to modify this tree' });
   }
 
   const { treeUpdates, cards } = req.body;
   if (treeUpdates?.slug) {
     const cleanSlug = treeUpdates.slug.toLowerCase().trim();
-    const available = await isSlugAvailableGlobally(cleanSlug, treeId);
-    if (!available) {
-      return res.status(409).json({ error: 'This URL slug is already taken or invalid' });
+    // Only a real change needs the uniqueness check.
+    if (cleanSlug !== tree.slug) {
+      const available = await isSlugAvailableGlobally(cleanSlug, treeId);
+      if (!available) {
+        return res.status(409).json({ error: 'This URL slug is already taken or invalid' });
+      }
     }
   }
 
-  let savedTree = null;
+  // The tree settings and the cards do not depend on each other, so they are
+  // written at the same time. The save then takes as long as the slowest
+  // write instead of the sum of both.
+  const treeWrite = treeUpdates
+    ? db.updateTree(treeId, treeUpdates)
+    : Promise.resolve(null);
+  const cardsWrite =
+    Array.isArray(cards) && cards.length > 0
+      ? db.syncTreeCards(treeId, cards)
+      : Array.isArray(cards) && cards.length === 0
+        // An empty list means "I have no cards", which is also what a failed
+        // load looks like. Deleting cards is done one by one, so keep the
+        // live ones.
+        ? db.getCards(treeId).then((c) => c || [])
+        : Promise.resolve([]);
+
+  const [savedTree, savedCards] = await Promise.all([
+    treeWrite.catch((err) => ({ __error: err })),
+    cardsWrite.catch((err) => ({ __error: err })),
+  ]);
+
+  if (savedTree?.__error) {
+    return res.status(503).json({
+      success: false,
+      error: 'The tree could not be saved to the database. Nothing was changed.',
+      details: savedTree.__error?.message || null,
+      hint: dbErrorHint(savedTree.__error),
+    });
+  }
+  if (savedCards?.__error) {
+    return res.status(503).json({
+      success: false,
+      error: 'The cards could not be saved to the database. Nothing was changed.',
+      details: savedCards.__error?.message || null,
+      hint: dbErrorHint(savedCards.__error),
+    });
+  }
+
   if (treeUpdates) {
-    savedTree = await db.updateTree(treeId, treeUpdates);
     const treeIdx = store.trees.findIndex((t) => t.id === treeId);
     if (treeIdx !== -1) {
       store.trees[treeIdx] = { ...store.trees[treeIdx], ...(savedTree || treeUpdates) };
     }
-  }
-
-  let savedCards = [];
-  if (Array.isArray(cards)) {
-    const synced = await db.syncTreeCards(treeId, cards);
-    if (synced) {
-      savedCards = synced;
-      store.cards = store.cards.filter((c) => c.treeId !== treeId);
-      store.cards.push(...synced);
-    } else {
-      store.cards = store.cards.filter((c) => c.treeId !== treeId);
-      cards.forEach((c, idx) => {
-        store.cards.push({ ...c, treeId, position: idx });
-      });
-      savedCards = store.cards.filter((c) => c.treeId === treeId);
-    }
+    store.cards = store.cards.filter((c) => c.treeId !== treeId);
+    store.cards.push(...savedCards);
   }
 
   const finalTree = savedTree
@@ -1158,10 +1311,51 @@ function invalidatePublicTreeCache(slug) {
   }
 }
 
+/**
+ * Drop the cached public page of a tree after one of its cards changed,
+ * so a deleted or edited card disappears right away.
+ */
+async function invalidatePublicTreeCacheForTree(treeId) {
+  try {
+    const tree = await db.getTreeById(treeId);
+    if (tree?.slug) {
+      invalidatePublicTreeCache(tree.slug);
+      return;
+    }
+  } catch {
+    // fall through to the safe fallback
+  }
+  invalidatePublicTreeCache();
+}
+
+/**
+ * Shape a card for the public page.
+ * The passcode (lock value) is never included: the visitor gets the link back
+ * only after the server has checked the code.
+ */
+function toPublicCard(c) {
+  const lockType = c.lock_type ?? c.lockType ?? 'none';
+  const card = {
+    ...c,
+    treeId: c.tree_id ?? c.treeId,
+    tree_id: c.tree_id ?? c.treeId,
+    thumbnailUrl: c.thumbnail_url ?? c.thumbnailUrl,
+    thumbnail_url: c.thumbnail_url ?? c.thumbnailUrl,
+    lockType,
+    lock_type: lockType,
+  };
+  delete card.lockValue;
+  delete card.lock_value;
+  return card;
+}
+
 function sanitizeTreeForPublic(tree) {
   if (!tree) return tree;
   const clone = { ...tree };
   delete clone.custom_theme; // Prevent duplicate payload serialization
+  // The cards are sent separately, without their passcodes. The copy inside
+  // the tree object would leak them.
+  delete clone.cards;
 
   // Guarantee both camelCase and snake_case for all header & media fields
   const avatarUrl = clone.avatarUrl || clone.avatar_url || clone.customTheme?.avatarUrl || null;
@@ -1216,13 +1410,32 @@ function sanitizeTreeForPublic(tree) {
 }
 
 // Public Tree Page
+//
+// The response is sent with "no-cache" on purpose. A shared cache (the Vercel
+// edge or the browser) would keep showing the old links for minutes after an
+// owner saved, because there is no way to purge it. The speed comes from the
+// in-memory cache below, which is emptied the moment the owner saves.
 app.get('/api/public/trees/:slug', async (req, res) => {
   const slug = req.params.slug.replace(/^@/, '').toLowerCase();
 
-  // 1. Check in-memory fast cache
+  const suspendedResponse = () =>
+    res.status(403).json({
+      error: 'Account Suspended',
+      isBlocked: true,
+      slug,
+      message: 'This digital card is temporarily unavailable because the account has been locked. Please contact the administrator at indiataps.vercel.app or india.taps7@gmail.com.',
+    });
+
+  // 1. Check in-memory fast cache.
+  //    The lock check comes first: a blocked account must not be served from
+  //    the cache.
   const cached = publicTreeCache.get(slug);
   if (cached && Date.now() - cached.timestamp < PUBLIC_CACHE_TTL_MS) {
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+    const cachedAdminId = cached.payload?.tree?.adminId ?? cached.payload?.tree?.admin_id;
+    if (await isTreeOwnerBlocked(cachedAdminId, slug)) {
+      return suspendedResponse();
+    }
+    res.setHeader('Cache-Control', 'no-cache');
     return res.json(cached.payload);
   }
 
@@ -1231,21 +1444,11 @@ app.get('/api/public/trees/:slug', async (req, res) => {
     const adminId = dbTree.admin_id ?? dbTree.adminId;
     const isBlocked = await isTreeOwnerBlocked(adminId, slug);
     if (isBlocked) {
-      return res.status(403).json({
-        error: 'Account Suspended',
-        isBlocked: true,
-        slug,
-        message: 'This digital card is temporarily unavailable because the account has been locked. Please contact the administrator at indiataps.vercel.app or india.taps7@gmail.com.',
-      });
+      return suspendedResponse();
     }
 
-    db.recordAnalyticsEvent({
-      treeId: dbTree.id,
-      eventType: 'page_view',
-      referrer: req.headers['referer'] || req.headers['referrer'],
-      userAgent: req.headers['user-agent'],
-      ip: req.ip || req.socket?.remoteAddress,
-    });
+    // Views are counted once per page load by the /api/track beacon.
+    // Counting here as well would inflate the number.
 
     let rawCards = dbTree.cards || [];
     if (rawCards.length === 0) {
@@ -1254,17 +1457,7 @@ app.get('/api/public/trees/:slug', async (req, res) => {
 
     const publicCards = rawCards
       .filter((c) => c.visible !== false)
-      .map((c) => ({
-        ...c,
-        treeId: c.tree_id ?? c.treeId,
-        tree_id: c.tree_id ?? c.treeId,
-        thumbnailUrl: c.thumbnail_url ?? c.thumbnailUrl,
-        thumbnail_url: c.thumbnail_url ?? c.thumbnailUrl,
-        lockType: c.lock_type ?? c.lockType,
-        lock_type: c.lock_type ?? c.lockType,
-        lockValue: c.lock_value ?? c.lockValue,
-        lock_value: c.lock_value ?? c.lockValue,
-      }))
+      .map(toPublicCard)
       .sort((a, b) => (a.position || 0) - (b.position || 0));
 
     const payload = {
@@ -1273,7 +1466,7 @@ app.get('/api/public/trees/:slug', async (req, res) => {
     };
 
     publicTreeCache.set(slug, { payload, timestamp: Date.now() });
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+    res.setHeader('Cache-Control', 'no-cache');
     return res.json(payload);
   }
 
@@ -1300,7 +1493,7 @@ app.get('/api/public/trees/:slug', async (req, res) => {
   };
 
   publicTreeCache.set(slug, { payload, timestamp: Date.now() });
-  res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+  res.setHeader('Cache-Control', 'no-cache');
   res.json(payload);
 });
 
@@ -1314,8 +1507,12 @@ app.post('/api/public/cards/:id/click', trackRateLimiter, async (req, res) => {
     localCard.clicks = (localCard.clicks || 0) + 1;
   }
 
-  db.recordAnalyticsEvent({
-    treeId: localCard?.treeId,
+  // The tree id must come from the database: the in-memory card list is empty
+  // in production, so the tree counter was never incremented.
+  const treeId = localCard?.treeId ?? (await db.getCardTreeId(cardId));
+
+  await db.recordAnalyticsEvent({
+    treeId,
     cardId,
     eventType: 'card_click',
     referrer: req.headers['referer'] || req.headers['referrer'],
@@ -1326,26 +1523,62 @@ app.post('/api/public/cards/:id/click', trackRateLimiter, async (req, res) => {
   res.json({ success: true, id: cardId });
 });
 
+// Public: check the passcode of a protected card and hand back the link.
+// The passcode itself is never sent to the browser.
+app.post('/api/public/cards/:id/unlock', trackRateLimiter, async (req, res) => {
+  const cardId = parseInt(req.params.id, 10);
+  const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
+  if (!code) {
+    return res.status(400).json({ error: 'Passcode is required' });
+  }
+
+  const card = await db.getCardById(cardId);
+  if (!card) {
+    return res.status(404).json({ error: 'Link not found' });
+  }
+
+  const expected = card.lockValue || card.lock_value;
+  if (!expected) {
+    return res.status(403).json({ error: 'This link has no passcode set' });
+  }
+
+  if (!safeEqual(code, expected)) {
+    return res.status(403).json({ error: 'Incorrect access code' });
+  }
+
+  res.json({ success: true, url: card.url, title: card.title });
+});
+
 // Public View Tracker (handles navigator.sendBeacon from public cards)
 app.post('/api/track', trackRateLimiter, async (req, res) => {
-  let body = req.body;
-  if (typeof body === 'string') {
-    try {
-      body = JSON.parse(body);
-    } catch {}
+  try {
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        body = {};
+      }
+    }
+    if (!body || typeof body !== 'object') body = {};
+
+    const treeId = body.treeId ? parseInt(body.treeId, 10) : null;
+    if (treeId) {
+      // The database only accepts page_view / card_click / social_click.
+      const eventType = body.eventType === 'card_click' ? 'card_click' : 'page_view';
+      await db.recordAnalyticsEvent({
+        treeId,
+        eventType,
+        referrer: req.headers['referer'] || req.headers['referrer'],
+        userAgent: req.headers['user-agent'],
+        ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress,
+      });
+    }
+    res.json({ success: true });
+  } catch {
+    // Tracking must never break the page for the visitor.
+    res.json({ success: true });
   }
-  const treeId = body?.treeId ? parseInt(body.treeId, 10) : null;
-  if (treeId) {
-    await db.incrementTreeViews(treeId).catch(() => {});
-    db.recordAnalyticsEvent({
-      treeId,
-      eventType: body?.eventType || 'view',
-      referrer: req.headers['referer'] || req.headers['referrer'],
-      userAgent: req.headers['user-agent'],
-      ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress,
-    });
-  }
-  res.json({ success: true });
 });
 
 // Upload Asset (Image / PDF) to Supabase Storage CDN
@@ -1408,6 +1641,26 @@ app.delete('/api/admin/assets', async (req, res) => {
   }
 
   const { filePath, publicUrl } = req.body;
+  if (!filePath && !publicUrl) {
+    return res.status(400).json({ error: 'File path is required' });
+  }
+
+  // Only the owner of the file may delete it.
+  const asset = await db.getAssetByPath({ filePath, publicUrl });
+  if (asset) {
+    const ownerId = asset.admin_id ?? asset.adminId;
+    const treeId = asset.tree_id ?? asset.treeId;
+    if (ownerId !== null && ownerId !== undefined && Number(ownerId) !== Number(req.userId)) {
+      return res.status(403).json({ error: 'Forbidden: You do not own this file' });
+    }
+    if (!ownerId && treeId) {
+      const treeOwner = await resolveTreeOwner(Number(treeId));
+      if (treeOwner !== null && treeOwner !== Number(req.userId)) {
+        return res.status(403).json({ error: 'Forbidden: You do not own this file' });
+      }
+    }
+  }
+
   const success = await db.deleteAsset({ filePath, publicUrl });
   res.json({ success });
 });
@@ -1435,17 +1688,7 @@ async function warmUpPublicTreeCache() {
         const rawCards = Array.isArray(t.cards) ? t.cards : [];
         const publicCards = rawCards
           .filter((c) => c.visible !== false)
-          .map((c) => ({
-            ...c,
-            treeId: c.tree_id ?? c.treeId,
-            tree_id: c.tree_id ?? c.treeId,
-            thumbnailUrl: c.thumbnail_url ?? c.thumbnailUrl,
-            thumbnail_url: c.thumbnail_url ?? c.thumbnailUrl,
-            lockType: c.lock_type ?? c.lockType,
-            lock_type: c.lock_type ?? c.lockType,
-            lockValue: c.lock_value ?? c.lockValue,
-            lock_value: c.lock_value ?? c.lockValue,
-          }))
+          .map(toPublicCard)
           .sort((a, b) => (a.position || 0) - (b.position || 0));
 
         const avatarUrl = t.avatar_url || t.custom_theme?.avatarUrl || null;
@@ -1504,5 +1747,5 @@ if (isDirectRun && !process.env.VERCEL) {
 }
 
 export default app;
-export { app };
+export { app, toPublicCard };
 

@@ -40,6 +40,81 @@ The complete specifications and guides are organized under [`docs/`](docs/):
 
 ---
 
+## 🔧 Setup
+
+### 1. Environment
+
+Copy `server/.env.example` to `server/.env` and fill it in:
+
+| Variable | Needed for | Notes |
+| --- | --- | --- |
+| `SUPABASE_URL` | yes | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | yes | Server-side key, never exposed to the browser |
+| `SUPABASE_ANON_KEY` | optional | Fallback for the session secret |
+| `SESSION_SECRET` | recommended | Long random string used to sign the session cookie. If missing, the Supabase service role key is used |
+| `ALLOWED_ORIGINS` | optional | Extra origins allowed to call the API with credentials. The site itself is same-origin |
+| `ADMIN_INITIAL_PASSWORD` | first run | Password for the seeded super admin |
+
+### 2. Database
+
+- **New database:** run `server/src/db/schema.sql` in the Supabase SQL editor.
+- **Existing database:** run `server/src/db/migrations/001_allow_all_card_types.sql`. It widens the `cards.type` and `cards.lock_type` checks so every card type the editor can create is accepted.
+
+### 3. Run
+
+```bash
+npm install
+npm run dev      # client on :5173, server on :3001
+npm test         # server and client tests
+npm run build    # production build of the client
+```
+
+### 4. Sessions
+
+Signing in sets one signed `httpOnly` cookie (`it_session`). The server reads
+the user only from that cookie: a user id sent in a header or in a plain
+cookie is ignored. Everyone who was signed in before this change has to sign
+in again.
+
+### 5. Check that everything works
+
+With the server running on port 3001:
+
+```bash
+npm run verify --workspace=server
+```
+This signs a session for one account, makes a few safe requests and prints
+PASS or FAIL for every fix: forged identity is refused, passcodes stay on the
+server, saving keeps the cards, clicks are all counted, and an unknown card
+type is reported instead of silently dropped. It creates one temporary card and
+removes it again.
+
+Use `VERIFY_USER_ID=1` to test a different account, and `BASE_URL=...` to point
+it at another server (for example the deployed one).
+
+By hand, in the browser:
+
+1. Sign in at `/dashboard`. Open DevTools → Application → Cookies: you should
+   see `it_session` marked `HttpOnly`, and no `userId` or `token` cookie.
+2. Edit a card and press **Save tree**. The card keeps its id, and the toast
+   says it reached the database.
+3. Open the public page and reload it. The view count in the database goes up
+   by one per load.
+4. Delete a card and reload the public page: it is gone immediately.
+5. Add a card with a passcode lock, open the public page, and look at the
+   network tab: the response for `/api/public/trees/<slug>` does not contain
+   the passcode.
+
+### 6. Why the public page is never cached by the edge
+
+The public tree API answers with `Cache-Control: no-cache`. A shared cache
+(the Vercel edge, or a browser) would otherwise keep serving the old links
+for minutes after an owner saved, because there is no way to purge it. The
+speed comes from the in-memory cache in the server, which is emptied the
+moment the owner saves, so a change is live on the next request.
+
+---
+
 ## 📂 Project Structure
 
 ```text
