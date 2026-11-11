@@ -1155,8 +1155,46 @@ function sanitizeTreeForPublic(tree) {
   if (!tree) return tree;
   const clone = { ...tree };
   delete clone.custom_theme; // Prevent duplicate payload serialization
+
+  // Guarantee both camelCase and snake_case for all header & media fields
+  const avatarUrl = clone.avatarUrl || clone.avatar_url || clone.customTheme?.avatarUrl || null;
+  const logoUrl = clone.logoUrl || clone.logo_url || clone.customTheme?.logoUrl || null;
+  const bannerUrl = clone.bannerUrl || clone.banner_url || clone.customTheme?.bannerUrl || null;
+  const heroUrl = clone.heroUrl || clone.hero_url || clone.customTheme?.heroUrl || null;
+  const titleStyle = clone.titleStyle || clone.title_style || clone.customTheme?.titleStyle || 'text';
+  const titleFont = clone.titleFont || clone.title_font || clone.customTheme?.titleFont || 'Inter';
+  const titleColor = clone.titleColor || clone.title_color || clone.customTheme?.titleColor || '#111111';
+  const headerLayout = clone.headerLayout || clone.header_layout || clone.customTheme?.headerLayout || 'classic';
+
+  clone.avatarUrl = avatarUrl;
+  clone.avatar_url = avatarUrl;
+  clone.logoUrl = logoUrl;
+  clone.logo_url = logoUrl;
+  clone.bannerUrl = bannerUrl;
+  clone.banner_url = bannerUrl;
+  clone.heroUrl = heroUrl;
+  clone.hero_url = heroUrl;
+  clone.titleStyle = titleStyle;
+  clone.title_style = titleStyle;
+  clone.titleFont = titleFont;
+  clone.title_font = titleFont;
+  clone.titleColor = titleColor;
+  clone.title_color = titleColor;
+  clone.headerLayout = headerLayout;
+  clone.header_layout = headerLayout;
+
   if (clone.customTheme) {
-    const theme = { ...clone.customTheme };
+    const theme = {
+      ...clone.customTheme,
+      avatarUrl,
+      logoUrl,
+      bannerUrl,
+      heroUrl,
+      titleStyle,
+      titleFont,
+      titleColor,
+      headerLayout,
+    };
     if (theme.backgroundImageUrl) {
       theme.backgroundValue = `url("${theme.backgroundImageUrl}") center / cover no-repeat`;
     } else if (typeof theme.backgroundValue === 'string' && theme.backgroundValue.startsWith('url("data:')) {
@@ -1209,6 +1247,17 @@ app.get('/api/public/trees/:slug', async (req, res) => {
 
     const publicCards = rawCards
       .filter((c) => c.visible !== false)
+      .map((c) => ({
+        ...c,
+        treeId: c.tree_id ?? c.treeId,
+        tree_id: c.tree_id ?? c.treeId,
+        thumbnailUrl: c.thumbnail_url ?? c.thumbnailUrl,
+        thumbnail_url: c.thumbnail_url ?? c.thumbnailUrl,
+        lockType: c.lock_type ?? c.lockType,
+        lock_type: c.lock_type ?? c.lockType,
+        lockValue: c.lock_value ?? c.lockValue,
+        lock_value: c.lock_value ?? c.lockValue,
+      }))
       .sort((a, b) => (a.position || 0) - (b.position || 0));
 
     const payload = {
@@ -1379,26 +1428,55 @@ async function warmUpPublicTreeCache() {
         const rawCards = Array.isArray(t.cards) ? t.cards : [];
         const publicCards = rawCards
           .filter((c) => c.visible !== false)
+          .map((c) => ({
+            ...c,
+            treeId: c.tree_id ?? c.treeId,
+            tree_id: c.tree_id ?? c.treeId,
+            thumbnailUrl: c.thumbnail_url ?? c.thumbnailUrl,
+            thumbnail_url: c.thumbnail_url ?? c.thumbnailUrl,
+            lockType: c.lock_type ?? c.lockType,
+            lock_type: c.lock_type ?? c.lockType,
+            lockValue: c.lock_value ?? c.lockValue,
+            lock_value: c.lock_value ?? c.lockValue,
+          }))
           .sort((a, b) => (a.position || 0) - (b.position || 0));
+
+        const avatarUrl = t.avatar_url || t.custom_theme?.avatarUrl || null;
+        const logoUrl = t.logo_url || t.custom_theme?.logoUrl || null;
+        const bannerUrl = t.banner_url || t.custom_theme?.bannerUrl || null;
+        const heroUrl = t.hero_url || t.custom_theme?.heroUrl || null;
+        const titleStyle = t.title_style || t.custom_theme?.titleStyle || 'text';
+        const titleFont = t.title_font || t.custom_theme?.titleFont || 'Inter';
+        const titleColor = t.title_color || t.custom_theme?.titleColor || '#111111';
+        const headerLayout = t.header_layout || t.custom_theme?.headerLayout || 'classic';
 
         const payload = {
           tree: sanitizeTreeForPublic({
             ...t,
             adminId: Number(t.admin_id),
             themeId: t.theme_id,
-            customTheme: t.custom_theme,
-            headerLayout: t.header_layout || t.custom_theme?.headerLayout || 'classic',
-            bannerUrl: t.banner_url || t.custom_theme?.bannerUrl || null,
-            heroUrl: t.hero_url || t.custom_theme?.heroUrl || null,
-            logoUrl: t.logo_url || t.custom_theme?.logoUrl || null,
-            titleStyle: t.title_style || t.custom_theme?.titleStyle || 'text',
+            avatarUrl,
+            avatar_url: avatarUrl,
+            logoUrl,
+            logo_url: logoUrl,
+            bannerUrl,
+            banner_url: bannerUrl,
+            heroUrl,
+            hero_url: heroUrl,
+            titleStyle,
+            title_style: titleStyle,
+            titleFont,
+            title_font: titleFont,
+            titleColor,
+            title_color: titleColor,
+            headerLayout,
+            header_layout: headerLayout,
             altFontEnabled: t.alt_font_enabled ?? t.custom_theme?.altFontEnabled ?? false,
-            titleFont: t.title_font || t.custom_theme?.titleFont || 'Inter',
-            titleColor: t.title_color || t.custom_theme?.titleColor || '#111111',
             footerEnabled: t.footer_enabled ?? t.custom_theme?.footerEnabled ?? true,
             footerText: t.footer_text || t.custom_theme?.footerText || 'IndiaTaps',
             socialLinks: t.social_links || t.custom_theme?.socialLinks || [],
             seo: t.seo || t.custom_theme?.seo || { title: '', description: '', faviconUrl: '' },
+            customTheme: t.custom_theme,
           }),
           cards: publicCards,
         };

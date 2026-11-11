@@ -76,6 +76,13 @@ export function CardRenderer({ card, theme, isPreview = false }) {
         })()
       : card.settings || {};
 
+  const thumbnailUrl =
+    card.thumbnailUrl ||
+    card.thumbnail_url ||
+    cardSettings.thumbnailUrl ||
+    cardSettings.thumbnail_url ||
+    null;
+
   const isPdfOrMenu =
     card.type === 'menu' ||
     card.type === 'resume' ||
@@ -147,7 +154,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
               }
         )
         .filter((it) => it.url && it.url.trim() !== '')
-    : (card.thumbnailUrl ? [card.thumbnailUrl, ...defaultGalleryImages.slice(1)] : defaultGalleryImages).map(
+    : (thumbnailUrl ? [thumbnailUrl, ...defaultGalleryImages.slice(1)] : defaultGalleryImages).map(
         (url) => ({ url, isVid: isVideoMedia(url), formattedSize: '' })
       );
 
@@ -353,8 +360,8 @@ export function CardRenderer({ card, theme, isPreview = false }) {
           style={{ ...buttonStyleObj, borderRadius: '22px' }}
         >
           <div className="relative aspect-[16/10] sm:aspect-video rounded-[18px] sm:rounded-2xl overflow-hidden bg-black flex items-center justify-center">
-            {card.thumbnailUrl ? (
-              <img src={card.thumbnailUrl} alt={card.title} className="w-full h-full object-cover" />
+            {thumbnailUrl ? (
+              <img src={thumbnailUrl} alt={card.title} className="w-full h-full object-cover" />
             ) : null}
             <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:scale-105 cursor-pointer transition-transform shadow-md">
               <Play className="w-5 h-5 ml-0.5 fill-white text-white" />
@@ -402,8 +409,8 @@ export function CardRenderer({ card, theme, isPreview = false }) {
         className="w-full rounded-2xl overflow-hidden text-left shadow-2xs block hover:scale-[1.01] transition-transform"
         style={{ ...buttonStyleObj, borderRadius: '20px' }}
       >
-        {card.thumbnailUrl ? (
-          <img src={card.thumbnailUrl} alt={card.title} className="w-full h-32 object-cover" />
+        {thumbnailUrl ? (
+          <img src={thumbnailUrl} alt={card.title} className="w-full h-32 object-cover" />
         ) : (
           <div className="w-full h-24 bg-black/5 flex items-center justify-center">
             <ShoppingBag className="w-8 h-8 opacity-30" />
@@ -626,7 +633,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     (isPdf ? 'PDF Menu' : '');
 
   // Plain links with no custom thumbnail render as clean centered text pills
-  const hasCustomThumbnail = Boolean(card.thumbnailUrl);
+  const hasCustomThumbnail = Boolean(thumbnailUrl);
   const isSimpleCenteredLink =
     card.type === 'link' &&
     !hasCustomThumbnail &&
@@ -707,9 +714,9 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                   <span>PDF</span>
                 </div>
               </div>
-            ) : (card.thumbnailUrl || (isGallery && galleryImages[0])) ? (
+            ) : (thumbnailUrl || (isGallery && galleryImages[0])) ? (
               <img
-                src={card.thumbnailUrl || galleryImages[0]}
+                src={thumbnailUrl || galleryImages[0]}
                 alt={card.title}
                 loading="lazy"
                 decoding="async"
@@ -1032,9 +1039,9 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                 </div>
               </div>
             </div>
-          ) : card.thumbnailUrl ? (
+          ) : thumbnailUrl ? (
             <div className="w-full h-36 rounded-2xl overflow-hidden shadow-inner">
-              <img src={card.thumbnailUrl} alt={card.title} className="w-full h-full object-cover" />
+              <img src={thumbnailUrl} alt={card.title} className="w-full h-full object-cover" />
             </div>
           ) : (
             <div className="w-full py-6 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100">

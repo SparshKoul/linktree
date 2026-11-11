@@ -5,21 +5,23 @@ export function formatTreeRecord(data, cards = null, cardCount = 0) {
   if (!data) return null;
   const custom = data.custom_theme || {};
 
-  const headerLayout = custom.headerLayout || data.header_layout || 'classic';
-  const bannerUrl = custom.bannerUrl || data.banner_url || null;
-  const heroUrl = custom.heroUrl || data.hero_url || null;
-  const logoUrl = custom.logoUrl || data.logo_url || null;
-  const titleStyle = custom.titleStyle || data.title_style || 'text';
-  const altFontEnabled = custom.altFontEnabled !== undefined ? custom.altFontEnabled : (data.alt_font_enabled ?? false);
-  const titleFont = custom.titleFont || data.title_font || 'Inter';
-  const titleColor = custom.titleColor || data.title_color || '#111111';
-  const footerEnabled = custom.footerEnabled !== undefined ? custom.footerEnabled : (data.footer_enabled ?? true);
-  const footerText = custom.footerText || data.footer_text || 'IndiaTaps';
-  const socialLinks = custom.socialLinks || data.social_links || [];
+  const avatarUrl = custom.avatarUrl || data.avatar_url || data.avatarUrl || null;
+  const headerLayout = custom.headerLayout || data.header_layout || data.headerLayout || 'classic';
+  const bannerUrl = custom.bannerUrl || data.banner_url || data.bannerUrl || null;
+  const heroUrl = custom.heroUrl || data.hero_url || data.heroUrl || null;
+  const logoUrl = custom.logoUrl || data.logo_url || data.logoUrl || null;
+  const titleStyle = custom.titleStyle || data.title_style || data.titleStyle || 'text';
+  const altFontEnabled = custom.altFontEnabled !== undefined ? custom.altFontEnabled : (data.alt_font_enabled ?? (data.altFontEnabled ?? false));
+  const titleFont = custom.titleFont || data.title_font || data.titleFont || 'Inter';
+  const titleColor = custom.titleColor || data.title_color || data.titleColor || '#111111';
+  const footerEnabled = custom.footerEnabled !== undefined ? custom.footerEnabled : (data.footer_enabled ?? (data.footerEnabled ?? true));
+  const footerText = custom.footerText || data.footer_text || data.footerText || 'IndiaTaps';
+  const socialLinks = custom.socialLinks || data.social_links || data.socialLinks || [];
   const seo = custom.seo || data.seo || { title: '', description: '', faviconUrl: '' };
 
   const syncedCustomTheme = {
     ...custom,
+    avatarUrl,
     headerLayout,
     bannerUrl,
     heroUrl,
@@ -43,20 +45,32 @@ export function formatTreeRecord(data, cards = null, cardCount = 0) {
     status: data.status,
     title: data.title,
     bio: data.bio || '',
-    avatarUrl: data.avatar_url,
-    themeId: data.theme_id,
+    avatarUrl,
+    avatar_url: avatarUrl,
+    themeId: data.theme_id || data.themeId,
     customTheme: syncedCustomTheme,
     headerLayout,
+    header_layout: headerLayout,
     bannerUrl,
+    banner_url: bannerUrl,
     heroUrl,
+    hero_url: heroUrl,
     logoUrl,
+    logo_url: logoUrl,
     titleStyle,
+    title_style: titleStyle,
     altFontEnabled,
+    alt_font_enabled: altFontEnabled,
     titleFont,
+    title_font: titleFont,
     titleColor,
+    title_color: titleColor,
     footerEnabled,
+    footer_enabled: footerEnabled,
     footerText,
+    footer_text: footerText,
     socialLinks,
+    social_links: socialLinks,
     seo,
     viewsCount: Number(data.views_count || 0),
     clicksCount: Number(data.clicks_count || 0),

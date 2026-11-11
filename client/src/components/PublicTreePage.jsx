@@ -12,6 +12,15 @@ export function PublicTreePage({ slug }) {
   const [copied, setCopied] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockedMessage, setBlockedMessage] = useState('');
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth >= 640
+  );
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 640);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -250,7 +259,7 @@ export function PublicTreePage({ slug }) {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-start sm:justify-center bg-[#181A1E] sm:py-6 sm:px-4 font-sans selection:bg-white/20 selection:text-white transition-colors relative">
+    <div className={`min-h-screen w-full flex flex-col items-center justify-start sm:justify-center bg-[#181A1E] sm:py-6 sm:px-4 font-sans selection:bg-white/20 selection:text-white transition-colors relative ${isDesktop ? 'sm:h-screen sm:overflow-hidden' : ''}`}>
       {/* Outer subtle ambient glow on large desktop screens */}
       <div className="hidden sm:block fixed inset-0 pointer-events-none opacity-25 blur-[120px] -z-10 overflow-hidden">
         <div
@@ -263,7 +272,7 @@ export function PublicTreePage({ slug }) {
 
       {/* Centered Mobile/Card Container matching Linktree Desktop UI */}
       <div
-        className="w-full sm:max-w-[480px] md:max-w-[520px] min-h-screen sm:min-h-[min(94vh,940px)] sm:max-h-[94vh] flex flex-col justify-between relative overflow-hidden transition-all duration-200 sm:rounded-[44px] sm:shadow-[0_24px_70px_-15px_rgba(0,0,0,0.75)] sm:border sm:border-white/10"
+        className="w-full sm:max-w-[480px] md:max-w-[520px] min-h-screen sm:min-h-0 sm:h-[min(94vh,940px)] sm:max-h-[94vh] flex flex-col justify-between relative overflow-visible sm:overflow-hidden transition-all duration-200 sm:rounded-[44px] sm:shadow-[0_24px_70px_-15px_rgba(0,0,0,0.75)] sm:border sm:border-white/10"
         style={{
           color: activeTheme.textColor,
           fontFamily: activeTheme.fontFamily,
@@ -382,8 +391,8 @@ export function PublicTreePage({ slug }) {
 
         {/* 2. SCROLLABLE CONTENT: Cards & Header glide over the fixed wallpaper */}
         <div
-          data-lenis-prevent
-          className="w-full flex-1 flex flex-col justify-between p-5 sm:p-7 relative z-10 overflow-y-auto no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          {...(isDesktop ? { 'data-lenis-prevent': '' } : {})}
+          className="w-full flex-1 flex flex-col justify-between p-5 sm:p-7 relative z-10 overflow-visible sm:overflow-y-auto sm:no-scrollbar [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           <div className="relative z-10 w-full flex items-center justify-between py-1 mb-3">
           <a
@@ -409,16 +418,19 @@ export function PublicTreePage({ slug }) {
         <main className="relative z-10 w-full flex flex-col items-center text-center space-y-4 flex-1">
           {/* Profile Header matching chosen layout */}
           {(() => {
-            const layout = tree.headerLayout || tree.customTheme?.headerLayout || 'classic';
-            const isLogo = (tree.titleStyle || tree.customTheme?.titleStyle) === 'logo';
-            const logoUrl = tree.logoUrl || tree.customTheme?.logoUrl;
+            const avatarUrl = tree.avatarUrl || tree.avatar_url || tree.customTheme?.avatarUrl || null;
+            const logoUrl = tree.logoUrl || tree.logo_url || tree.customTheme?.logoUrl || null;
+            const isLogo = (tree.titleStyle || tree.title_style || tree.customTheme?.titleStyle) === 'logo';
+            const layout = tree.headerLayout || tree.header_layout || tree.customTheme?.headerLayout || 'classic';
+            const bannerImage = tree.bannerUrl || tree.banner_url || tree.customTheme?.bannerUrl || null;
+            const heroUrl = tree.heroUrl || tree.hero_url || tree.customTheme?.heroUrl || null;
             const titleText = tree.title || `@${tree.slug}`;
             const bioText = tree.bio;
-            const altFontEnabled = tree.altFontEnabled ?? tree.customTheme?.altFontEnabled ?? false;
+            const altFontEnabled = tree.altFontEnabled ?? tree.alt_font_enabled ?? tree.customTheme?.altFontEnabled ?? false;
             const titleFont = altFontEnabled
-              ? (tree.titleFont || tree.customTheme?.titleFont || 'Manrope')
+              ? (tree.titleFont || tree.title_font || tree.customTheme?.titleFont || 'Manrope')
               : (tree.fontFamily || tree.customTheme?.fontFamily || 'inherit');
-            const titleColor = tree.titleColor || tree.customTheme?.titleColor || tree.textColor || tree.customTheme?.textColor || '#111111';
+            const titleColor = tree.titleColor || tree.title_color || tree.customTheme?.titleColor || tree.textColor || tree.customTheme?.textColor || '#111111';
 
             const renderTitleBio = (isHero = false) => (
               <div className="flex flex-col items-center text-center space-y-1 mt-1">
@@ -448,9 +460,8 @@ export function PublicTreePage({ slug }) {
 
             if (layout === 'hero') {
               const heroImage =
-                tree.heroUrl ||
-                tree.customTheme?.heroUrl ||
-                tree.avatarUrl ||
+                heroUrl ||
+                avatarUrl ||
                 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80';
               return (
                 <div className="w-full flex flex-col items-center text-center -mt-4 mb-3">
@@ -469,7 +480,6 @@ export function PublicTreePage({ slug }) {
             }
 
             if (layout === 'banner') {
-              const bannerImage = tree.bannerUrl || tree.customTheme?.bannerUrl;
               return (
                 <div className="w-full flex flex-col items-center text-center -mt-4 mb-3">
                   <div className="w-full h-32 sm:h-40 relative overflow-hidden rounded-3xl bg-gradient-to-r from-pink-300 via-rose-300 to-rose-400 shadow-md">
@@ -481,12 +491,20 @@ export function PublicTreePage({ slug }) {
                   </div>
                   <div className="-mt-12 mb-2 relative z-10">
                     <div className="w-24 h-24 aspect-square shrink-0 rounded-full bg-white p-1.5 shadow-lg flex items-center justify-center">
-                      <div className="w-full h-full rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden aspect-square">
-                        {tree.avatarUrl ? (
-                          <img src={tree.avatarUrl} alt="Avatar" className="w-full h-full object-cover object-center" />
-                        ) : (
-                          <Users className="w-10 h-10 text-gray-400" />
-                        )}
+                      <div className="w-full h-full rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden aspect-square relative">
+                        {avatarUrl ? (
+                          <img
+                            src={avatarUrl}
+                            alt="Avatar"
+                            className="w-full h-full object-cover object-center"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const fallback = e.currentTarget.parentElement?.querySelector('.avatar-placeholder');
+                              if (fallback) fallback.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+                        <Users className={`w-10 h-10 text-gray-400 avatar-placeholder ${avatarUrl ? 'hidden' : ''}`} />
                       </div>
                     </div>
                   </div>
@@ -499,8 +517,8 @@ export function PublicTreePage({ slug }) {
               return (
                 <div className="flex flex-col items-center text-center mb-3">
                   <div className="w-32 h-36 relative flex items-end justify-center mb-1 overflow-hidden [mask-image:linear-gradient(to_bottom,black_75%,transparent_100%)]">
-                    {tree.avatarUrl ? (
-                      <img src={tree.avatarUrl} alt="Cutout" className="w-full h-full object-cover filter drop-shadow-xl" />
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Cutout" className="w-full h-full object-cover filter drop-shadow-xl" />
                     ) : (
                       <div className="w-26 h-30 rounded-t-full bg-gradient-to-tr from-rose-500 to-rose-600 flex items-center justify-center">
                         <Users className="w-12 h-12 text-white" />
@@ -520,8 +538,8 @@ export function PublicTreePage({ slug }) {
                     style={{ clipPath: 'url(#linktree-organic-shape)' }}
                   >
                     <div className="absolute inset-0 bg-rose-600" />
-                    {tree.avatarUrl ? (
-                      <img src={tree.avatarUrl} alt="Shape" className="w-full h-full object-cover relative z-10" />
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Shape" className="w-full h-full object-cover relative z-10" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center relative z-10">
                         <Users className="w-12 h-12 text-white" />
@@ -536,12 +554,20 @@ export function PublicTreePage({ slug }) {
             // Default: Classic
             return (
               <div className="flex flex-col items-center text-center space-y-3 mt-4 mb-2">
-                <div className="w-28 h-28 sm:w-32 sm:h-32 aspect-square rounded-full bg-[#E5E7EB] text-white flex items-center justify-center shadow-md overflow-hidden ring-4 ring-white/10 shrink-0">
-                  {tree.avatarUrl ? (
-                    <img src={tree.avatarUrl} alt="Avatar" className="w-full h-full object-cover object-center" />
-                  ) : (
-                    <Users className="w-12 h-12 text-gray-400" />
-                  )}
+                <div className="w-28 h-28 sm:w-32 sm:h-32 aspect-square rounded-full bg-[#E5E7EB] text-white flex items-center justify-center shadow-md overflow-hidden ring-4 ring-white/10 shrink-0 relative">
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt="Avatar"
+                      className="w-full h-full object-cover object-center"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.parentElement?.querySelector('.avatar-placeholder');
+                        if (fallback) fallback.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <Users className={`w-12 h-12 text-gray-400 avatar-placeholder ${avatarUrl ? 'hidden' : ''}`} />
                 </div>
                 {renderTitleBio()}
               </div>
