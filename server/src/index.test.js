@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { hashPassword, hashPasswordSync, verifyPassword } from './utils/password.js';
 
 describe('Tree Slug Validation', () => {
   const RESERVED_SLUGS = ['admin', 'api', 'login', 'dashboard', 'settings', 'static', 'auth'];
@@ -536,6 +537,45 @@ describe('Super Admin & Authentication Restrictions', () => {
     const claimAttempt = tryCreateTree('helo', trees);
     expect(claimAttempt.status).toBe(409);
     expect(claimAttempt.error).toContain('already taken');
+  });
+
+  describe('Password Security and Bcrypt Hashing', () => {
+    it('hashes passwords using standard bcrypt format ($2a$ or $2b$)', async () => {
+      const raw = 'mySecretPass@2026';
+      const hash = await hashPassword(raw);
+
+      // Must NOT be stored in plain text
+      expect(hash).not.toBe(raw);
+      expect(hash.length).toBeGreaterThanOrEqual(50);
+      // Bcrypt hash identifier
+      expect(/^\$2[aby]\$\d+\$/.test(hash)).toBe(true);
+    });
+
+    it('generates unique salts so identical passwords produce completely different hashes', async () => {
+      const raw = 'identicalPassword123';
+      const hash1 = await hashPassword(raw);
+      const hash2 = await hashPassword(raw);
+
+      expect(hash1).not.toBe(hash2);
+      expect(await verifyPassword(raw, hash1)).toBe(true);
+      expect(await verifyPassword(raw, hash2)).toBe(true);
+    });
+
+    it('correctly validates valid passwords and rejects invalid passwords', async () => {
+      const plain = 'superAdminSecureKey#1';
+      const hashed = hashPasswordSync(plain);
+
+      expect(await verifyPassword(plain, hashed)).toBe(true);
+      expect(await verifyPassword('wrongPassword', hashed)).toBe(false);
+      expect(await verifyPassword('', hashed)).toBe(false);
+    });
+
+    it('gracefully supports legacy unhashed passwords for seamless zero-downtime migration', async () => {
+      const legacyPlain = 'legacyPass123';
+      // If a legacy user hasn't been upgraded yet:
+      expect(await verifyPassword(legacyPlain, legacyPlain)).toBe(true);
+      expect(await verifyPassword('wrong', legacyPlain)).toBe(false);
+    });
   });
 });
 

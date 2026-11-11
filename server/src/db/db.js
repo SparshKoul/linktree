@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js';
+import { hashPassword, verifyPassword } from '../utils/password.js';
 
 export const db = {
   // --- Trees ---
@@ -732,12 +733,16 @@ export const db = {
 
   async createUser({ email, username, password }) {
     try {
+      const hashedPassword = /^\$2[aby]\$\d+\$/.test(password)
+        ? password
+        : await hashPassword(password);
+
       const { data, error } = await supabase
         .from('users')
         .insert({
           email: email.trim().toLowerCase(),
           username: username.trim().toLowerCase(),
-          password,
+          password: hashedPassword,
         })
         .select()
         .single();
@@ -812,7 +817,13 @@ export const db = {
 
       if (error) {
         // Fallback to local table check if exists
-        if (user && user.password === password) {
+        if (user && (await verifyPassword(password, user.password))) {
+          // If legacy plain-text password, upgrade to bcrypt hash in table
+          if (!/^\$2[aby]\$\d+\$/.test(user.password)) {
+            hashPassword(password).then((upgraded) => {
+              supabase.from('users').update({ password: upgraded }).eq('id', user.id).catch(() => {});
+            }).catch(() => {});
+          }
           return user;
         }
         throw error;

@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { db } from './db/db.js';
 import { supabase } from './db/supabase.js';
+import { hashPassword, hashPasswordSync, verifyPassword } from './utils/password.js';
 
 dotenv.config();
 
@@ -111,7 +112,7 @@ const store = {
       id: 1,
       email: 'sparshkoul6@gmail.com',
       username: 'riyast',
-      password: 'password123',
+      password: hashPasswordSync('password123'),
       role: 'super_admin',
       accountType: 'super_admin',
       isSuperAdmin: true,
@@ -120,7 +121,7 @@ const store = {
       id: 2,
       email: 'alex@example.com',
       username: 'alex',
-      password: 'password123',
+      password: hashPasswordSync('password123'),
       role: 'client',
       accountType: 'client',
       isSuperAdmin: false,
@@ -291,11 +292,20 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
     }
   }
 
-  const user = store.users.find(
-    (u) =>
-      (u.email.toLowerCase() === loginId || u.username.toLowerCase() === loginId) &&
-      u.password === password
+  const candidateUsers = store.users.filter(
+    (u) => u.email.toLowerCase() === loginId || u.username.toLowerCase() === loginId
   );
+  let user = null;
+  for (const cu of candidateUsers) {
+    if (await verifyPassword(password, cu.password)) {
+      user = cu;
+      // Upgrade to bcrypt hash if legacy plain text
+      if (!/^\$2[aby]\$\d+\$/.test(user.password)) {
+        user.password = await hashPassword(password);
+      }
+      break;
+    }
+  }
   if (!user) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
@@ -356,11 +366,12 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   }
 
   const newId = Date.now();
+  const hashedPassword = await hashPassword(password);
   const newUser = {
     id: newId,
     email: cleanEmail,
     username: cleanUsername,
-    password,
+    password: hashedPassword,
     role: role || 'client',
     accountType: accountType || 'client',
     isSuperAdmin: false,
@@ -424,11 +435,12 @@ app.post('/api/admin/users', async (req, res) => {
   }
 
   const newId = Date.now();
+  const hashedPassword = await hashPassword(password);
   const newUser = {
     id: newId,
     email: cleanEmail,
     username: cleanUsername,
-    password,
+    password: hashedPassword,
     role: role || 'client',
     accountType: accountType || 'client',
     isSuperAdmin: false,
@@ -603,12 +615,13 @@ app.patch('/api/admin/users/:id/password', authRateLimiter, async (req, res) => 
   }
 
   const cleanPassword = newPassword.trim();
+  const hashedPassword = await hashPassword(cleanPassword);
   let targetEmail = null;
 
   // 1. Update in memory store if present
   const memoryUser = store.users.find((u) => u.id === targetId);
   if (memoryUser) {
-    memoryUser.password = cleanPassword;
+    memoryUser.password = hashedPassword;
     targetEmail = memoryUser.email;
   }
 
@@ -624,7 +637,7 @@ app.patch('/api/admin/users/:id/password', authRateLimiter, async (req, res) => 
 
   // 3. Update in Supabase public.users table
   try {
-    await supabase.from('users').update({ password: cleanPassword }).eq('id', targetId);
+    await supabase.from('users').update({ password: hashedPassword }).eq('id', targetId);
   } catch (err) {
     console.warn('[Supabase update password in table error]', err.message);
   }
