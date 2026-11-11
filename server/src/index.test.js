@@ -264,8 +264,8 @@ describe('SaaS Security & Ownership Verification Logic', () => {
 
 describe('Super Admin & Authentication Restrictions', () => {
   const users = [
-    { id: 1, email: 'sparshkoul6@gmail.com', username: 'sparshkoul6', role: 'super_admin', accountType: 'super_admin', password: 'password123' },
-    { id: 2, email: 'riyast@example.com', username: 'riyast', role: 'client', accountType: 'client', password: 'password123' },
+    { id: 1, email: 'sparshkoul6@gmail.com', username: 'sparshkoul6', role: 'super_admin', accountType: 'super_admin', password: hashPasswordSync('mockAdminPass!2026') },
+    { id: 2, email: 'riyast@example.com', username: 'riyast', role: 'client', accountType: 'client', password: hashPasswordSync('mockClientPass!2026') },
   ];
 
   function isSuperAdmin(user) {
@@ -297,10 +297,10 @@ describe('Super Admin & Authentication Restrictions', () => {
     return { status: 403, error: 'Google OAuth and social logins are disabled. Please sign in using your email and password.' };
   }
 
-  function handleEmailPasswordLogin(identifier, password) {
+  async function handleEmailPasswordLogin(identifier, password) {
     const cleanId = (identifier || '').trim().toLowerCase();
     const user = users.find((u) => u.email.toLowerCase() === cleanId || u.username.toLowerCase() === cleanId);
-    if (!user || user.password !== password) {
+    if (!user || !(await verifyPassword(password, user.password))) {
       return { status: 401, error: 'Invalid username/email or password' };
     }
     return { status: 200, user };
@@ -351,19 +351,19 @@ describe('Super Admin & Authentication Restrictions', () => {
     expect(res.error).toContain('disabled');
   });
 
-  it('allows authorized users to sign in with email and password', () => {
+  it('allows authorized users to sign in with email and password', async () => {
     // Via email
-    const loginEmail = handleEmailPasswordLogin('sparshkoul6@gmail.com', 'password123');
+    const loginEmail = await handleEmailPasswordLogin('sparshkoul6@gmail.com', 'mockAdminPass!2026');
     expect(loginEmail.status).toBe(200);
     expect(loginEmail.user.username).toBe('sparshkoul6');
 
     // Via username
-    const loginUsername = handleEmailPasswordLogin('riyast', 'password123');
+    const loginUsername = await handleEmailPasswordLogin('riyast', 'mockClientPass!2026');
     expect(loginUsername.status).toBe(200);
     expect(loginUsername.user.email).toBe('riyast@example.com');
 
     // Invalid credentials
-    const loginBad = handleEmailPasswordLogin('riyast', 'wrongpwd');
+    const loginBad = await handleEmailPasswordLogin('riyast', 'wrongpwd');
     expect(loginBad.status).toBe(401);
   });
 
@@ -427,41 +427,42 @@ describe('Super Admin & Authentication Restrictions', () => {
     expect(tryLogin(clients[0]).status).toBe(200);
   });
 
-  it('allows ONLY Super Admin to update/change password of any user', () => {
-    const clientUser = { id: 55, email: 'client55@example.com', password: 'oldpassword123' };
+  it('allows ONLY Super Admin to update/change password of any user', async () => {
+    const clientUser = { id: 55, email: 'client55@example.com', password: hashPasswordSync('oldpassword123') };
 
-    function changeUserPassword(caller, target, newPassword) {
+    async function changeUserPassword(caller, target, newPassword) {
       if (!isSuperAdmin(caller)) return { status: 403, error: 'Forbidden: Super Admin access required' };
       if (!newPassword || newPassword.trim().length < 6) {
         return { status: 400, error: 'Password must be at least 6 characters long' };
       }
-      target.password = newPassword.trim();
+      target.password = await hashPassword(newPassword.trim());
       return { status: 200, success: true, message: 'Password updated successfully' };
     }
 
     // 1. Regular client cannot change someone else's password via admin API
     const regularUser = { id: 2, email: 'client@indiataps.com', role: 'client' };
-    const unauthorizedRes = changeUserPassword(regularUser, clientUser, 'hackedpassword');
+    const unauthorizedRes = await changeUserPassword(regularUser, clientUser, 'hackedpassword');
     expect(unauthorizedRes.status).toBe(403);
-    expect(clientUser.password).toBe('oldpassword123');
+    expect(await verifyPassword('oldpassword123', clientUser.password)).toBe(true);
 
     // 2. Reject short passwords
-    const shortPwdRes = changeUserPassword(users[0], clientUser, '123');
+    const shortPwdRes = await changeUserPassword(users[0], clientUser, '123');
     expect(shortPwdRes.status).toBe(400);
-    expect(clientUser.password).toBe('oldpassword123');
+    expect(await verifyPassword('oldpassword123', clientUser.password)).toBe(true);
 
     // 3. Super Admin successfully updates password
-    const successRes = changeUserPassword(users[0], clientUser, 'newBrandNewPassword999');
+    const successRes = await changeUserPassword(users[0], clientUser, 'newBrandNewPassword999');
     expect(successRes.status).toBe(200);
-    expect(clientUser.password).toBe('newBrandNewPassword999');
+    expect(await verifyPassword('newBrandNewPassword999', clientUser.password)).toBe(true);
 
     // 4. Verify login behavior with new vs old password
-    function checkCredentials(user, password) {
-      if (user.password !== password) return 401;
+    async function checkCredentials(user, password) {
+      const match = await verifyPassword(password, user.password);
+      if (!match) return 401;
       return 200;
     }
-    expect(checkCredentials(clientUser, 'oldpassword123')).toBe(401);
-    expect(checkCredentials(clientUser, 'newBrandNewPassword999')).toBe(200);
+    expect(await checkCredentials(clientUser, 'oldpassword123')).toBe(401);
+    expect(await checkCredentials(clientUser, 'newBrandNewPassword999')).toBe(200);
   });
 
   it('hides cards and shows suspended state when card owner account is blocked, and restores when unblocked', () => {
