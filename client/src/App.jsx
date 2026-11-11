@@ -461,6 +461,7 @@ export function App() {
               tint: activeTheme.tint,
               noise: activeTheme.noise,
               effect: activeTheme.effect,
+              blurAmount: activeTheme.blurAmount ?? 20,
               buttonStyle: activeTheme.buttonStyle,
               buttonColor: activeTheme.buttonColor,
               buttonTextColor: activeTheme.buttonTextColor,
@@ -1719,6 +1720,7 @@ export function App() {
                   <DesignEditor
                     currentTree={currentTree}
                     onUpdateTree={handleUpdateTree}
+                    onSaveTree={handleSaveTree}
                     onBack={() => setActiveRail('content')}
                     initialSubview="header"
                   />
@@ -1729,6 +1731,7 @@ export function App() {
                 <DesignEditor
                   currentTree={currentTree}
                   onUpdateTree={handleUpdateTree}
+                  onSaveTree={handleSaveTree}
                   onBack={() => setActiveRail('content')}
                 />
               </div>
@@ -2734,11 +2737,11 @@ export function App() {
                     backgroundRepeat: 'no-repeat',
                     filter:
                       activeTheme?.wallpaperStyle === 'blur'
-                        ? 'blur(20px)'
+                        ? `blur(${activeTheme?.blurAmount ?? 20}px)`
                         : activeTheme?.effect === 'mono'
                         ? 'grayscale(100%)'
                         : activeTheme?.effect === 'blur'
-                        ? 'blur(8px)'
+                        ? `blur(${activeTheme?.blurAmount ?? 10}px)`
                         : activeTheme?.effect === 'halftone'
                         ? 'contrast(200%) grayscale(100%)'
                         : 'none',

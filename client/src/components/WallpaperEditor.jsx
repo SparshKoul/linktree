@@ -139,6 +139,7 @@ export function WallpaperEditor({ current, commitChange }) {
   const tint = typeof current.tint === 'number' ? current.tint : 0;
   const noise = Boolean(current.noise);
   const activePattern = current.patternType || 'organic';
+  const blurAmount = typeof current.blurAmount === 'number' ? current.blurAmount : 20;
 
   // Helper to recompute full CSS background value for live render
   const syncBackgroundValue = (updates) => {
@@ -305,7 +306,7 @@ export function WallpaperEditor({ current, commitChange }) {
                 backgroundColor: bgColor,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                filter: 'blur(3px)',
+                filter: `blur(${Math.min(8, Math.max(2, Math.round(blurAmount / 4)))}px)`,
                 transform: 'scale(1.1)',
               }}
             />
@@ -478,6 +479,39 @@ export function WallpaperEditor({ current, commitChange }) {
               </button>
             </div>
           </div>
+
+          {/* Blur Intensity Slider when Effect: Blur is active */}
+          {activeEffect === 'blur' && (
+            <div className="flex items-center justify-between pt-1">
+              <div className="max-w-[240px]">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-[#111111] block">Blur amount</span>
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-[#7033FF] border border-[#7033FF]/20">
+                    {blurAmount}px
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-500 leading-snug">
+                  Slide to adjust blur strength
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 w-52 sm:w-60">
+                <Droplets className="w-4 h-4 text-gray-400 shrink-0 stroke-[1.8]" />
+                <input
+                  type="range"
+                  min="2"
+                  max="50"
+                  step="1"
+                  value={blurAmount}
+                  onChange={(e) => commitChange({ blurAmount: parseInt(e.target.value, 10) })}
+                  className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#7033FF]"
+                />
+                <span className="text-[11px] font-bold text-gray-700 min-w-[32px] text-right font-mono">
+                  {blurAmount}px
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Tint Slider */}
           <div className="flex items-center justify-between">
@@ -694,29 +728,139 @@ export function WallpaperEditor({ current, commitChange }) {
 
       {/* 5. Controls When BLUR is Selected */}
       {activeStyle === 'blur' && (
-        <div className="space-y-4 pt-2">
-          <span className="text-xs font-extrabold text-[#111111] block">Blur Effect</span>
-          <p className="text-[11px] text-gray-500 leading-snug">
-            Blurs the background wallpaper behind to create an ambient, frosted backdrop.
-          </p>
+        <div className="space-y-6 pt-2">
+          {/* Background image row */}
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-[#111111] block">Background image</span>
+              <p className="text-[11px] text-gray-500 leading-snug">
+                Image behind the ambient frosted backdrop
+              </p>
+            </div>
 
-          <div className="flex items-center gap-3">
             <div
-              className="w-14 h-14 rounded-2xl border border-gray-200 overflow-hidden relative"
+              onClick={() => setShowImagePicker(true)}
+              className="w-14 h-14 rounded-2xl border border-gray-200 overflow-hidden relative cursor-pointer hover:border-black transition-all group shadow-2xs shrink-0"
               style={{
                 backgroundImage: currentImageUrl ? `url("${currentImageUrl}")` : 'none',
                 backgroundColor: bgColor,
                 backgroundSize: 'cover',
-                filter: 'blur(4px)',
-                transform: 'scale(1.1)',
+                backgroundPosition: 'center',
+                filter: `blur(${Math.min(10, Math.max(2, Math.round(blurAmount / 4)))}px)`,
+                transform: 'scale(1.15)',
               }}
-            />
+              title="Change wallpaper image"
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowImagePicker(true);
+                }}
+                className="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-white text-black shadow-md flex items-center justify-center hover:scale-110 transition-transform cursor-pointer border border-black/5"
+              >
+                <Pencil className="w-3 h-3 stroke-[2.5]" />
+              </button>
+            </div>
+          </div>
+
+          {/* Blur Intensity Slider */}
+          <div className="flex items-center justify-between">
+            <div className="max-w-[240px]">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#111111] block">Blur amount</span>
+                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-purple-50 text-[#7033FF] border border-[#7033FF]/20">
+                  {blurAmount}px
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-500 leading-snug">
+                Slide to determine how subtle or strong the blur appears
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 w-52 sm:w-60">
+              <Droplets className="w-4 h-4 text-gray-400 shrink-0 stroke-[1.8]" />
+              <input
+                type="range"
+                min="2"
+                max="50"
+                step="1"
+                value={blurAmount}
+                onChange={(e) => commitChange({ blurAmount: parseInt(e.target.value, 10) })}
+                className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#7033FF]"
+              />
+              <span className="text-[11px] font-bold text-gray-700 min-w-[32px] text-right font-mono">
+                {blurAmount}px
+              </span>
+            </div>
+          </div>
+
+          {/* Preset Intensity Chips */}
+          <div className="flex items-center gap-2 pt-0.5">
+            {[
+              { label: 'Subtle', val: 6 },
+              { label: 'Medium', val: 18 },
+              { label: 'Strong', val: 30 },
+              { label: 'Maximum', val: 50 },
+            ].map((chip) => (
+              <button
+                key={chip.val}
+                type="button"
+                onClick={() => commitChange({ blurAmount: chip.val })}
+                className={`py-1 px-3 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                  blurAmount === chip.val
+                    ? 'bg-black text-white shadow-xs'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {chip.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tint Slider */}
+          <div className="flex items-center justify-between">
+            <div className="max-w-[240px]">
+              <span className="text-xs font-bold text-[#111111] block">Tint</span>
+              <p className="text-[11px] text-gray-500 leading-snug">
+                Improves text visibility and helps make your content more accessible
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 w-52 sm:w-60">
+              <Moon className="w-4 h-4 text-gray-400 shrink-0 stroke-[1.8]" />
+              <input
+                type="range"
+                min="-100"
+                max="100"
+                step="5"
+                value={tint}
+                onChange={(e) => commitChange({ tint: parseInt(e.target.value, 10) })}
+                className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
+              />
+              <Sun className="w-4 h-4 text-gray-400 shrink-0 stroke-[1.8]" />
+            </div>
+          </div>
+
+          {/* Noise Toggle */}
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-[#111111] block">Noise</span>
+              <p className="text-[11px] text-gray-500">Add a subtle grain texture</p>
+            </div>
+
             <button
               type="button"
-              onClick={() => setShowImagePicker(true)}
-              className="py-1.5 px-3.5 rounded-full border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-800 transition-colors cursor-pointer"
+              onClick={() => commitChange({ noise: !noise })}
+              className={`w-10 h-6 rounded-full transition-colors relative p-0.5 cursor-pointer ${
+                noise ? 'bg-black' : 'bg-gray-200'
+              }`}
             >
-              Choose wallpaper to blur
+              <span
+                className={`w-5 h-5 rounded-full bg-white block shadow-xs transition-transform ${
+                  noise ? 'translate-x-4' : 'translate-x-0'
+                }`}
+              />
             </button>
           </div>
         </div>

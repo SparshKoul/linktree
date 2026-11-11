@@ -285,11 +285,11 @@ export function PublicTreePage({ slug }) {
               backgroundRepeat: 'no-repeat',
               filter:
                 activeTheme?.wallpaperStyle === 'blur'
-                  ? 'blur(20px)'
+                  ? `blur(${activeTheme?.blurAmount ?? 20}px)`
                   : activeTheme?.effect === 'mono'
                   ? 'grayscale(100%)'
                   : activeTheme?.effect === 'blur'
-                  ? 'blur(8px)'
+                  ? `blur(${activeTheme?.blurAmount ?? 10}px)`
                   : activeTheme?.effect === 'halftone'
                   ? 'contrast(200%) grayscale(100%)'
                   : 'none',

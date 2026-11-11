@@ -22,6 +22,7 @@ import {
   Zap,
   Share2,
   Plus,
+  Loader2,
 } from 'lucide-react';
 import { CardRenderer } from '../cards/CardRenderer.jsx';
 import { PRESET_THEMES } from '../constants/themes.js';
@@ -30,10 +31,11 @@ import { ButtonEditor } from './ButtonEditor.jsx';
 import { TextEditor } from './TextEditor.jsx';
 import { ColorsEditor } from './ColorsEditor.jsx';
 
-export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, initialSubview = null }) {
+export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, onOpenHeader, initialSubview = null }) {
   const [activeSubview, setActiveSubview] = useState(initialSubview); // null | 'theme' | 'header' | 'wallpaper' | 'buttons' | 'text' | 'colors' | 'stickers' | 'footer'
   const [themeTab, setThemeTab] = useState('customizable'); // 'customizable' | 'curated'
   const [savedToast, setSavedToast] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const wallpaperInputRef = useRef(null);
   const avatarInputRef = useRef(null);
 
@@ -181,7 +183,8 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
     setActiveSubview(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    setIsSaving(true);
     onUpdateTree({
       themeId: current.themeId,
       customTheme: { ...(currentTree?.customTheme || {}), ...current },
@@ -192,8 +195,17 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
       title: current.title,
       bio: current.bio,
     });
-    setSavedToast(true);
-    setTimeout(() => setSavedToast(false), 2500);
+    try {
+      if (typeof onSaveTree === 'function') {
+        await onSaveTree();
+      }
+      setSavedToast(true);
+      setTimeout(() => setSavedToast(false), 2500);
+    } catch (err) {
+      console.error('Error saving tree in DesignEditor:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAvatarUpload = (e) => {
@@ -438,9 +450,15 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
           <button
             type="button"
             onClick={handleSave}
-            className="py-1.5 px-4 sm:px-5 rounded-full bg-[#7033FF] hover:bg-[#6025e6] text-white text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
+            disabled={isSaving}
+            className="py-1.5 px-4 sm:px-5 rounded-full bg-[#7033FF] hover:bg-[#6025e6] active:scale-95 text-white text-xs font-bold transition-all shadow-sm cursor-pointer flex items-center gap-1.5 disabled:opacity-75 disabled:cursor-wait"
           >
-            {savedToast ? (
+            {isSaving ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin stroke-[2.5]" />
+                <span>Saving...</span>
+              </>
+            ) : savedToast ? (
               <>
                 <Check className="w-3.5 h-3.5 stroke-[3]" />
                 <span>Saved</span>
@@ -838,10 +856,25 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
             <button
               type="button"
               onClick={handleSave}
-              className="py-1 px-3.5 rounded-full bg-[#7033FF] hover:bg-[#6025e6] text-white text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer transition-all"
+              disabled={isSaving}
+              className="py-1 px-3.5 rounded-full bg-[#7033FF] hover:bg-[#6025e6] active:scale-95 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-all disabled:opacity-75 disabled:cursor-wait"
             >
-              <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>{savedToast ? 'Saved' : 'Save'}</span>
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin stroke-[2.5]" />
+                  <span>Saving...</span>
+                </>
+              ) : savedToast ? (
+                <>
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>Saved</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-3.5 h-3.5 fill-current" />
+                  <span>Save</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -859,13 +892,40 @@ export function DesignEditor({ currentTree, onUpdateTree, onBack, onOpenHeader, 
                 : 'w-full h-full max-w-[440px] rounded-none border-0 shadow-none mx-auto'
             } relative overflow-hidden flex flex-col`}
             style={{
-              background: current.backgroundValue || current.backgroundColor || '#111111',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
               color: current.textColor || '#FFFFFF',
               fontFamily: current.fontFamily || "'Inter', sans-serif",
             }}
           >
+            {/* Background layer with blur / filter support */}
+            <div
+              className="absolute inset-0 pointer-events-none transition-all duration-300"
+              style={{
+                background:
+                  current.wallpaperStyle === 'video'
+                    ? 'transparent'
+                    : current.backgroundType === 'solid' || current.wallpaperStyle === 'fill'
+                    ? (current.backgroundValue?.startsWith('#') ? current.backgroundValue : (current.backgroundColor || '#F3F3F1'))
+                    : current.backgroundImageUrl
+                    ? `url("${current.backgroundImageUrl}") center / cover no-repeat`
+                    : current.backgroundValue || current.backgroundColor || '#111111',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                filter:
+                  current.wallpaperStyle === 'blur'
+                    ? `blur(${current.blurAmount ?? 20}px)`
+                    : current.effect === 'mono'
+                    ? 'grayscale(100%)'
+                    : current.effect === 'blur'
+                    ? `blur(${current.blurAmount ?? 10}px)`
+                    : current.effect === 'halftone'
+                    ? 'contrast(200%) grayscale(100%)'
+                    : 'none',
+                transform:
+                  current.wallpaperStyle === 'blur' || current.effect === 'blur'
+                    ? 'scale(1.12)'
+                    : 'none',
+              }}
+            />
             {/* Top iOS Frame Bar */}
             <div className="px-5 pt-4 pb-1 flex items-center justify-between text-xs shrink-0 z-10" style={{ color: current.textColor || '#FFFFFF' }}>
               <span className="font-black text-base text-white select-none">✱</span>

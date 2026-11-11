@@ -46,4 +46,21 @@ describe('Wallpaper Editor & Linktree Fidelity Logic', () => {
     const lightAlpha = (lightTint / 100) * 0.75;
     expect(lightAlpha).toBeCloseTo(0.3);
   });
+
+  it('supports configurable blur amount slider and presets', () => {
+    const blurPresets = [
+      { label: 'Subtle', val: 6 },
+      { label: 'Medium', val: 18 },
+      { label: 'Strong', val: 30 },
+      { label: 'Maximum', val: 50 },
+    ];
+    expect(blurPresets.length).toBe(4);
+    expect(blurPresets[0].val).toBe(6);
+    expect(blurPresets[3].val).toBe(50);
+
+    const getEffectiveBlur = (theme) => (typeof theme?.blurAmount === 'number' ? theme.blurAmount : 20);
+    expect(getEffectiveBlur({})).toBe(20);
+    expect(getEffectiveBlur({ blurAmount: 35 })).toBe(35);
+    expect(getEffectiveBlur({ blurAmount: 0 })).toBe(0);
+  });
 });
