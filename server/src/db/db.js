@@ -94,7 +94,7 @@ export const db = {
       const cleanSlug = slug.toLowerCase().trim();
       let { data: list, error } = await supabase
         .from('trees')
-        .select('*')
+        .select('*, cards(*)')
         .eq('slug', cleanSlug)
         .is('deleted_at', null)
         .order('id', { ascending: false })
@@ -103,7 +103,7 @@ export const db = {
       if (error || !list || list.length === 0) {
         const fallback = await supabase
           .from('trees')
-          .select('*')
+          .select('*, cards(*)')
           .eq('slug', cleanSlug)
           .order('id', { ascending: false })
           .limit(1);
@@ -113,7 +113,27 @@ export const db = {
       const data = list?.[0];
       if (!data) return null;
 
-      const cards = await this.getCards(data.id);
+      const rawCards = Array.isArray(data.cards) ? data.cards : await this.getCards(data.id);
+      const cards = (rawCards || []).map((c) => ({
+        id: Number(c.id),
+        treeId: Number(c.tree_id ?? c.treeId ?? data.id),
+        type: c.type,
+        title: c.title,
+        subtitle: c.subtitle,
+        url: c.url,
+        thumbnailUrl: c.thumbnail_url ?? c.thumbnailUrl,
+        clicks: Number(c.clicks || 0),
+        position: c.position,
+        visible: c.visible,
+        layout: c.layout,
+        animation: c.animation,
+        lockType: c.lock_type ?? c.lockType,
+        lockValue: c.lock_value ?? c.lockValue,
+        settings: c.settings || {},
+        createdAt: c.created_at ?? c.createdAt,
+        updatedAt: c.updated_at ?? c.updatedAt,
+      }));
+
       return {
         id: Number(data.id),
         adminId: Number(data.admin_id),

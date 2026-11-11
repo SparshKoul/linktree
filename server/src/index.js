@@ -1092,52 +1092,69 @@ app.post('/api/admin/trees/:id/sync', async (req, res) => {
   });
 });
 
+// High-performance User & Block State Cache
+const userBlockedCache = new Map();
+const USER_BLOCKED_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
 // Check if tree owner account is blocked/locked
 async function isTreeOwnerBlocked(adminId, slug = null) {
+  const cacheKey = adminId ? `id:${adminId}` : `slug:${slug?.toLowerCase()}`;
+  const cached = userBlockedCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < USER_BLOCKED_CACHE_TTL_MS) {
+    return cached.isBlocked;
+  }
+
+  let isBlocked = false;
   if (adminId) {
     const memoryUser = store.users.find((u) => u.id === Number(adminId));
     if (memoryUser) {
       if (memoryUser.account_state === 'locked' || memoryUser.isBlocked || memoryUser.tier === 'blocked' || memoryUser.status === 'blocked') {
-        return true;
+        isBlocked = true;
       }
+    } else {
+      try {
+        const { data: user } = await supabase.from('users').select('id, tier, account_state').eq('id', Number(adminId)).single();
+        if (user && (user.account_state === 'locked' || user.tier === 'blocked')) {
+          isBlocked = true;
+        }
+      } catch {}
     }
-    try {
-      const { data: user } = await supabase.from('users').select('id, tier, account_state').eq('id', Number(adminId)).single();
-      if (user && (user.account_state === 'locked' || user.tier === 'blocked')) {
-        return true;
-      }
-    } catch {}
-  }
-
-  if (slug) {
+  } else if (slug) {
     const memoryUser = store.users.find((u) => u.username && u.username.toLowerCase() === slug.toLowerCase());
     if (memoryUser) {
       if (memoryUser.account_state === 'locked' || memoryUser.isBlocked || memoryUser.tier === 'blocked' || memoryUser.status === 'blocked') {
-        return true;
+        isBlocked = true;
       }
+    } else {
+      try {
+        const { data: user } = await supabase.from('users').select('id, tier, account_state').ilike('username', slug.toLowerCase()).single();
+        if (user && (user.account_state === 'locked' || user.tier === 'blocked')) {
+          isBlocked = true;
+        }
+      } catch {}
     }
-    try {
-      const { data: user } = await supabase.from('users').select('id, tier, account_state').ilike('username', slug.toLowerCase()).single();
-      if (user && (user.account_state === 'locked' || user.tier === 'blocked')) {
-        return true;
-      }
-    } catch {}
   }
 
-  return false;
+  userBlockedCache.set(cacheKey, { isBlocked, timestamp: Date.now() });
+  return isBlocked;
 }
 
 // High-performance In-Memory Cache for Public Tree Pages
 const publicTreeCache = new Map();
-const PUBLIC_CACHE_TTL_MS = 60000; // 60s cache
+const PUBLIC_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes fast cache
 
 function invalidatePublicTreeCache(slug) {
-  if (slug) publicTreeCache.delete(slug.toLowerCase());
+  if (slug) {
+    publicTreeCache.delete(slug.toLowerCase());
+  } else {
+    publicTreeCache.clear();
+  }
 }
 
 function sanitizeTreeForPublic(tree) {
   if (!tree) return tree;
   const clone = { ...tree };
+  delete clone.custom_theme; // Prevent duplicate payload serialization
   if (clone.customTheme) {
     const theme = { ...clone.customTheme };
     if (theme.backgroundImageUrl) {
@@ -1160,7 +1177,7 @@ app.get('/api/public/trees/:slug', async (req, res) => {
   // 1. Check in-memory fast cache
   const cached = publicTreeCache.get(slug);
   if (cached && Date.now() - cached.timestamp < PUBLIC_CACHE_TTL_MS) {
-    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=60');
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     return res.json(cached.payload);
   }
 
@@ -1200,7 +1217,7 @@ app.get('/api/public/trees/:slug', async (req, res) => {
     };
 
     publicTreeCache.set(slug, { payload, timestamp: Date.now() });
-    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=60');
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
     return res.json(payload);
   }
 
@@ -1227,7 +1244,7 @@ app.get('/api/public/trees/:slug', async (req, res) => {
   };
 
   publicTreeCache.set(slug, { payload, timestamp: Date.now() });
-  res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=60');
+  res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
   res.json(payload);
 });
 
@@ -1348,9 +1365,56 @@ const isDirectRun = process.argv[1] && (
   process.argv[1].endsWith('src/index.js')
 );
 
+async function warmUpPublicTreeCache() {
+  try {
+    const { data: trees } = await supabase
+      .from('trees')
+      .select('*, cards(*)')
+      .is('deleted_at', null)
+      .eq('status', 'live');
+
+    if (trees && trees.length > 0) {
+      for (const t of trees) {
+        if (!t.slug) continue;
+        const rawCards = Array.isArray(t.cards) ? t.cards : [];
+        const publicCards = rawCards
+          .filter((c) => c.visible !== false)
+          .sort((a, b) => (a.position || 0) - (b.position || 0));
+
+        const payload = {
+          tree: sanitizeTreeForPublic({
+            ...t,
+            adminId: Number(t.admin_id),
+            themeId: t.theme_id,
+            customTheme: t.custom_theme,
+            headerLayout: t.header_layout || t.custom_theme?.headerLayout || 'classic',
+            bannerUrl: t.banner_url || t.custom_theme?.bannerUrl || null,
+            heroUrl: t.hero_url || t.custom_theme?.heroUrl || null,
+            logoUrl: t.logo_url || t.custom_theme?.logoUrl || null,
+            titleStyle: t.title_style || t.custom_theme?.titleStyle || 'text',
+            altFontEnabled: t.alt_font_enabled ?? t.custom_theme?.altFontEnabled ?? false,
+            titleFont: t.title_font || t.custom_theme?.titleFont || 'Inter',
+            titleColor: t.title_color || t.custom_theme?.titleColor || '#111111',
+            footerEnabled: t.footer_enabled ?? t.custom_theme?.footerEnabled ?? true,
+            footerText: t.footer_text || t.custom_theme?.footerText || 'IndiaTaps',
+            socialLinks: t.social_links || t.custom_theme?.socialLinks || [],
+            seo: t.seo || t.custom_theme?.seo || { title: '', description: '', faviconUrl: '' },
+          }),
+          cards: publicCards,
+        };
+
+        publicTreeCache.set(t.slug.toLowerCase(), { payload, timestamp: Date.now() });
+      }
+    }
+  } catch (err) {
+    console.warn('[Cache Warmup error]', err.message);
+  }
+}
+
 if (isDirectRun && !process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`Backend server running on http://localhost:${PORT}`);
+    warmUpPublicTreeCache().catch(() => {});
   });
 }
 

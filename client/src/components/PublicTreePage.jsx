@@ -18,10 +18,11 @@ export function PublicTreePage({ slug }) {
     setError(null);
     setIsBlocked(false);
 
-    // Stale-While-Revalidate: Instant render from sessionStorage if visited before
+    // Stale-While-Revalidate: Instant render from localStorage / sessionStorage if visited before
     let hasCache = false;
+    const cacheKey = `indiataps_tree_${slug.toLowerCase()}`;
     try {
-      const cachedStr = sessionStorage.getItem(`indiataps_tree_${slug.toLowerCase()}`);
+      const cachedStr = localStorage.getItem(cacheKey) || sessionStorage.getItem(cacheKey);
       if (cachedStr) {
         const cached = JSON.parse(cachedStr);
         if (cached?.tree) {
@@ -65,7 +66,9 @@ export function PublicTreePage({ slug }) {
           };
           setTreeData(freshData);
           try {
-            sessionStorage.setItem(`indiataps_tree_${slug.toLowerCase()}`, JSON.stringify(freshData));
+            const jsonStr = JSON.stringify(freshData);
+            localStorage.setItem(cacheKey, jsonStr);
+            sessionStorage.setItem(cacheKey, jsonStr);
           } catch {}
         }
         setLoading(false);

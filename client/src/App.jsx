@@ -245,7 +245,10 @@ export function App() {
   };
 
   useEffect(() => {
-    fetchUserData();
+    // Only load admin data if navigating admin/dashboard/workspace; skip on public tree pages
+    if (!isPublicSlug) {
+      fetchUserData();
+    }
 
     // Check for Supabase Google OAuth callback hash
     if (window.location.hash && window.location.hash.includes('access_token')) {
