@@ -76,7 +76,7 @@ import { LandingPage } from './components/LandingPage.jsx';
 import { PublicTreePage } from './components/PublicTreePage.jsx';
 import { ContactPage } from './components/ContactPage.jsx';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard.jsx';
-import { getCanonicalTreeUrl } from './constants/urls.js';
+import { getCanonicalTreeUrl, copyToClipboard } from './constants/urls.js';
 
 export function App() {
   const initialUser = storage.getUser();
@@ -947,12 +947,10 @@ export function App() {
     setTimeout(() => setTopToast(null), 2000);
   };
 
-  const handleCopyLiveUrl = () => {
+  const handleCopyLiveUrl = async () => {
     if (!currentTree?.slug) return;
     const url = getCanonicalTreeUrl(currentTree.slug);
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(url);
-    }
+    await copyToClipboard(url);
     setCopiedUrl(true);
     setTopToast({
       title: 'Link copied to clipboard',

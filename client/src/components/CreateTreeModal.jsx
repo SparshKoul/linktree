@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Check, Copy, User, LogIn, Shuffle, AlertCircle, Loader2 } from 'lucide-react';
-import { getCanonicalTreeUrl } from '../constants/urls.js';
+import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
 
 export function CreateTreeModal({
   isOpen,
@@ -137,9 +137,9 @@ export function CreateTreeModal({
     }
   };
 
-  const handleCopyUrl = () => {
+  const handleCopyUrl = async () => {
     const url = getCanonicalTreeUrl(createdTree?.slug || cleanSlug);
-    navigator.clipboard.writeText(url);
+    await copyToClipboard(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

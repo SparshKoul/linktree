@@ -31,7 +31,7 @@ import { WallpaperEditor } from './WallpaperEditor.jsx';
 import { ButtonEditor } from './ButtonEditor.jsx';
 import { TextEditor } from './TextEditor.jsx';
 import { ColorsEditor } from './ColorsEditor.jsx';
-import { getCanonicalTreeUrl } from '../constants/urls.js';
+import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
 
 export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, onOpenHeader, initialSubview = null }) {
   const [activeSubview, setActiveSubview] = useState(initialSubview); // null | 'theme' | 'header' | 'wallpaper' | 'buttons' | 'text' | 'colors' | 'stickers' | 'footer'
@@ -42,12 +42,10 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
   const wallpaperInputRef = useRef(null);
   const avatarInputRef = useRef(null);
 
-  const handleCopyCardUrl = () => {
+  const handleCopyCardUrl = async () => {
     const slug = currentTree?.slug || 'riyast';
     const url = getCanonicalTreeUrl(slug);
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText(url);
-    }
+    await copyToClipboard(url);
     setCopiedLiveLink(true);
     setTimeout(() => setCopiedLiveLink(false), 2000);
   };

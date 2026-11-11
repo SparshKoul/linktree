@@ -20,7 +20,7 @@ import {
   Palette,
 } from 'lucide-react';
 import { storage } from '../services/storage.js';
-import { getCanonicalTreeUrl } from '../constants/urls.js';
+import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
 
 export function CardsDashboard({
   currentUser,
@@ -67,12 +67,11 @@ export function CardsDashboard({
   const username = currentUser?.username || currentTree?.slug || 'riyast';
   const email = currentUser?.email || 'sparshkoul6@gmail.com';
 
-  const handleCopyUrl = (slug) => {
+  const handleCopyUrl = async (slug) => {
     const url = getCanonicalTreeUrl(slug);
-    navigator.clipboard.writeText(url).then(() => {
-      setCopiedSlug(slug);
-      setTimeout(() => setCopiedSlug(null), 2000);
-    }).catch(() => {});
+    await copyToClipboard(url);
+    setCopiedSlug(slug);
+    setTimeout(() => setCopiedSlug(null), 2000);
   };
 
   return (
