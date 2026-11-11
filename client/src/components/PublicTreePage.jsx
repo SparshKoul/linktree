@@ -15,9 +15,26 @@ export function PublicTreePage({ slug }) {
 
   useEffect(() => {
     let isMounted = true;
-    setLoading(true);
     setError(null);
     setIsBlocked(false);
+
+    // Stale-While-Revalidate: Instant render from sessionStorage if visited before
+    let hasCache = false;
+    try {
+      const cachedStr = sessionStorage.getItem(`indiataps_tree_${slug.toLowerCase()}`);
+      if (cachedStr) {
+        const cached = JSON.parse(cachedStr);
+        if (cached?.tree) {
+          setTreeData(cached);
+          setLoading(false);
+          hasCache = true;
+        }
+      }
+    } catch {}
+
+    if (!hasCache) {
+      setLoading(true);
+    }
 
     fetch(`/api/public/trees/${encodeURIComponent(slug)}`)
       .then(async (res) => {
@@ -42,10 +59,14 @@ export function PublicTreePage({ slug }) {
         if (!isMounted || !data) return;
         setIsBlocked(false);
         if (data && data.tree) {
-          setTreeData({
+          const freshData = {
             tree: data.tree,
             cards: Array.isArray(data.cards) ? data.cards : [],
-          });
+          };
+          setTreeData(freshData);
+          try {
+            sessionStorage.setItem(`indiataps_tree_${slug.toLowerCase()}`, JSON.stringify(freshData));
+          } catch {}
         }
         setLoading(false);
 
@@ -63,7 +84,9 @@ export function PublicTreePage({ slug }) {
       })
       .catch((err) => {
         if (!isMounted) return;
-        setError(err.message || 'Page not found');
+        if (!hasCache) {
+          setError(err.message || 'Page not found');
+        }
         setLoading(false);
       });
 

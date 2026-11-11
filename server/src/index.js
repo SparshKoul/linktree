@@ -878,6 +878,7 @@ app.put('/api/admin/trees/:id', async (req, res) => {
 
   const updatedDb = await db.updateTree(treeId, req.body);
   if (updatedDb) {
+    invalidatePublicTreeCache(updatedDb.slug || req.body?.slug);
     return res.json(updatedDb);
   }
 
@@ -891,6 +892,7 @@ app.put('/api/admin/trees/:id', async (req, res) => {
   };
 
   store.trees[treeIndex] = updatedTree;
+  invalidatePublicTreeCache(updatedTree.slug);
   res.json(updatedTree);
 });
 
@@ -1081,6 +1083,7 @@ app.post('/api/admin/trees/:id/sync', async (req, res) => {
   const finalTree = savedTree
     ? { ...savedTree, cards: savedCards }
     : (await db.getTreeById(treeId)) || store.trees.find((t) => t.id === treeId);
+  invalidatePublicTreeCache(finalTree?.slug || treeUpdates?.slug);
   res.json({
     success: true,
     tree: finalTree,
@@ -1124,9 +1127,43 @@ async function isTreeOwnerBlocked(adminId, slug = null) {
   return false;
 }
 
+// High-performance In-Memory Cache for Public Tree Pages
+const publicTreeCache = new Map();
+const PUBLIC_CACHE_TTL_MS = 60000; // 60s cache
+
+function invalidatePublicTreeCache(slug) {
+  if (slug) publicTreeCache.delete(slug.toLowerCase());
+}
+
+function sanitizeTreeForPublic(tree) {
+  if (!tree) return tree;
+  const clone = { ...tree };
+  if (clone.customTheme) {
+    const theme = { ...clone.customTheme };
+    if (theme.backgroundImageUrl) {
+      theme.backgroundValue = `url("${theme.backgroundImageUrl}") center / cover no-repeat`;
+    } else if (typeof theme.backgroundValue === 'string' && theme.backgroundValue.startsWith('url("data:')) {
+      theme.backgroundValue = theme.backgroundColor || '#050F15';
+    }
+    if (typeof theme.wallpaperVideoUrl === 'string' && theme.wallpaperVideoUrl.startsWith('data:')) {
+      theme.wallpaperVideoUrl = null;
+    }
+    clone.customTheme = theme;
+  }
+  return clone;
+}
+
 // Public Tree Page
 app.get('/api/public/trees/:slug', async (req, res) => {
   const slug = req.params.slug.toLowerCase();
+
+  // 1. Check in-memory fast cache
+  const cached = publicTreeCache.get(slug);
+  if (cached && Date.now() - cached.timestamp < PUBLIC_CACHE_TTL_MS) {
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=60');
+    return res.json(cached.payload);
+  }
+
   const dbTree = await db.getTreeBySlug(slug);
   if (dbTree) {
     const adminId = dbTree.admin_id ?? dbTree.adminId;
@@ -1157,10 +1194,14 @@ app.get('/api/public/trees/:slug', async (req, res) => {
       .filter((c) => c.visible !== false)
       .sort((a, b) => (a.position || 0) - (b.position || 0));
 
-    return res.json({
-      tree: dbTree,
+    const payload = {
+      tree: sanitizeTreeForPublic(dbTree),
       cards: publicCards,
-    });
+    };
+
+    publicTreeCache.set(slug, { payload, timestamp: Date.now() });
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=60');
+    return res.json(payload);
   }
 
   const tree = store.trees.find((t) => t.slug === slug && !t.deletedAt && t.status === 'live');
@@ -1180,10 +1221,14 @@ app.get('/api/public/trees/:slug', async (req, res) => {
     .filter((c) => c.treeId === tree.id && c.visible !== false)
     .sort((a, b) => (a.position || 0) - (b.position || 0));
 
-  res.json({
-    tree,
+  const payload = {
+    tree: sanitizeTreeForPublic(tree),
     cards: publicCards,
-  });
+  };
+
+  publicTreeCache.set(slug, { payload, timestamp: Date.now() });
+  res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=60');
+  res.json(payload);
 });
 
 // Public Click Tracker
