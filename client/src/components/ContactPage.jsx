@@ -83,7 +83,7 @@ export function ContactPage({ onNavigate, onOpenAuth, currentUser }) {
     },
     {
       q: 'How do I subscribe and get my account?',
-      a: 'Email Sparsh directly at india.taps7@gmail.com. We will set up your subscription plan, activate your account, and help you build your first batch of cards.',
+      a: 'Email us directly at india.taps7@gmail.com. We will set up your subscription plan, activate your account, and help you build your first batch of cards.',
     },
     {
       q: 'Can I use custom URLs and QR codes?',
@@ -102,7 +102,7 @@ export function ContactPage({ onNavigate, onOpenAuth, currentUser }) {
               href="#pricing"
               className="underline font-bold hover:text-white cursor-pointer ml-1 inline-block"
             >
-              Contact Sparsh for subscription pricing.
+              Contact india.taps7@gmail.com for subscription pricing.
             </a>
           </div>
           <button
@@ -642,7 +642,7 @@ export function ContactPage({ onNavigate, onOpenAuth, currentUser }) {
           </h2>
 
           <p className="text-sm sm:text-base text-white/80 max-w-xl mx-auto mt-4 leading-relaxed font-medium">
-            Contact Sparsh directly to get your account provisioned, choose your subscription plan, and start creating as many cards and forms as your business needs.
+            Contact us directly at india.taps7@gmail.com to get your account provisioned, choose your subscription plan, and start creating as many cards and forms as your business needs.
           </p>
 
           {/* Email Highlight Card with 1-Click Copy */}
@@ -667,7 +667,7 @@ export function ContactPage({ onNavigate, onOpenAuth, currentUser }) {
                 className="w-full sm:flex-1 py-3.5 px-5 rounded-full bg-[#1E3A1E] hover:bg-[#152B15] text-[#D2E823] font-extrabold text-xs shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Mail className="w-4 h-4 text-[#D2E823]" />
-                <span>Email Him Directly</span>
+                <span>Email Us Directly</span>
               </a>
 
               <button
