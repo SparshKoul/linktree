@@ -93,7 +93,13 @@ ALTER TABLE public.trees ADD COLUMN IF NOT EXISTS clicks_count BIGINT NOT NULL D
 CREATE TABLE IF NOT EXISTS public.cards (
   id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   tree_id BIGINT NOT NULL REFERENCES public.trees(id) ON DELETE CASCADE,
-  type TEXT NOT NULL DEFAULT 'link' CHECK (type IN ('link', 'header', 'music', 'video', 'contact_form', 'pdf', 'gallery', 'social', 'commerce')),
+  type TEXT NOT NULL DEFAULT 'link' CHECK (type IN (
+    'booking', 'collapsible', 'collection', 'commerce', 'contact',
+    'contact_form', 'custom_html', 'email', 'email_signup', 'events',
+    'folder', 'gallery', 'header', 'instagram', 'link', 'mail', 'maps',
+    'menu', 'music', 'pdf', 'phone', 'product', 'resume', 'reviews',
+    'social', 'store', 'text', 'tip_jar', 'video', 'whatsapp'
+  )),
   title TEXT NOT NULL DEFAULT '',
   subtitle TEXT DEFAULT '',
   url TEXT DEFAULT '',
@@ -103,7 +109,7 @@ CREATE TABLE IF NOT EXISTS public.cards (
   visible BOOLEAN NOT NULL DEFAULT TRUE,
   layout TEXT NOT NULL DEFAULT 'classic' CHECK (layout IN ('classic', 'featured', 'grid', 'carousel')),
   animation TEXT NOT NULL DEFAULT 'none',
-  lock_type TEXT NOT NULL DEFAULT 'none' CHECK (lock_type IN ('none', 'password', 'age', 'email')),
+  lock_type TEXT NOT NULL DEFAULT 'none' CHECK (lock_type IN ('none', 'password', 'age', 'email', 'code')),
   lock_value TEXT,
   pinned BOOLEAN NOT NULL DEFAULT FALSE,
   group_name TEXT,
@@ -119,6 +125,44 @@ ALTER TABLE public.cards ADD COLUMN IF NOT EXISTS pinned BOOLEAN NOT NULL DEFAUL
 ALTER TABLE public.cards ADD COLUMN IF NOT EXISTS group_name TEXT;
 ALTER TABLE public.cards ADD COLUMN IF NOT EXISTS scheduled_start TIMESTAMPTZ;
 ALTER TABLE public.cards ADD COLUMN IF NOT EXISTS scheduled_end TIMESTAMPTZ;
+
+-- Widen the type and lock_type checks for databases created with the old rules.
+-- See migrations/001_allow_all_card_types.sql for the standalone migration.
+DO $$
+DECLARE
+  constraint_name TEXT;
+BEGIN
+  FOR constraint_name IN
+    SELECT con.conname
+    FROM pg_constraint con
+    JOIN pg_class rel ON rel.oid = con.conrelid
+    JOIN pg_attribute att
+      ON att.attrelid = con.conrelid AND att.attnum = ANY (con.conkey)
+    WHERE rel.relname = 'cards'
+      AND con.contype = 'c'
+      AND att.attname IN ('type', 'lock_type', 'layout')
+  LOOP
+    EXECUTE format('ALTER TABLE public.cards DROP CONSTRAINT %I', constraint_name);
+  END LOOP;
+END $$;
+
+ALTER TABLE public.cards
+  ADD CONSTRAINT cards_type_check
+  CHECK (type IN (
+    'booking', 'collapsible', 'collection', 'commerce', 'contact',
+    'contact_form', 'custom_html', 'email', 'email_signup', 'events',
+    'folder', 'gallery', 'header', 'instagram', 'link', 'mail', 'maps',
+    'menu', 'music', 'pdf', 'phone', 'product', 'resume', 'reviews',
+    'social', 'store', 'text', 'tip_jar', 'video', 'whatsapp'
+  ));
+
+ALTER TABLE public.cards
+  ADD CONSTRAINT cards_lock_type_check
+  CHECK (lock_type IN ('none', 'password', 'age', 'email', 'code'));
+
+ALTER TABLE public.cards
+  ADD CONSTRAINT cards_layout_check
+  CHECK (layout IN ('classic', 'featured', 'grid', 'carousel'));
 
 -- ------------------------------------------------------------------------------
 -- 4. Analytics Events Table (Time-Series Click & View Telemetry)

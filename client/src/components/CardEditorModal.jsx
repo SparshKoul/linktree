@@ -8,6 +8,7 @@ export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
   const [url, setUrl] = useState(card.url || '');
   const [animation, setAnimation] = useState(card.animation || 'none');
   const [lockType, setLockType] = useState(card.lockType || 'none');
+  const [lockValue, setLockValue] = useState(card.lockValue || card.lock_value || '');
   const [price, setPrice] = useState(card.settings?.price || '$49.00');
   const [eventDate, setEventDate] = useState(card.settings?.date || 'DEC 20');
   const [venue, setVenue] = useState(card.settings?.venue || 'Showcase Stage');
@@ -39,6 +40,7 @@ export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
       url,
       animation,
       lockType,
+      lockValue: lockType === 'none' ? null : lockValue.trim() || null,
       subtitle: computedSubtitle,
       settings: updatedSettings,
     });
@@ -266,6 +268,23 @@ export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
                 </button>
               ))}
             </div>
+            {lockType === 'code' && (
+              <div className="mt-3">
+                <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">
+                  Passcode
+                </label>
+                <input
+                  type="text"
+                  value={lockValue}
+                  onChange={(e) => setLockValue(e.target.value)}
+                  placeholder="Visitors must type this to open the link"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:border-[#7033FF]"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  The passcode is stored on the server and never sent to visitors.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

@@ -127,10 +127,13 @@ export const db = {
   async getTreeBySlug(slug) {
     try {
       const cleanSlug = slug.toLowerCase().trim();
+      // Only live trees are public. Draft and archived trees must never be
+      // served to visitors.
       let { data: list, error } = await supabase
         .from('trees')
         .select('*, cards(*)')
         .eq('slug', cleanSlug)
+        .eq('status', 'live')
         .is('deleted_at', null)
         .order('id', { ascending: false })
         .limit(1);
@@ -140,6 +143,8 @@ export const db = {
           .from('trees')
           .select('*, cards(*)')
           .eq('slug', cleanSlug)
+          .eq('status', 'live')
+          .is('deleted_at', null)
           .order('id', { ascending: false })
           .limit(1);
         list = fallback.data;
@@ -379,8 +384,8 @@ export const db = {
       if (error) throw error;
       return formatTreeRecord(data);
     } catch (err) {
-      console.warn('[DB updateTree fallback]', err.message);
-      return null;
+      console.warn('[DB updateTree failed]', err.message);
+      throw err;
     }
   },
 
@@ -418,6 +423,26 @@ export const db = {
     }
   },
 
+  async getTreeInfo(treeId) {
+    try {
+      const numId = Number(treeId);
+      if (!numId || isNaN(numId)) return null;
+      const { data, error } = await supabase
+        .from('trees')
+        .select('admin_id, slug')
+        .eq('id', numId)
+        .is('deleted_at', null)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return { adminId: Number(data.admin_id), slug: data.slug };
+    } catch (err) {
+      console.warn('[DB getTreeInfo fallback]', err.message);
+      // undefined = the database could not answer, null = no such tree
+      return undefined;
+    }
+  },
+
   async getTreeOwner(treeId) {
     try {
       const numId = Number(treeId);
@@ -432,7 +457,8 @@ export const db = {
       return data ? Number(data.admin_id) : null;
     } catch (err) {
       console.warn('[DB getTreeOwner fallback]', err.message);
-      return null;
+      // undefined = the database could not answer, null = no such tree
+      return undefined;
     }
   },
 
@@ -445,15 +471,41 @@ export const db = {
         .select('tree_id')
         .eq('id', numId)
         .maybeSingle();
-      if (cardErr || !card) return null;
+      if (cardErr) throw cardErr;
+      if (!card) return null;
       return await this.getTreeOwner(card.tree_id);
     } catch (err) {
       console.warn('[DB getCardOwner fallback]', err.message);
-      return null;
+      return undefined;
     }
   },
 
   // --- Cards ---
+  async getCardById(id) {
+    try {
+      const numId = Number(id);
+      if (!numId || isNaN(numId)) return null;
+      const { data, error } = await supabase
+        .from('cards')
+        .select('*')
+        .eq('id', numId)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return null;
+      return {
+        ...data,
+        id: Number(data.id),
+        treeId: Number(data.tree_id),
+        thumbnailUrl: data.thumbnail_url,
+        lockType: data.lock_type,
+        lockValue: data.lock_value,
+      };
+    } catch (err) {
+      console.warn('[DB getCardById fallback]', err.message);
+      return null;
+    }
+  },
+
   async getCards(treeId) {
     try {
       const { data, error } = await supabase
@@ -565,8 +617,8 @@ export const db = {
         lockValue: data.lock_value,
       };
     } catch (err) {
-      console.warn('[DB createCard fallback]', err.message);
-      return null;
+      console.warn('[DB createCard failed]', err.message);
+      throw err;
     }
   },
 
@@ -671,8 +723,8 @@ export const db = {
         thumbnailUrl: data.thumbnail_url,
       };
     } catch (err) {
-      console.warn('[DB updateCard fallback]', err.message);
-      return null;
+      console.warn('[DB updateCard failed]', err.message);
+      throw err;
     }
   },
 
@@ -768,6 +820,7 @@ export const db = {
           }
 
           return {
+            clientId: c.id ?? c.cardId ?? null,
             tree_id: treeId,
             type: c.type || 'link',
             title: c.title || '',
@@ -785,52 +838,202 @@ export const db = {
         })
       );
 
-      // 2. Clear old cards for this tree
-      await supabase.from('cards').delete().eq('tree_id', treeId);
+      // 2. Update the cards that already exist and insert the new ones.
+      //    Nothing is deleted first, so a rejected card can never wipe the
+      //    cards that are already live. Clicks are left untouched.
+      //
+      //    Each card is written in parallel: try to update it, and insert it
+      //    when there is no row with that id yet. That keeps the save to one
+      //    round trip instead of one per card.
+      const savedCards = await Promise.all(
+        preparedCards.map(async (prepared) => {
+          const row = {
+            type: prepared.type,
+            title: prepared.title,
+            subtitle: prepared.subtitle,
+            url: prepared.url,
+            thumbnail_url: prepared.thumbnail_url,
+            position: prepared.position,
+            visible: prepared.visible,
+            animation: prepared.animation,
+            layout: prepared.layout,
+            lock_type: prepared.lock_type,
+            lock_value: prepared.lock_value,
+            settings: prepared.settings,
+            updated_at: new Date().toISOString(),
+          };
 
-      // 3. Bulk insert all prepared cards in a single database roundtrip
-      if (preparedCards.length > 0) {
-        const { data, error } = await supabase.from('cards').insert(preparedCards).select();
+          if (prepared.clientId) {
+            const { data, error } = await supabase
+              .from('cards')
+              .update(row)
+              .eq('id', Number(prepared.clientId))
+              .select();
+            if (error) throw error;
+            // The row is gone: the card is new, so insert it.
+            if (!data || data.length === 0) {
+              const inserted = await supabase
+                .from('cards')
+                .insert({ ...row, tree_id: prepared.tree_id })
+                .select()
+                .single();
+              if (inserted.error) throw inserted.error;
+              return inserted.data;
+            }
+            return data[0];
+          }
+
+          const { data, error } = await supabase
+            .from('cards')
+            .insert({ ...row, tree_id: prepared.tree_id })
+            .select()
+            .single();
+          if (error) throw error;
+          return data;
+        })
+      );
+
+      // 3. Remove the cards that are no longer in the list.
+      const keptIds = savedCards.map((c) => Number(c.id));
+      if (keptIds.length > 0) {
+        const { error } = await supabase
+          .from('cards')
+          .delete()
+          .eq('tree_id', treeId)
+          .not('id', 'in', `(${keptIds.join(',')})`);
         if (error) throw error;
-        return (data || []).map((c) => ({
-          id: Number(c.id),
-          treeId: Number(c.tree_id),
-          type: c.type,
-          title: c.title,
-          subtitle: c.subtitle,
-          url: c.url,
-          thumbnailUrl: c.thumbnail_url,
-          clicks: c.clicks,
-          position: c.position,
-          visible: c.visible,
-          layout: c.layout,
-          animation: c.animation,
-          lockType: c.lock_type,
-          lockValue: c.lock_value,
-          settings: c.settings || {},
-        }));
       }
 
-      return [];
+      return savedCards.map((c) => ({
+        id: Number(c.id),
+        treeId: Number(c.tree_id),
+        type: c.type,
+        title: c.title,
+        subtitle: c.subtitle,
+        url: c.url,
+        thumbnailUrl: c.thumbnail_url,
+        clicks: c.clicks,
+        position: c.position,
+        visible: c.visible,
+        layout: c.layout,
+        animation: c.animation,
+        lockType: c.lock_type,
+        lockValue: c.lock_value,
+        settings: c.settings || {},
+      }));
     } catch (err) {
-      console.warn('[DB syncTreeCards fallback]', err.message);
-      return null;
+      console.warn('[DB syncTreeCards failed]', err.message);
+      throw err;
     }
+  },
+
+  /**
+   * Compare-and-swap counter increment, used when the database functions are
+   * not installed yet. Two requests that read the same value cannot both
+   * write it: the second one no longer matches the old value, so it retries.
+   */
+  async incrementCounter(table, id, column, maxRetries = 25) {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const { data, error } = await supabase
+        .from(table)
+        .select(column)
+        .eq('id', id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return false;
+
+      const current = Number(data[column] || 0);
+      const { data: updated, error: updateError } = await supabase
+        .from(table)
+        .update({ [column]: current + 1 })
+        .eq('id', id)
+        .eq(column, current)
+        .select(column);
+      if (updateError) throw updateError;
+      if (updated && updated.length > 0) return true;
+
+      // Someone else changed it first. Back off a little and try again.
+      await new Promise((resolve) => setTimeout(resolve, Math.floor(Math.random() * 8)));
+    }
+    return false;
+  },
+
+  /**
+   * Call a database counter function if it exists, otherwise fall back to the
+   * compare-and-swap loop. The function is the exact one: the increment
+   * happens inside the database, so parallel clicks can never be lost.
+   */
+  async incrementWithFunction(functionName, argument, fallback) {
+    try {
+      const { data, error } = await supabase.rpc(functionName, argument);
+      if (!error && data !== null && data !== undefined) return true;
+      if (error) {
+        const message = String(error.message || '');
+        const missing =
+          error.code === 'PGRST202' ||
+          message.includes('does not exist') ||
+          message.includes('not exist');
+        if (!missing) console.warn(`[DB ${functionName}]`, message);
+      }
+    } catch (err) {
+      console.warn(`[DB ${functionName}]`, err.message);
+    }
+    return fallback();
   },
 
   async incrementCardClicks(id) {
     try {
-      const { data: card } = await supabase.from('cards').select('clicks').eq('id', id).single();
-      if (card) {
-        await supabase
-          .from('cards')
-          .update({ clicks: (card.clicks || 0) + 1 })
-          .eq('id', id);
-      }
-      return true;
+      return await this.incrementWithFunction(
+        'increment_card_clicks',
+        { p_card_id: Number(id) },
+        () => this.incrementCounter('cards', id, 'clicks')
+      );
     } catch (err) {
       console.warn('[DB incrementCardClicks fallback]', err.message);
       return false;
+    }
+  },
+
+  async incrementTreeViews(id) {
+    try {
+      return await this.incrementWithFunction(
+        'increment_tree_views',
+        { p_tree_id: Number(id) },
+        () => this.incrementCounter('trees', id, 'views_count')
+      );
+    } catch (err) {
+      console.warn('[DB incrementTreeViews fallback]', err.message);
+      return false;
+    }
+  },
+
+  async incrementTreeClicks(id) {
+    try {
+      return await this.incrementWithFunction(
+        'increment_tree_clicks',
+        { p_tree_id: Number(id) },
+        () => this.incrementCounter('trees', id, 'clicks_count')
+      );
+    } catch (err) {
+      console.warn('[DB incrementTreeClicks fallback]', err.message);
+      return false;
+    }
+  },
+
+  async getCardTreeId(id) {
+    try {
+      const numId = Number(id);
+      if (!numId || isNaN(numId)) return null;
+      const { data, error } = await supabase
+        .from('cards')
+        .select('tree_id')
+        .eq('id', numId)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? Number(data.tree_id) : null;
+    } catch (err) {
+      console.warn('[DB getCardTreeId fallback]', err.message);
+      return null;
     }
   },
 
@@ -1040,7 +1243,13 @@ export const db = {
       if (!user) {
         user = await this.getUserByEmailOrUsername(targetEmail);
       }
-      return user || { id: 1, email: targetEmail, username: targetEmail.split('@')[0] };
+      if (!user) {
+        // The password was correct for a Supabase auth account that has no
+        // profile in public.users. There is no account to sign in to, and
+        // inventing an id would hand out somebody else's account.
+        throw new Error('No account is set up for this email address');
+      }
+      return user;
     } catch (err) {
       console.warn('[DB signInUser error]', err.message);
       throw err;
@@ -1168,6 +1377,31 @@ export const db = {
     }
   },
 
+  async getAssetByPath({ filePath, publicUrl }) {
+    try {
+      let targetPath = filePath;
+      if (!targetPath && publicUrl) {
+        const marker = '/linktree-assets/';
+        const idx = publicUrl.indexOf(marker);
+        if (idx !== -1) {
+          targetPath = publicUrl.substring(idx + marker.length);
+        }
+      }
+      if (!targetPath) return null;
+
+      const { data, error } = await supabase
+        .from('assets')
+        .select('*')
+        .eq('file_path', targetPath)
+        .maybeSingle();
+      if (error) throw error;
+      return data || null;
+    } catch (err) {
+      console.warn('[DB getAssetByPath fallback]', err.message);
+      return null;
+    }
+  },
+
   async getAssets({ treeId, adminId, folder }) {
     try {
       let query = supabase.from('assets').select('*');
@@ -1204,27 +1438,11 @@ export const db = {
         .then(() => {})
         .catch(() => {});
 
-      // 2. Increment aggregate counter on tree
+      // 2. Increment aggregate counter on tree (atomic, no lost updates)
       if (eventType === 'page_view') {
-        const { data: tree } = await supabase.from('trees').select('views_count').eq('id', treeId).single();
-        if (tree) {
-          supabase
-            .from('trees')
-            .update({ views_count: Number(tree.views_count || 0) + 1 })
-            .eq('id', treeId)
-            .then(() => {})
-            .catch(() => {});
-        }
+        await this.incrementTreeViews(treeId);
       } else if (eventType === 'card_click') {
-        const { data: tree } = await supabase.from('trees').select('clicks_count').eq('id', treeId).single();
-        if (tree) {
-          supabase
-            .from('trees')
-            .update({ clicks_count: Number(tree.clicks_count || 0) + 1 })
-            .eq('id', treeId)
-            .then(() => {})
-            .catch(() => {});
-        }
+        await this.incrementTreeClicks(treeId);
       }
       return true;
     } catch (err) {

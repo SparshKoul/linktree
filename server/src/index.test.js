@@ -77,20 +77,20 @@ describe('Supabase Asset Upload & Multi-Device Sync', () => {
     expect(isBase64Pdf(httpSample)).toBe(false);
   });
 
-  it('resolves multi-device user identity from header or cookie', () => {
+  it('never takes the user id from a caller supplied header or legacy cookie', () => {
+    // The real server only trusts the signed session cookie. This test keeps
+    // the rule visible: a header or an unsigned cookie must never be an id.
     function resolveUser(headers, cookies) {
       const headerId = headers?.['x-user-id'];
       const cookieId = cookies?.userId || cookies?.token;
-      if (headerId && !isNaN(parseInt(headerId, 10))) return parseInt(headerId, 10);
-      if (cookieId && !isNaN(parseInt(cookieId, 10))) return parseInt(cookieId, 10);
+      if (headerId) return 'FORGED HEADER';
+      if (cookieId) return 'FORGED COOKIE';
       return null;
     }
 
-    // Device A: uses cookie
-    expect(resolveUser({}, { userId: '2' })).toBe(2);
-    // Device B: uses header
-    expect(resolveUser({ 'x-user-id': '3' }, {})).toBe(3);
-    // Unauthenticated visitor gets null (no auto-impersonating admin)
+    expect(resolveUser({ 'x-user-id': '1' }, {})).toBe('FORGED HEADER');
+    expect(resolveUser({}, { userId: '1' })).toBe('FORGED COOKIE');
+    expect(resolveUser({}, { token: '1' })).toBe('FORGED COOKIE');
     expect(resolveUser({}, {})).toBeNull();
   });
 

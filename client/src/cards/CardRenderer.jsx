@@ -58,6 +58,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   const [passcodeInput, setPasscodeInput] = useState('');
   const [gateEmailInput, setGateEmailInput] = useState('');
   const [gateError, setGateError] = useState('');
+  const [isCheckingCode, setIsCheckingCode] = useState(false);
 
   // Standalone Card Page Sheet state
   const [isPageOpen, setIsPageOpen] = useState(false);
@@ -283,14 +284,32 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     }
   };
 
-  const handleUnlockCode = (e) => {
+  // The passcode is checked by the server. It is never sent to the browser,
+  // so it cannot be read out of the page source.
+  const handleUnlockCode = async (e) => {
     e.preventDefault();
-    const correctCode = card.lockValue || '1234';
-    if (passcodeInput.trim() === correctCode) {
-      setIsLocked(false);
-      setShowLockModal(false);
-    } else {
-      setGateError('Incorrect access code');
+    setGateError('');
+    setIsCheckingCode(true);
+    try {
+      const res = await fetch(`/api/public/cards/${card.id}/unlock`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: passcodeInput.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        setIsLocked(false);
+        setShowLockModal(false);
+        if (data.url) {
+          window.open(data.url, '_blank', 'noopener,noreferrer');
+        }
+      } else {
+        setGateError(data.error || 'Incorrect access code');
+      }
+    } catch {
+      setGateError('Could not verify the code. Please try again.');
+    } finally {
+      setIsCheckingCode(false);
     }
   };
 
@@ -970,9 +989,10 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                 {gateError && <p className="text-[11px] text-red-500">{gateError}</p>}
                 <button
                   type="submit"
-                  className="w-full py-2.5 rounded-full bg-[#7033FF] text-white text-xs font-bold"
+                  disabled={isCheckingCode}
+                  className="w-full py-2.5 rounded-full bg-[#7033FF] text-white text-xs font-bold disabled:opacity-60"
                 >
-                  Enter
+                  {isCheckingCode ? 'Checking...' : 'Enter'}
                 </button>
               </form>
             )}

@@ -202,13 +202,20 @@ export function App() {
       setCurrentTree({ ...matched, cards });
     }
 
-    const authHeaders = {
-      'x-user-id': String(effectiveUserId),
-    };
-
-    // Sync user, trees, and cards with Supabase backend
-    fetch('/api/auth/me', { headers: authHeaders, credentials: 'include' })
-      .then((res) => (res.ok ? res.json() : null))
+    // Sync user, trees, and cards with Supabase backend.
+    // The session cookie is the only credential; there is no user id header.
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(async (res) => {
+        if (res.status === 401) {
+          // Session expired or was never established: drop the stale local user.
+          storage.setUser(null);
+          setCurrentUser(null);
+          setTrees([]);
+          setCurrentTree(null);
+          return null;
+        }
+        return res.ok ? res.json() : null;
+      })
       .then((serverUser) => {
         if (serverUser) {
           setCurrentUser(serverUser);
@@ -217,7 +224,7 @@ export function App() {
       })
       .catch(() => {});
 
-    fetch('/api/admin/trees', { headers: authHeaders, credentials: 'include' })
+    fetch('/api/admin/trees', { credentials: 'include' })
       .then((res) => (res.ok ? res.json() : null))
       .then((serverTrees) => {
         if (serverTrees && serverTrees.length > 0) {
@@ -226,7 +233,7 @@ export function App() {
           const activeTreeId = Number(storage.getActiveTreeId());
           const target = serverTrees.find((t) => t.id === activeTreeId) || serverTrees[0];
           if (target) {
-            fetch(`/api/admin/trees/${target.id}`, { headers: authHeaders, credentials: 'include' })
+            fetch(`/api/admin/trees/${target.id}`, { credentials: 'include' })
               .then((r) => (r.ok ? r.json() : null))
               .then((fullTree) => {
                 if (fullTree) {
@@ -302,7 +309,6 @@ export function App() {
 
     // Always fetch latest from Supabase so multi-device updates reflect immediately
     fetch(`/api/admin/trees/${numId}`, {
-      headers: currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {},
       credentials: 'include',
     })
       .then((r) => (r.ok ? r.json() : null))
@@ -382,7 +388,6 @@ export function App() {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-            ...(currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {}),
           },
           credentials: 'include',
           signal: controller.signal,
@@ -439,7 +444,6 @@ export function App() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {}),
         },
         credentials: 'include',
         signal: abortCtrl.signal,
@@ -500,21 +504,31 @@ export function App() {
 
       clearTimeout(timeoutId);
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.tree) {
-          const mergedTree = {
-            ...currentTree,
-            ...data.tree,
-            cards: data.cards || activeCards,
-          };
-          setCurrentTree(mergedTree);
-          storage.saveTree(mergedTree);
-          if (data.cards && data.cards.length > 0) {
-            const allLocal = storage.getCards();
-            const otherCards = allLocal.filter((c) => Number(c.treeId) !== Number(currentTree.id));
-            storage.saveCards([...otherCards, ...data.cards]);
-          }
+      if (!res.ok) {
+        // The server refused the save. The cards that are already live were
+        // left untouched, so say what happened instead of claiming success.
+        const errorData = await res.json().catch(() => ({}));
+        setTopToast({
+          title: 'Save failed',
+          subtitle: errorData.error || 'The database refused this change. Nothing was changed.',
+        });
+        setTimeout(() => setTopToast(null), 6000);
+        return;
+      }
+
+      const data = await res.json();
+      if (data.tree) {
+        const mergedTree = {
+          ...currentTree,
+          ...data.tree,
+          cards: data.cards || activeCards,
+        };
+        setCurrentTree(mergedTree);
+        storage.saveTree(mergedTree);
+        if (data.cards && data.cards.length > 0) {
+          const allLocal = storage.getCards();
+          const otherCards = allLocal.filter((c) => Number(c.treeId) !== Number(currentTree.id));
+          storage.saveCards([...otherCards, ...data.cards]);
         }
       }
 
@@ -553,7 +567,6 @@ export function App() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...(currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {}),
           },
           credentials: 'include',
           body: JSON.stringify({ file: rawDataUrl, filename: file.name, folder: 'avatars' }),
@@ -605,12 +618,22 @@ export function App() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {}),
       },
       credentials: 'include',
       body: JSON.stringify(newCardData),
     })
-      .then((res) => (res.ok ? res.json() : null))
+      .then(async (res) => {
+        if (res.ok) return res.json();
+        // The database refused this card. Say so: the card is only in this
+        // browser until the problem is fixed.
+        const error = await res.json().catch(() => ({}));
+        setTopToast({
+          title: 'Card not saved',
+          subtitle: error.error || 'The database refused this card. It is saved in this browser only.',
+        });
+        setTimeout(() => setTopToast(null), 6000);
+        return null;
+      })
       .then((dbCard) => {
         if (dbCard && dbCard.id) {
           const remapped = updatedCards.map((c) =>
@@ -673,12 +696,20 @@ export function App() {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        ...(currentUser?.id ? { 'x-user-id': String(currentUser.id) } : {}),
       },
       credentials: 'include',
       body: JSON.stringify(updates),
     })
-      .then((r) => (r.ok ? r.json() : null))
+      .then(async (r) => {
+        if (r.ok) return r.json();
+        const error = await r.json().catch(() => ({}));
+        setTopToast({
+          title: 'Change not saved',
+          subtitle: error.error || 'The database refused this change. It is saved in this browser only.',
+        });
+        setTimeout(() => setTopToast(null), 6000);
+        return null;
+      })
       .then((updatedDb) => {
         if (updatedDb) {
           storage.updateCard(cardId, updatedDb);
@@ -767,7 +798,7 @@ export function App() {
 
     // Optional background sync
     cardsToDelete.forEach((c) => {
-      fetch(`/api/admin/cards/${c.id}`, { method: 'DELETE' }).catch(() => {});
+      fetch(`/api/admin/cards/${c.id}`, { method: 'DELETE', credentials: 'include' }).catch(() => {});
     });
   };
 
@@ -800,6 +831,7 @@ export function App() {
       fetch(`/api/admin/trees/${currentTree.id}/cards`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(c),
       }).catch(() => {});
     });
@@ -860,7 +892,7 @@ export function App() {
       }
     }, 1000);
 
-    fetch(`/api/admin/trees/${treeToDelete.id}`, { method: 'DELETE' }).catch(() => {});
+    fetch(`/api/admin/trees/${treeToDelete.id}`, { method: 'DELETE', credentials: 'include' }).catch(() => {});
   };
 
   const handleUndoDeleteTree = async () => {
@@ -899,6 +931,7 @@ export function App() {
       fetch(`/api/admin/cards/${c.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ position: c.position }),
       }).catch(() => {});
     });
@@ -935,6 +968,7 @@ export function App() {
       fetch(`/api/admin/cards/${c.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ position: c.position }),
       }).catch(() => {});
     });

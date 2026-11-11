@@ -137,6 +137,7 @@ dump.rdb
 *.sql
 *.sql.gz
 !server/src/db/schema.sql
+!server/src/db/migrations/*.sql
 data/
 storage/
 

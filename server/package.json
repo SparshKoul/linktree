@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "verify": "node --env-file=.env scripts/verify.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",

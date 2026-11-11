@@ -89,16 +89,11 @@ export function CreateTreeModal({
     try {
       let tree = null;
       try {
-        const headers = { 'Content-Type': 'application/json' };
-        if (currentUser?.id) {
-          headers['x-user-id'] = String(currentUser.id);
-        }
         const res = await fetch('/api/admin/trees', {
           method: 'POST',
-          headers,
+          headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
           body: JSON.stringify({
-            adminId: currentUser?.id,
             name: name.trim() || cleanSlug,
             slug: cleanSlug,
             title: name.trim() || cleanSlug,
