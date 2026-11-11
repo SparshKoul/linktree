@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { CardRenderer } from '../cards/CardRenderer.jsx';
 import { PRESET_THEMES } from '../constants/themes.js';
-import { Share2, Check, ArrowLeft, Users } from 'lucide-react';
+import { Copy, Check, ArrowLeft, Users } from 'lucide-react';
 import { getPatternSvg, getContrastingPatternColor } from './WallpaperEditor.jsx';
 import { TreeSkeleton } from './TreeSkeleton.jsx';
+import { getCanonicalTreeUrl } from '../constants/urls.js';
 
 export function PublicTreePage({ slug }) {
   const [treeData, setTreeData] = useState(null);
@@ -143,14 +144,31 @@ export function PublicTreePage({ slug }) {
     };
   }, [treeData, slug]);
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({ title: treeData?.tree?.title || slug, url: window.location.href });
+  const fallbackCopy = (text) => {
+    try {
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.setAttribute('readonly', '');
+      el.style.position = 'absolute';
+      el.style.left = '-9999px';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    } catch {}
+  };
+
+  const handleCopyLink = () => {
+    const url = getCanonicalTreeUrl(slug);
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(url).catch(() => {
+        fallbackCopy(url);
+      });
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      fallbackCopy(url);
     }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (isBlocked) {
@@ -405,12 +423,22 @@ export function PublicTreePage({ slug }) {
           </a>
 
           <button
-            onClick={handleShare}
-            className="w-9 h-9 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xs font-bold hover:bg-white/30 transition-all shadow-xs cursor-pointer"
+            onClick={handleCopyLink}
+            className="w-9 h-9 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-xs font-bold hover:bg-white/30 transition-all shadow-xs cursor-pointer relative group"
             style={{ color: activeTheme?.textColor || '#FFFFFF' }}
-            title="Share page"
+            title={copied ? "Link copied!" : "Copy link"}
+            aria-label="Copy link"
           >
-            {copied ? <Check className="w-4 h-4 text-green-400" /> : <Share2 className="w-4 h-4" />}
+            {copied ? (
+              <Check className="w-4 h-4 text-green-400 stroke-[3]" />
+            ) : (
+              <Copy className="w-4 h-4 stroke-[2.2]" />
+            )}
+            {copied && (
+              <span className="absolute -bottom-7 right-0 text-[10px] font-bold bg-black/85 backdrop-blur-xs text-white px-2 py-0.5 rounded-md shadow-md pointer-events-none whitespace-nowrap animate-in fade-in">
+                Copied!
+              </span>
+            )}
           </button>
         </div>
 

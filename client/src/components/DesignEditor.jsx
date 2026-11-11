@@ -21,6 +21,7 @@ import {
   User,
   Zap,
   Share2,
+  Copy,
   Plus,
   Loader2,
 } from 'lucide-react';
@@ -973,17 +974,18 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
               <button
                 type="button"
                 onClick={handleCopyCardUrl}
-                className="p-1 text-white hover:opacity-80 transition-opacity cursor-pointer flex items-center justify-center"
-                title="Copy live card link"
+                className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-all cursor-pointer flex items-center justify-center shadow-2xs relative"
+                title={copiedLiveLink ? "Copied!" : "Copy link"}
               >
                 {copiedLiveLink ? (
                   <Check className="w-4 h-4 text-green-400 stroke-[3]" />
                 ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                    <polyline points="16 6 12 2 8 6" />
-                    <line x1="12" y1="2" x2="12" y2="15" />
-                  </svg>
+                  <Copy className="w-4 h-4 text-white stroke-[2.2]" />
+                )}
+                {copiedLiveLink && (
+                  <span className="absolute -bottom-6 right-0 text-[10px] font-bold bg-black/85 backdrop-blur-xs text-white px-2 py-0.5 rounded shadow pointer-events-none whitespace-nowrap animate-in fade-in">
+                    Copied!
+                  </span>
                 )}
               </button>
             </div>
