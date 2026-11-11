@@ -58,6 +58,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
   const extractSnapshot = (tree) => {
     const custom = tree?.customTheme || {};
     return {
+      ...custom,
       themeId: tree?.themeId || 'classic-light',
       backgroundType: custom.backgroundType || 'solid',
       backgroundValue: custom.backgroundValue || '#F3F3F1',
@@ -79,7 +80,6 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
       heroUrl: tree?.heroUrl || custom.heroUrl || null,
       title: tree?.title ?? `@${tree?.slug || 'riyast'}`,
       bio: tree?.bio ?? '',
-      ...custom,
     };
   };
 
@@ -373,14 +373,17 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
 
   const isLogo = (currentTree?.titleStyle || currentTree?.customTheme?.titleStyle) === 'logo';
   const logoUrl = currentTree?.logoUrl || currentTree?.customTheme?.logoUrl;
-  const titleText = currentTree?.title || `@${currentTree?.slug || 'riyast'}`;
-  const bioText = currentTree?.bio || '';
+  const effectiveTitle = current.title || currentTree?.title || `@${currentTree?.slug || 'riyast'}`;
+  const effectiveBio = current.bio !== undefined ? current.bio : (currentTree?.bio || '');
+  const effectiveAvatar = current.avatarUrl || currentTree?.avatarUrl || currentTree?.customTheme?.avatarUrl;
   const titleFont = current.altFontEnabled ? (current.titleFont || 'Manrope') : (current.fontFamily || 'inherit');
-  const titleColor = current.altFontEnabled ? (current.titleColor || current.textColor || '#FFFFFF') : (current.textColor || '#FFFFFF');
+  const titleColor = current.altFontEnabled
+    ? (current.titleColor || current.textColor || currentTree?.textColor || '#111111')
+    : (current.textColor || currentTree?.textColor || '#111111');
   const visibleCards = (currentTree?.cards || []).filter((c) => c.visible !== false);
 
   const currentHeaderLayout = current.headerLayout || currentTree?.headerLayout || currentTree?.customTheme?.headerLayout || 'classic';
-  const demoGirlImg = current.avatarUrl || currentTree?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
+  const demoGirlImg = effectiveAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -898,7 +901,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
           >
             {/* Background layer with blur / filter support */}
             <div
-              className="absolute inset-0 pointer-events-none transition-all duration-300"
+              className="absolute inset-0 pointer-events-none transition-all duration-300 z-0"
               style={{
                 background:
                   current.wallpaperStyle === 'video'
@@ -927,7 +930,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
               }}
             />
             {/* Top iOS Frame Bar */}
-            <div className="px-5 pt-4 pb-1 flex items-center justify-between text-xs shrink-0 z-10" style={{ color: current.textColor || '#FFFFFF' }}>
+            <div className="px-5 pt-4 pb-1 flex items-center justify-between text-xs shrink-0 relative z-20" style={{ color: current.textColor || '#FFFFFF' }}>
               <span className="font-black text-base text-white select-none">✱</span>
               <button
                 type="button"
@@ -946,75 +949,103 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
             {/* Scroll Area */}
             <div
               ref={previewScrollRef}
-              className="flex-1 overflow-y-auto px-4 sm:px-5 py-2 flex flex-col items-center no-scrollbar [&::-webkit-scrollbar]:hidden"
+              className="flex-1 overflow-y-auto px-4 sm:px-5 py-2 flex flex-col items-center no-scrollbar [&::-webkit-scrollbar]:hidden relative z-10"
             >
-              <div className="w-full max-w-[440px] flex flex-col items-center flex-1 pt-2 sm:pt-3">
+              <div className="w-full max-w-[440px] flex flex-col items-center flex-1 pt-2 sm:pt-3 relative z-10">
                 {/* Header Layout Rendering */}
                 {currentHeaderLayout === 'hero' ? (
-                  <div className="w-full h-44 sm:h-48 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600 mb-2 shrink-0">
-                    <img src={current.heroUrl || currentTree?.heroUrl || current.avatarUrl || currentTree?.avatarUrl || demoGirlImg} alt="Hero" className="w-full h-full object-cover" />
+                  <div className="w-full h-44 sm:h-48 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600 mb-2 shrink-0 z-10">
+                    <img
+                      src={current.heroUrl || currentTree?.heroUrl || effectiveAvatar || demoGirlImg}
+                      alt="Hero"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   </div>
                 ) : currentHeaderLayout === 'banner' ? (
-                  <div className="w-full flex flex-col items-center mb-2 shrink-0">
+                  <div className="w-full flex flex-col items-center mb-2 shrink-0 z-10">
                     <div className="w-full h-28 sm:h-32 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA] shrink-0">
                       {current.bannerUrl || currentTree?.bannerUrl ? (
-                        <img src={current.bannerUrl || currentTree.bannerUrl} alt="Banner" className="w-full h-full object-cover object-center" />
+                        <img
+                          src={current.bannerUrl || currentTree.bannerUrl}
+                          alt="Banner"
+                          className="w-full h-full object-cover object-center"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
                       ) : (
                         <div className="w-full h-full opacity-90 bg-gradient-to-r from-[#FF007A] via-[#A855F7] to-[#7928CA]" />
                       )}
                     </div>
                     <div className="-mt-10 mb-2 relative ring-4 ring-white rounded-full shadow-md w-20 h-20 aspect-square shrink-0 overflow-hidden bg-white flex items-center justify-center z-10">
-                      {current.avatarUrl || currentTree?.avatarUrl ? (
-                        <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover object-center" />
-                      ) : (
-                        <User className="w-10 h-10 text-gray-400" />
+                      <User className="w-10 h-10 text-gray-400 absolute" />
+                      {effectiveAvatar && (
+                        <img
+                          src={effectiveAvatar}
+                          alt="Avatar"
+                          className="w-full h-full object-cover object-center relative z-1"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
                       )}
                     </div>
                   </div>
                 ) : currentHeaderLayout === 'cutout' ? (
-                  <div className="w-24 h-28 rounded-t-full overflow-hidden filter drop-shadow-xs mb-2 shrink-0">
-                    <img src={current.avatarUrl || currentTree?.avatarUrl || demoGirlImg} alt="Cutout" className="w-full h-full object-cover" />
+                  <div className="w-24 h-28 rounded-t-full overflow-hidden filter drop-shadow-xs mb-2 shrink-0 z-10">
+                    <img
+                      src={effectiveAvatar || demoGirlImg}
+                      alt="Cutout"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
                   </div>
                 ) : currentHeaderLayout === 'shape' ? (
-                  <div className="w-24 h-20 relative flex items-center justify-center overflow-hidden mb-2 shrink-0 shadow-2xs" style={{ clipPath: 'url(#linktree-organic-shape)' }}>
-                    <img src={current.avatarUrl || currentTree?.avatarUrl || demoGirlImg} alt="Shape" className="w-full h-full object-cover" />
+                  <div className="w-24 h-20 relative flex items-center justify-center overflow-hidden mb-2 shrink-0 shadow-2xs z-10" style={{ clipPath: 'url(#linktree-organic-shape)' }}>
+                    <img
+                      src={effectiveAvatar || demoGirlImg}
+                      alt="Shape"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                    />
                   </div>
                 ) : (
                   /* Classic Avatar matching Image */
-                  <div className="w-32 h-32 sm:w-36 sm:h-36 aspect-square rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mt-10 sm:mt-12 mb-4 shadow-lg ring-1 ring-white/15 shrink-0">
-                    {current.avatarUrl || currentTree?.avatarUrl ? (
-                      <img src={current.avatarUrl || currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover object-center" />
-                    ) : (
-                      <User className="w-18 h-18 text-white" />
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 aspect-square rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden mt-6 sm:mt-8 mb-3 shadow-md ring-4 ring-white/10 shrink-0 relative z-10">
+                    <User className="w-14 h-14 text-gray-400 absolute" />
+                    {effectiveAvatar && (
+                      <img
+                        src={effectiveAvatar}
+                        alt="Avatar"
+                        className="w-full h-full object-cover object-center relative z-1"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
                     )}
                   </div>
                 )}
 
                 {/* Title */}
                 {isLogo && logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className="max-h-12 max-w-[220px] object-contain mt-2.5 mb-1.5" />
+                  <img src={logoUrl} alt="Logo" className="max-h-12 max-w-[220px] object-contain mt-2.5 mb-1.5 relative z-10" />
                 ) : (
                   <h2
-                    className="font-black text-[28px] sm:text-[32px] leading-tight text-center tracking-tight"
+                    className="font-black text-[26px] sm:text-[30px] leading-tight text-center tracking-tight relative z-10"
                     style={{
                       color: titleColor,
                       fontFamily: titleFont !== 'inherit' ? `'${titleFont}', sans-serif` : 'inherit',
                     }}
                   >
-                    {current.title ?? titleText}
+                    {effectiveTitle}
                   </h2>
                 )}
 
                 {/* Bio */}
-                {(current.bio ?? bioText) && (
+                {effectiveBio ? (
                   <p
-                    className="text-sm sm:text-[15px] font-medium leading-relaxed max-w-[280px] text-gray-300 mt-1 mb-4 text-center"
-                    style={{ color: current.textColor ? `${current.textColor}cc` : '#D1D5DB' }}
+                    className="text-sm sm:text-[15px] font-medium leading-relaxed max-w-[280px] mt-1 mb-3 text-center relative z-10"
+                    style={{ color: current.textColor ? `${current.textColor}cc` : '#6B7280' }}
                   >
-                    {current.bio ?? bioText}
+                    {effectiveBio}
                   </p>
-                )}
+                ) : null}
 
                 {/* Links List - using CardRenderer */}
                 <div className="w-full space-y-3.5 my-3 flex-1 px-1">
