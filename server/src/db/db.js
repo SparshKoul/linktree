@@ -913,7 +913,19 @@ export const db = {
   async signUpUser({ email, username, password }) {
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const cleanUsername = username.trim().toLowerCase();
+      let cleanUsername = username.trim().toLowerCase().replace(/[^a-z0-9-]/g, '') || `user_${Date.now()}`;
+
+      // Check if username already exists for a DIFFERENT user in public.users, disambiguate if so
+      let candidateUsername = cleanUsername;
+      let counter = 1;
+      while (true) {
+        const existing = await this.getUserByUsername(candidateUsername);
+        if (!existing || existing.email === cleanEmail) {
+          cleanUsername = candidateUsername;
+          break;
+        }
+        candidateUsername = `${cleanUsername}${counter++}`;
+      }
 
       // 1. Create in Supabase Auth (auto-confirmed)
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -923,8 +935,33 @@ export const db = {
         user_metadata: { username: cleanUsername },
       });
 
-      if (authError && !authError.message.includes('already registered')) {
-        throw authError;
+      if (authError) {
+        const errMsg = (authError.message || '').toLowerCase();
+        const isAlreadyExists =
+          errMsg.includes('already') ||
+          errMsg.includes('exists') ||
+          authError.code === 'email_exists' ||
+          authError.status === 422;
+
+        if (isAlreadyExists) {
+          // If user exists in Auth, sync their password
+          try {
+            const { data: listData } = await supabase.auth.admin.listUsers();
+            const existingAuth = listData?.users?.find(
+              (u) => u.email?.toLowerCase() === cleanEmail
+            );
+            if (existingAuth) {
+              await supabase.auth.admin.updateUserById(existingAuth.id, {
+                password,
+                user_metadata: { username: cleanUsername },
+              });
+            }
+          } catch (listErr) {
+            console.warn('[DB signUpUser sync password warning]', listErr.message);
+          }
+        } else {
+          throw authError;
+        }
       }
 
       // 2. Insert into public.users

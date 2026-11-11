@@ -355,15 +355,21 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
     if (err.message && (err.message.includes('already registered') || err.message.includes('duplicate key'))) {
       return res.status(409).json({ error: 'Email already in use' });
     }
+    console.warn('[Admin provision error]', err.message);
   }
 
-  const existing = store.users.find(
-    (u) =>
-      u.email.toLowerCase() === cleanEmail ||
-      u.username.toLowerCase() === cleanUsername
+  const existingEmail = store.users.find(
+    (u) => u.email.toLowerCase() === cleanEmail
   );
-  if (existing) {
+  if (existingEmail) {
     return res.status(409).json({ error: 'Email already in use' });
+  }
+
+  // Ensure cleanUsername is unique in memory store
+  let memUsername = cleanUsername;
+  let counter = 1;
+  while (store.users.some((u) => u.username.toLowerCase() === memUsername)) {
+    memUsername = `${cleanUsername}${counter++}`;
   }
 
   const newId = Date.now();
@@ -371,7 +377,7 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   const newUser = {
     id: newId,
     email: cleanEmail,
-    username: cleanUsername,
+    username: memUsername,
     password: hashedPassword,
     role: role || 'client',
     accountType: accountType || 'client',
@@ -384,8 +390,8 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   const newTree = {
     id: newTreeId,
     adminId: newId,
-    name: cleanUsername,
-    slug: cleanUsername,
+    name: memUsername,
+    slug: memUsername,
     status: 'live',
     title: cleanUsername,
     bio: '',
