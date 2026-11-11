@@ -88,7 +88,7 @@ export function TreeSwitcher({
                           {slugDisplay}
                         </div>
                         <div className="text-[10px] text-gray-400 font-mono leading-tight truncate">
-                          indiataps.com/{tree.slug}
+                          indiataps.vercel.app/{tree.slug}
                         </div>
                       </div>
                     </div>

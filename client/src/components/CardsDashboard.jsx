@@ -20,6 +20,7 @@ import {
   Palette,
 } from 'lucide-react';
 import { storage } from '../services/storage.js';
+import { getCanonicalTreeUrl } from '../constants/urls.js';
 
 export function CardsDashboard({
   currentUser,
@@ -67,7 +68,7 @@ export function CardsDashboard({
   const email = currentUser?.email || 'sparshkoul6@gmail.com';
 
   const handleCopyUrl = (slug) => {
-    const url = `https://indiataps.com/${slug}`;
+    const url = getCanonicalTreeUrl(slug);
     navigator.clipboard.writeText(url).then(() => {
       setCopiedSlug(slug);
       setTimeout(() => setCopiedSlug(null), 2000);
@@ -440,7 +441,7 @@ export function CardsDashboard({
                         {tree.name || tree.title || tree.slug}
                       </h3>
                       <div className="text-xs text-purple-700 font-mono font-semibold truncate mt-0.5">
-                        indiataps.com/{tree.slug}
+                        indiataps.vercel.app/{tree.slug}
                       </div>
 
                       {/* Info badges */}
@@ -480,7 +481,7 @@ export function CardsDashboard({
                       </button>
 
                       <a
-                        href={`https://indiataps.com/${tree.slug}`}
+                        href={getCanonicalTreeUrl(tree.slug)}
                         target="_blank"
                         rel="noreferrer"
                         className="p-1.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 hover:text-black transition-colors cursor-pointer"

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Check, Copy, User, LogIn, Shuffle, AlertCircle, Loader2 } from 'lucide-react';
+import { getCanonicalTreeUrl } from '../constants/urls.js';
 
 export function CreateTreeModal({
   isOpen,
@@ -137,7 +138,7 @@ export function CreateTreeModal({
   };
 
   const handleCopyUrl = () => {
-    const url = `https://indiataps.com/${createdTree?.slug || cleanSlug}`;
+    const url = getCanonicalTreeUrl(createdTree?.slug || cleanSlug);
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -276,7 +277,7 @@ export function CreateTreeModal({
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium mt-0.5">
                     <span className="text-xs">✱</span>
-                    <span>indiataps.com/{createdTree?.slug || cleanSlug}</span>
+                    <span>indiataps.vercel.app/{createdTree?.slug || cleanSlug}</span>
                   </div>
                 </div>
               </div>

@@ -627,7 +627,7 @@ export function SuperAdminDashboard({
                 <div className="space-y-1.5 bg-white p-3 rounded-xl border border-emerald-200/80 font-mono text-[11px]">
                   <div><span className="text-gray-400">Email:</span> <strong>{provisionSuccess.email}</strong></div>
                   <div><span className="text-gray-400">Password:</span> <strong>{provisionSuccess.password}</strong></div>
-                  <div><span className="text-gray-400">Initial Card:</span> <strong>indiataps.com/{provisionSuccess.slug}</strong></div>
+                  <div><span className="text-gray-400">Initial Card:</span> <strong>indiataps.vercel.app/{provisionSuccess.slug}</strong></div>
                 </div>
 
                 <div className="flex gap-2">

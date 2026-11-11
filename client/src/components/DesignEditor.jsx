@@ -30,14 +30,26 @@ import { WallpaperEditor } from './WallpaperEditor.jsx';
 import { ButtonEditor } from './ButtonEditor.jsx';
 import { TextEditor } from './TextEditor.jsx';
 import { ColorsEditor } from './ColorsEditor.jsx';
+import { getCanonicalTreeUrl } from '../constants/urls.js';
 
 export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, onOpenHeader, initialSubview = null }) {
   const [activeSubview, setActiveSubview] = useState(initialSubview); // null | 'theme' | 'header' | 'wallpaper' | 'buttons' | 'text' | 'colors' | 'stickers' | 'footer'
   const [themeTab, setThemeTab] = useState('customizable'); // 'customizable' | 'curated'
   const [savedToast, setSavedToast] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [copiedLiveLink, setCopiedLiveLink] = useState(false);
   const wallpaperInputRef = useRef(null);
   const avatarInputRef = useRef(null);
+
+  const handleCopyCardUrl = () => {
+    const slug = currentTree?.slug || 'riyast';
+    const url = getCanonicalTreeUrl(slug);
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(url);
+    }
+    setCopiedLiveLink(true);
+    setTimeout(() => setCopiedLiveLink(false), 2000);
+  };
 
   // Sync initialSubview when prop updates
   useEffect(() => {
@@ -960,15 +972,19 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
               <span className="font-black text-base text-white select-none">✱</span>
               <button
                 type="button"
-                onClick={handleSave}
-                className="p-1 text-white hover:opacity-80 transition-opacity cursor-pointer"
-                title="Share"
+                onClick={handleCopyCardUrl}
+                className="p-1 text-white hover:opacity-80 transition-opacity cursor-pointer flex items-center justify-center"
+                title="Copy live card link"
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                  <polyline points="16 6 12 2 8 6" />
-                  <line x1="12" y1="2" x2="12" y2="15" />
-                </svg>
+                {copiedLiveLink ? (
+                  <Check className="w-4 h-4 text-green-400 stroke-[3]" />
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                    <polyline points="16 6 12 2 8 6" />
+                    <line x1="12" y1="2" x2="12" y2="15" />
+                  </svg>
+                )}
               </button>
             </div>
 

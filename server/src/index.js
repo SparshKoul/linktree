@@ -1145,7 +1145,8 @@ const PUBLIC_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes fast cache
 
 function invalidatePublicTreeCache(slug) {
   if (slug) {
-    publicTreeCache.delete(slug.toLowerCase());
+    const clean = slug.replace(/^@/, '').toLowerCase();
+    publicTreeCache.delete(clean);
   } else {
     publicTreeCache.clear();
   }
@@ -1210,7 +1211,7 @@ function sanitizeTreeForPublic(tree) {
 
 // Public Tree Page
 app.get('/api/public/trees/:slug', async (req, res) => {
-  const slug = req.params.slug.toLowerCase();
+  const slug = req.params.slug.replace(/^@/, '').toLowerCase();
 
   // 1. Check in-memory fast cache
   const cached = publicTreeCache.get(slug);

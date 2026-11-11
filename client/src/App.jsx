@@ -76,6 +76,7 @@ import { LandingPage } from './components/LandingPage.jsx';
 import { PublicTreePage } from './components/PublicTreePage.jsx';
 import { ContactPage } from './components/ContactPage.jsx';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard.jsx';
+import { getCanonicalTreeUrl } from './constants/urls.js';
 
 export function App() {
   const initialUser = storage.getUser();
@@ -947,12 +948,20 @@ export function App() {
   };
 
   const handleCopyLiveUrl = () => {
-    if (!currentTree) return;
-    const host = window.location.host;
-    const url = `${window.location.protocol}//${host}/${currentTree.slug}`;
-    navigator.clipboard.writeText(url);
+    if (!currentTree?.slug) return;
+    const url = getCanonicalTreeUrl(currentTree.slug);
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(url);
+    }
     setCopiedUrl(true);
-    setTimeout(() => setCopiedUrl(false), 2000);
+    setTopToast({
+      title: 'Link copied to clipboard',
+      subtitle: url,
+    });
+    setTimeout(() => {
+      setCopiedUrl(false);
+      setTopToast(null);
+    }, 2500);
   };
 
   const basePreset =
@@ -1153,7 +1162,7 @@ export function App() {
   }
 
   if (isPublicSlug) {
-    const rawSlug = currentPath.replace(/^\/(t\/)?/, '').split('/')[0];
+    const rawSlug = currentPath.replace(/^\/(t\/)?/, '').replace(/^@/, '').split('/')[0];
     const slug = decodeURIComponent(rawSlug);
     return <PublicTreePage slug={slug} />;
   }
@@ -1290,19 +1299,25 @@ export function App() {
             <button
               onClick={handleCopyLiveUrl}
               className="flex items-center gap-2 px-3.5 py-1 rounded-full border border-gray-200/90 hover:border-gray-300 bg-white hover:bg-gray-50 text-xs font-bold text-[#111111] shadow-2xs transition-all cursor-pointer"
+              title="Copy live card link"
             >
-              <Share2 className="w-3.5 h-3.5 text-gray-700" />
-              <span>Share</span>
+              {copiedUrl ? (
+                <Check className="w-3.5 h-3.5 text-green-600" />
+              ) : (
+                <Copy className="w-3.5 h-3.5 text-gray-700" />
+              )}
+              <span>{copiedUrl ? 'Copied' : 'Copy link'}</span>
             </button>
           ) : (
             <button
               onClick={handleCopyLiveUrl}
               className="flex items-center gap-2 px-3.5 py-1 rounded-full border border-gray-200/90 hover:border-gray-300 bg-white hover:bg-gray-50 text-xs font-bold text-[#111111] shadow-2xs transition-all cursor-pointer"
+              title="Copy live card link"
             >
               {copiedUrl ? (
                 <Check className="w-3.5 h-3.5 text-green-600" />
               ) : (
-                <Share2 className="w-3.5 h-3.5 text-gray-700" />
+                <Copy className="w-3.5 h-3.5 text-gray-700" />
               )}
               <span>{copiedUrl ? 'Copied' : 'Copy link'}</span>
             </button>
@@ -1879,11 +1894,12 @@ export function App() {
                       type="button"
                       onClick={handleCopyLiveUrl}
                       className="h-9 px-3.5 rounded-full bg-[#EEEEEE] hover:bg-gray-200 text-xs font-bold text-gray-900 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                      title="Copy live card link"
                     >
                       {copiedUrl ? (
                         <Check className="w-3.5 h-3.5 text-green-600" />
                       ) : (
-                        <Upload className="w-3.5 h-3.5 stroke-[2.2] text-gray-800" />
+                        <Copy className="w-3.5 h-3.5 stroke-[2.2] text-gray-800" />
                       )}
                       <span>{copiedUrl ? 'Copied' : 'Copy link'}</span>
                     </button>
@@ -2835,12 +2851,21 @@ export function App() {
                   {/* Top iOS Icons */}
                   <div className="w-full flex items-center justify-between text-xs mb-4 z-10 px-1 pt-1" style={{ color: activeTheme?.textColor || '#FFFFFF' }}>
                     <span className="font-black text-base text-white select-none">✱</span>
-                    <button type="button" onClick={handleCopyLiveUrl} className="p-1 text-white hover:opacity-80 transition-opacity cursor-pointer" title="Share">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                        <polyline points="16 6 12 2 8 6" />
-                        <line x1="12" y1="2" x2="12" y2="15" />
-                      </svg>
+                    <button
+                      type="button"
+                      onClick={handleCopyLiveUrl}
+                      className="p-1.5 rounded-full bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-all cursor-pointer flex items-center justify-center shadow-2xs"
+                      title="Copy live card link"
+                    >
+                      {copiedUrl ? (
+                        <Check className="w-4 h-4 text-green-400 stroke-[3]" />
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                          <polyline points="16 6 12 2 8 6" />
+                          <line x1="12" y1="2" x2="12" y2="15" />
+                        </svg>
+                      )}
                     </button>
                   </div>
 
