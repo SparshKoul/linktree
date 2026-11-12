@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Trash2, Sparkles, Lock, DollarSign, Calendar, ExternalLink, Star, MapPin } from 'lucide-react';
+import { X, Trash2, Sparkles, Lock, Calendar, ExternalLink, Star, MapPin } from 'lucide-react';
 import { reviewsLine } from '../constants/cardText.js';
 
 export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
@@ -10,9 +10,8 @@ export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
   const [animation, setAnimation] = useState(card.animation || 'none');
   const [lockType, setLockType] = useState(card.lockType || 'none');
   const [lockValue, setLockValue] = useState(card.lockValue || card.lock_value || '');
-  // Everything here starts empty. A price, a date, a place, a rating or a
+  // Everything here starts empty. A date, a place, a rating or a
   // number of reviews is only shown when the owner writes it down.
-  const [price, setPrice] = useState(card.settings?.price || '');
   const [eventDate, setEventDate] = useState(card.settings?.date || '');
   const [venue, setVenue] = useState(card.settings?.venue || '');
   const [content, setContent] = useState(card.settings?.content || '');
@@ -41,7 +40,6 @@ export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
 
     const updatedSettings = {
       ...(card.settings || {}),
-      ...(card.type === 'product' ? { price } : {}),
       ...(card.type === 'events' ? { date: eventDate, venue } : {}),
       ...(card.type === 'collapsible' || card.type === 'text' || card.type === 'custom_html' ? { content } : {}),
       ...(isReviews ? reviewsSettings : {}),
@@ -125,24 +123,6 @@ export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
             </div>
           )}
 
-          {/* Product Specific: Price */}
-          {card.type === 'product' && (
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-gray-600 mb-1">
-                Price Tag
-              </label>
-              <div className="flex items-center rounded-2xl border border-gray-200 bg-[#F6F6F7] px-3 py-2">
-                <DollarSign className="w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="$49.00"
-                  className="w-full bg-transparent text-sm font-bold focus:outline-none ml-1"
-                />
-              </div>
-            </div>
-          )}
 
           {/* Events Specific: Date & Venue */}
           {card.type === 'events' && (

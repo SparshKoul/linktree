@@ -309,9 +309,10 @@ function CardRendererView({ card, theme, isPreview = false }) {
     }
   };
 
-  // The owner does not want the newsletter / contact forms and the product
-  // card on the site right now, so these kinds of card simply do not render.
-  if (card.type === 'email_signup' || card.type === 'contact_form' || card.type === 'product') {
+  // The owner does not want the newsletter / contact forms, the product
+  // card, and the tip jar on the site right now, so these kinds of card
+  // simply do not render. Nothing invented may appear on public cards.
+  if (card.type === 'email_signup' || card.type === 'contact_form' || card.type === 'product' || card.type === 'tip_jar') {
     return null;
   }
 
@@ -428,32 +429,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
     );
   }
 
-  // 6. Tip Jar Card
-  if (card.type === 'tip_jar') {
-    return (
-      <div className="w-full p-4 rounded-2xl space-y-3 text-center shadow-2xs" style={buttonStyleObj}>
-        <div className="flex items-center justify-center gap-1.5 font-bold text-xs">
-          <Heart className="w-4 h-4 fill-red-500 text-red-500" />
-          <span>{card.title}</span>
-        </div>
-        <div className="flex justify-center gap-2">
-          {['$2', '$5', '$10', '$25'].map((amt) => (
-            <a
-              key={amt}
-              href={cardHref || '#'}
-              target="_blank"
-              rel="noreferrer"
-              className="px-3 py-1.5 rounded-full bg-black/5 hover:bg-black/10 text-xs font-bold transition-colors"
-            >
-              {amt}
-            </a>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  // 7. Events List Card
+  // 6. Events List Card
   if (card.type === 'events') {
     return (
       <div className="w-full rounded-2xl p-3.5 space-y-2 text-left shadow-2xs" style={buttonStyleObj}>
@@ -475,7 +451,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
     );
   }
 
-  // 10. Booking Embed Card
+  // 8. Booking Embed Card
   if (card.type === 'booking') {
     return (
       <a
@@ -496,7 +472,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
     );
   }
 
-  // 11. Collapsible Group Accordion
+  // 9. Collapsible Group Accordion
   if (card.type === 'collapsible') {
     return (
       <div className="w-full overflow-hidden shadow-2xs" style={buttonStyleObj}>
@@ -557,7 +533,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
     card.type === 'reviews'
   );
 
-  // 12. Featured Layout Card (Hero Media Layout) OR Maps Card (matching Image 0)
+  // 10. Featured Layout Card (Hero Media Layout) OR Maps Card (matching Image 0)
   if (isMap || layout === 'featured') {
     const isVideo = card.type === 'video' || (card.url && /youtube\.com|youtu\.be|vimeo\.com/i.test(card.url));
     return (
@@ -741,7 +717,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
     );
   }
 
-  // 13. Classic Layout Card (matching Image 0: centered pill for plain links, circular badge for rich links)
+  // 11. Classic Layout Card (matching Image 0: centered pill for plain links, circular badge for rich links)
   return (
     <>
       <a

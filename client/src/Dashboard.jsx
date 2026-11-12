@@ -2452,17 +2452,6 @@ export function Dashboard() {
                       <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black rounded-full" />
                     )}
                   </button>
-                  <button
-                    onClick={() => setActiveTab('shop')}
-                    className={`pb-2 transition-colors relative cursor-pointer ${
-                      activeTab === 'shop' ? 'text-black font-extrabold' : 'text-gray-400 hover:text-black'
-                    }`}
-                  >
-                    Shop
-                    {activeTab === 'shop' && (
-                      <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-black rounded-full" />
-                    )}
-                  </button>
                 </div>
 
                 {/* Action Buttons Row: [ ⊞ Add collection ], [ + Add ], and [ 💾 Save tree ] */}
@@ -2932,24 +2921,6 @@ export function Dashboard() {
                   </div>
                 )}
 
-                {/* Shop Tab */}
-                {activeTab === 'shop' && (
-                  <div className="space-y-4 pt-2">
-                    <button
-                      onClick={() =>
-                        handleAddCard('product', 'Special Edition Product', {
-                          price: '$49.00',
-                        })
-                      }
-                      className="w-full py-3 rounded-full bg-[#7033FF] hover:bg-[#6025e6] text-white text-xs font-bold transition-all cursor-pointer"
-                    >
-                      + Add Product Card
-                    </button>
-                    <div className="text-center py-10 bg-gray-50 rounded-2xl p-6 text-xs text-gray-500">
-                      Product cards allow visitors to purchase directly via your out-links (Stripe, PayPal, UPI).
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
