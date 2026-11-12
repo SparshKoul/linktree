@@ -7,7 +7,6 @@ import {
   ChevronRight,
   LayoutGrid,
   MessageSquare,
-  Send,
   Heart,
   Play,
   Lightbulb,
@@ -254,17 +253,6 @@ export function AddCardModal({ isOpen, onClose, onAddCard }) {
             <span className="absolute -bottom-1 -right-1 bg-red-600 text-white font-black text-[7px] px-1 py-0.5 rounded-[3px] leading-none uppercase">
               PDF
             </span>
-          </div>
-        ),
-      },
-      {
-        id: 'messaging',
-        title: 'Messaging',
-        desc: 'Let visitors message you directly from your IndiaTaps',
-        type: 'contact_form',
-        renderIcon: () => (
-          <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center shrink-0">
-            <Send className="w-4 h-4 ml-0.5" />
           </div>
         ),
       },
