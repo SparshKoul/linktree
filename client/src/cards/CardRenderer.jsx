@@ -326,7 +326,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
     return (
       <div className="w-full flex items-center justify-center gap-3 py-2">
         <a
-          href={cardHref || 'https://instagram.com'}
+          href={cardHref}
           target="_blank"
           rel="noreferrer"
           className="p-2.5 rounded-full hover:scale-110 transition-transform bg-white/10 backdrop-blur-sm"
@@ -334,24 +334,28 @@ function CardRendererView({ card, theme, isPreview = false }) {
         >
           <span className="text-sm font-bold">IG</span>
         </a>
-        <a
-          href="https://youtube.com"
-          target="_blank"
-          rel="noreferrer"
-          className="p-2.5 rounded-full hover:scale-110 transition-transform bg-white/10 backdrop-blur-sm"
-          style={{ color: theme.textColor }}
-        >
-          <span className="text-sm font-bold">YT</span>
-        </a>
-        <a
-          href="https://wa.me"
-          target="_blank"
-          rel="noreferrer"
-          className="p-2.5 rounded-full hover:scale-110 transition-transform bg-white/10 backdrop-blur-sm"
-          style={{ color: theme.textColor }}
-        >
-          <MessageCircle className="w-4 h-4" />
-        </a>
+        {cardHref ? (
+          <a
+            href={cardHref}
+            target="_blank"
+            rel="noreferrer"
+            className="p-2.5 rounded-full hover:scale-110 transition-transform bg-white/10 backdrop-blur-sm"
+            style={{ color: theme.textColor }}
+          >
+            <Play className="w-4 h-4" />
+          </a>
+        ) : null}
+        {cardHref ? (
+          <a
+            href={cardHref}
+            target="_blank"
+            rel="noreferrer"
+            className="p-2.5 rounded-full hover:scale-110 transition-transform bg-white/10 backdrop-blur-sm"
+            style={{ color: theme.textColor }}
+          >
+            <MessageCircle className="w-4 h-4" />
+          </a>
+        ) : null}
       </div>
     );
   }
@@ -378,7 +382,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
             </div>
           </div>
           <div className="font-semibold text-xs truncate px-1.5 pt-1.5 pb-0.5 opacity-80">
-            {card.title || 'Video'}
+            {card.title}
           </div>
         </div>
         {renderExpandedLocalMediaModal()}
@@ -399,7 +403,10 @@ function CardRendererView({ card, theme, isPreview = false }) {
           </div>
           <div className="truncate text-left">
             <div className="font-bold text-xs truncate">{card.title}</div>
-            <div className="text-[10px] opacity-70">Audio Stream</div>
+            {/* The words under the title come only from what the owner wrote */}
+            {card.subtitle ? (
+              <div className="text-[10px] opacity-70">{card.subtitle}</div>
+            ) : null}
           </div>
         </div>
         <button
@@ -458,7 +465,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
       <div className="w-full p-4 rounded-2xl space-y-3 text-center shadow-2xs" style={buttonStyleObj}>
         <div className="flex items-center justify-center gap-1.5 font-bold text-xs">
           <Heart className="w-4 h-4 fill-red-500 text-red-500" />
-          <span>{card.title || 'Support My Work'}</span>
+          <span>{card.title}</span>
         </div>
         <div className="flex justify-center gap-2">
           {['$2', '$5', '$10', '$25'].map((amt) => (
@@ -484,8 +491,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
         <div className="font-bold text-xs uppercase tracking-wider opacity-75 mb-2">{card.title}</div>
         <div className="flex items-center justify-between py-1.5 border-b border-black/5 text-xs">
           <div>
-            <div className="font-bold">Next Event</div>
-            <div className="text-[10px] opacity-70">{card.subtitle || 'Live Event'}</div>
+            <div className="font-bold">{card.subtitle}</div>
           </div>
           <a
             href={cardHref || '#'}
@@ -504,7 +510,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
   if (card.type === 'email_signup') {
     return (
       <div className="w-full p-4 rounded-2xl space-y-2.5 text-center shadow-2xs" style={buttonStyleObj}>
-        <div className="font-bold text-xs">{card.title || 'Join Newsletter'}</div>
+        <div className="font-bold text-xs">{card.title}</div>
         <form
           onSubmit={(e) => {
             // Nothing can be sent yet, so no outcome is ever claimed here.
@@ -535,7 +541,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
   if (card.type === 'contact_form') {
     return (
       <div className="w-full p-4 rounded-2xl space-y-3 text-left shadow-2xs" style={buttonStyleObj}>
-        <div className="font-bold text-xs text-center">{card.title || 'Send a Message'}</div>
+        <div className="font-bold text-xs text-center">{card.title}</div>
         <form
           onSubmit={(e) => {
             // Nothing can be sent yet, so no outcome is ever claimed here.
@@ -574,7 +580,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
   if (card.type === 'booking') {
     return (
       <a
-        href={cardHref || 'https://calendly.com'}
+        href={cardHref || '#'}
         target="_blank"
         rel="noreferrer"
         className="w-full py-3.5 px-4 text-xs font-bold transition-all hover:scale-[1.01] flex items-center justify-between shadow-2xs"
@@ -582,7 +588,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
       >
         <div className="flex items-center gap-2.5">
           <Calendar className="w-4 h-4 opacity-80" />
-          <span>{card.title || 'Schedule a Meeting'}</span>
+          <span>{card.title}</span>
         </div>
         <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-black/10">
           Book
