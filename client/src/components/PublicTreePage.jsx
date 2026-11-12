@@ -5,6 +5,7 @@ import { Copy, Check, ArrowLeft, Users } from 'lucide-react';
 import { getPatternSvg, getContrastingPatternColor, loadOrganicPattern } from '../constants/patternSvg.js';
 import { loadFont } from '../constants/fonts.js';
 import { trackingHeaders } from '../services/visitor.js';
+import { storage } from '../services/storage.js';
 import { TreeSkeleton } from './TreeSkeleton.jsx';
 import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
 
@@ -84,10 +85,14 @@ export function PublicTreePage({ slug }) {
     // The request may already be on its way: the page starts it before the
     // program is even loaded, so the cards are here sooner.
     const started = typeof window !== 'undefined' ? window.__indiatapsTree : null;
+    // The owner of the page wants the truth, not the copy of the edge.
+    const isOwner = Boolean(storage.getUser());
     const request =
       started && started.slug === slug && started.promise
         ? started.promise
-        : fetch(`/api/public/trees/${encodeURIComponent(slug)}`).then((res) =>
+        : fetch(
+            `/api/public/trees/${encodeURIComponent(slug)}${isOwner ? '?owner=1' : ''}`
+          ).then((res) =>
             res
               .json()
               .catch(() => null)

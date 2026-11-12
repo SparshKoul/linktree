@@ -26,16 +26,21 @@ export async function uploadPicture(file, options = {}) {
     const picture = small ? small.dataUrl : dataUrl || (await readAsDataUrl(file));
     const filename = small ? small.filename : file.name || 'picture';
 
+    // The picture is sent as it is, not as a long text. A picture of a few
+    // megabytes is a third smaller this way, and the server does not have
+    // to turn a text into a picture again.
+    const bytes = dataUrlToBytes(picture);
+
     const res = await fetch('/api/admin/upload', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': bytes.mimeType,
+        'x-file-name': filename,
+        'x-file-folder': folder,
+        ...(treeId ? { 'x-tree-id': String(Number(treeId)) } : {}),
+      },
       credentials: 'include',
-      body: JSON.stringify({
-        file: picture,
-        filename,
-        folder,
-        treeId: treeId ? Number(treeId) : undefined,
-      }),
+      body: bytes.buffer,
     });
 
     if (!res.ok) return null;
@@ -45,4 +50,22 @@ export async function uploadPicture(file, options = {}) {
   } catch {
     return null;
   }
+}
+
+/**
+ * The bytes of a data address.
+ * @param {string} dataUrl
+ * @returns {{buffer: Uint8Array, mimeType: string}}
+ */
+function dataUrlToBytes(dataUrl) {
+  const match = String(dataUrl || '').match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) {
+    return { buffer: new Uint8Array(0), mimeType: 'application/octet-stream' };
+  }
+  const binary = atob(match[2]);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return { buffer: bytes, mimeType: match[1] };
 }

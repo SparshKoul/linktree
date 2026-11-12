@@ -13,6 +13,7 @@ import {
   isSlugAvailableGlobally,
   isCallerSuperAdmin,
   isTreeOwnerBlocked,
+  isOwnerStateBlocked,
 } from '../lib/ownership.js';
 import {
   invalidatePublicTreeCache,
@@ -31,12 +32,18 @@ import { hashPassword, verifyPassword } from '../utils/password.js';
 export function registerPublicRoutes(app) {
   // Public Tree Page
   //
-  // The response is sent with "no-cache" on purpose. A shared cache (the Vercel
-  // edge or the browser) would keep showing the old links for minutes after an
-  // owner saved, because there is no way to purge it. The speed comes from the
-  // in-memory cache below, which is emptied the moment the owner saves.
+  // The answer is kept by the edge for a very short while, so a visitor
+  // gets the page without waiting for the server to wake up. The owner who
+  // is looking at their own page asks for a fresh copy with ?owner=1.
   app.get('/api/public/trees/:slug', async (req, res) => {
     const slug = req.params.slug.replace(/^@/, '').toLowerCase();
+
+    // A visitor gets the copy of the edge. The owner wants the truth.
+    const wantsFresh = req.query.owner !== undefined;
+    const cacheControl = wantsFresh
+      ? 'private, no-cache'
+      : 'public, max-age=0, s-maxage=15, stale-while-revalidate=300';
+    res.setHeader('Cache-Control', cacheControl);
 
     const suspendedResponse = () =>
       res.status(403).json({
@@ -55,14 +62,16 @@ export function registerPublicRoutes(app) {
       if (await isTreeOwnerBlocked(cachedAdminId, slug)) {
         return suspendedResponse();
       }
-      res.setHeader('Cache-Control', 'no-cache');
       return res.json(cached.payload);
     }
 
     const dbTree = await db.getTreeBySlug(slug);
     if (dbTree) {
       const adminId = dbTree.admin_id ?? dbTree.adminId;
-      const isBlocked = await isTreeOwnerBlocked(adminId, slug);
+      // The state of the owner came with the tree: no second question to
+      // the database.
+      const known = isOwnerStateBlocked(dbTree.ownerState);
+      const isBlocked = known === null ? await isTreeOwnerBlocked(adminId, slug) : known;
       if (isBlocked) {
         return suspendedResponse();
       }
@@ -86,7 +95,6 @@ export function registerPublicRoutes(app) {
       };
 
       publicTreeCache.set(slug, { payload, timestamp: Date.now() });
-      res.setHeader('Cache-Control', 'no-cache');
       return res.json(payload);
     }
 
@@ -113,7 +121,6 @@ export function registerPublicRoutes(app) {
     };
 
     publicTreeCache.set(slug, { payload, timestamp: Date.now() });
-    res.setHeader('Cache-Control', 'no-cache');
     res.json(payload);
   });
 

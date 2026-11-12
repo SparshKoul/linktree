@@ -255,9 +255,11 @@ export const db = {
       const cleanSlug = slug.toLowerCase().trim();
       // Only live trees are public. Draft and archived trees must never be
       // served to visitors.
+      // The owner comes along in the same question, so the page of a tree
+      // needs one round trip to the database instead of two.
       let { data: list, error } = await supabase
         .from('trees')
-        .select('*, cards(*)')
+        .select('*, cards(*), owner:users!trees_admin_id_fkey(id, account_state, tier, is_blocked)')
         .eq('slug', cleanSlug)
         .eq('status', 'live')
         .is('deleted_at', null)
@@ -282,7 +284,17 @@ export const db = {
       const rawCards = Array.isArray(data.cards) ? data.cards : await this.getCards(data.id);
       const cards = (rawCards || []).map((c) => formatCardRecord({ ...c, tree_id: c.tree_id ?? data.id }));
 
-      return formatTreeRecord(data, cards);
+      const tree = formatTreeRecord(data, cards);
+      const owner = Array.isArray(data.owner) ? data.owner[0] : data.owner;
+      if (owner) {
+        tree.ownerState = {
+          id: owner.id,
+          accountState: owner.account_state,
+          tier: owner.tier,
+          isBlocked: owner.is_blocked,
+        };
+      }
+      return tree;
     } catch (err) {
       console.warn('[DB getTreeBySlug fallback]', err.message);
       return null;
@@ -1440,6 +1452,86 @@ export const db = {
   },
 
   // --- Storage ---
+  async uploadBuffer({ buffer, filename, folder = 'uploads', mimeType, adminId, treeId }) {
+    try {
+      if (!buffer || !buffer.length) return null;
+
+      const rawExt = filename ? String(filename).split('.').pop().toLowerCase() : (String(mimeType).split('/')[1] || 'bin');
+      const ext = rawExt === 'pnj' ? 'png' : rawExt.replace(/[^a-z0-9]/g, '') || 'bin';
+      const cleanFolder = (folder || 'uploads').replace(/^\/+|\/+$/g, '');
+      const subDir = treeId ? `tree_${treeId}` : 'common';
+      const cleanName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+      const filePath = `${cleanFolder}/${subDir}/${cleanName}`;
+
+      const { error } = await supabase.storage
+        .from('linktree-assets')
+        .upload(filePath, buffer, {
+          contentType: mimeType || 'application/octet-stream',
+          upsert: true,
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = await supabase.storage
+        .from('linktree-assets')
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData?.publicUrl || null;
+
+      if (publicUrl) {
+        supabase
+          .from('assets')
+          .insert({
+            admin_id: adminId || null,
+            tree_id: treeId || null,
+            bucket: 'linktree-assets',
+            file_path: filePath,
+            public_url: publicUrl,
+            folder: cleanFolder,
+            mime_type: mimeType || 'application/octet-stream',
+            size_bytes: buffer.length,
+          })
+          .then(() => {})
+          .catch(() => {});
+      }
+
+      return publicUrl;
+    } catch (err) {
+      console.warn('[DB uploadBuffer error]', err.message);
+      return null;
+    }
+  },
+
+  /**
+   * Take away the events that are too old to be of use.
+   * The table of the events grows with every view and every click, and
+   * the old ones only make the questions to the database slower.
+   * @param {number} [days] how many days are kept
+   * @returns {Promise<number>} how many events were taken away
+   */
+  async cleanOldEvents(days = 180) {
+    try {
+      const before = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      let removed = 0;
+      for (let round = 0; round < 50; round++) {
+        const { data, error } = await supabase
+          .from('analytics_events')
+          .delete()
+          .lt('created_at', before)
+          .limit(5000)
+          .select('id');
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        removed += data.length;
+        if (data.length < 5000) break;
+      }
+      return removed;
+    } catch (err) {
+      console.warn('[DB cleanOldEvents]', err.message);
+      return 0;
+    }
+  },
+
   async uploadAsset({ base64Data, filename, folder = 'uploads', adminId, treeId }) {
     try {
       if (!base64Data) return null;

@@ -10,6 +10,7 @@ import { registerTreeRoutes } from './routes/trees.js';
 import { registerCardRoutes } from './routes/cards.js';
 import { registerPublicRoutes } from './routes/public.js';
 import { registerAssetRoutes } from './routes/assets.js';
+import { registerCronRoutes } from './routes/cron.js';
 import { warmUpPublicTreeCache } from './lib/cache.js';
 
 dotenv.config();
@@ -81,6 +82,7 @@ registerTreeRoutes(app);
 registerCardRoutes(app);
 registerPublicRoutes(app);
 registerAssetRoutes(app);
+registerCronRoutes(app);
 
 const isDirectRun = process.argv[1] && (
   process.argv[1].endsWith('server/src/index.js') ||

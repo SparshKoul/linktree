@@ -2458,7 +2458,7 @@ export function Dashboard() {
                             onClick={() => {
                               if (!isReordering) setActiveCardDetail(card);
                             }}
-                            className={`group rounded-[22px] sm:rounded-3xl py-3.5 px-3.5 sm:px-4 min-h-[66px] shadow-2xs transition-all flex items-center justify-between gap-3 ${
+                            className={`group rounded-[22px] sm:rounded-3xl py-3.5 px-3.5 sm:px-4 min-h-[66px] shadow-2xs transition-all flex items-center justify-between gap-3 [content-visibility:auto] [contain-intrinsic-size:auto_66px] ${
                               isReordering
                                 ? 'cursor-grab active:cursor-grabbing border-purple-300 ring-2 ring-purple-100 hover:border-purple-400'
                                 : 'cursor-pointer'

@@ -1,6 +1,7 @@
 /**
  * Uploads, the media library and the health check.
  */
+import express from 'express';
 import { db } from '../db/db.js';
 import { supabase } from '../db/supabase.js';
 import { store } from '../lib/store.js';
@@ -30,38 +31,64 @@ import { hashPassword, verifyPassword } from '../utils/password.js';
  */
 export function registerAssetRoutes(app) {
   // Upload Asset (Image / PDF) to Supabase Storage CDN
-  app.post('/api/admin/upload', async (req, res) => {
-    if (!req.userId) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    const { file, filename, folder, treeId } = req.body;
-    if (!file) {
-      return res.status(400).json({ error: 'File data is required' });
-    }
-
-    if (treeId) {
-      const ownerId = await resolveTreeOwner(parseInt(treeId, 10));
-      if (ownerId !== null && ownerId !== req.userId) {
-        return res.status(403).json({ error: 'Forbidden: You do not own this tree' });
+  //
+  // The picture may come as it is (the bytes of the picture) or as the old
+  // text form. The bytes are a third smaller and the server does not have
+  // to turn a text into a picture again.
+  app.post(
+    '/api/admin/upload',
+    express.raw({ type: ['image/*', 'application/pdf'], limit: '60mb' }),
+    async (req, res) => {
+      if (!req.userId) {
+        return res.status(401).json({ error: 'Authentication required' });
       }
+
+      const isRaw = Buffer.isBuffer(req.body) && req.body.length > 0;
+      const { file, filename, folder, treeId } = isRaw
+        ? {
+            file: null,
+            filename: req.headers['x-file-name'],
+            folder: req.headers['x-file-folder'],
+            treeId: req.headers['x-tree-id'],
+          }
+        : req.body || {};
+
+      if (!isRaw && !file) {
+        return res.status(400).json({ error: 'File data is required' });
+      }
+
+      if (treeId) {
+        const ownerId = await resolveTreeOwner(parseInt(treeId, 10));
+        if (ownerId !== null && ownerId !== req.userId) {
+          return res.status(403).json({ error: 'Forbidden: You do not own this tree' });
+        }
+      }
+
+      const publicUrl = isRaw
+        ? await db.uploadBuffer({
+            buffer: req.body,
+            filename,
+            folder: folder || 'assets',
+            mimeType: req.headers['content-type'] || 'application/octet-stream',
+            adminId: req.userId,
+            treeId: treeId ? parseInt(treeId, 10) : undefined,
+          })
+        : await db.uploadAsset({
+            base64Data: file,
+            filename,
+            folder: folder || 'assets',
+            adminId: req.userId,
+            treeId: treeId ? parseInt(treeId, 10) : undefined,
+          });
+
+      if (publicUrl) {
+        return res.json({ url: publicUrl, success: true });
+      }
+
+      // Graceful fallback to echo data URL if storage error
+      res.json({ url: isRaw ? null : file, success: false, fallback: true });
     }
-
-    const publicUrl = await db.uploadAsset({
-      base64Data: file,
-      filename,
-      folder: folder || 'assets',
-      adminId: req.userId,
-      treeId: treeId ? parseInt(treeId, 10) : undefined,
-    });
-
-    if (publicUrl) {
-      return res.json({ url: publicUrl, success: true });
-    }
-
-    // Graceful fallback to echo data URL if storage error
-    res.json({ url: file, success: false, fallback: true });
-  });
+  );
 
   // List Assets (Media Library)
   app.get('/api/admin/assets', async (req, res) => {

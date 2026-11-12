@@ -54,6 +54,8 @@ Copy `server/.env.example` to `server/.env` and fill it in:
 | `SESSION_SECRET` | recommended | Long random string used to sign the session cookie. If missing, the Supabase service role key is used |
 | `ALLOWED_ORIGINS` | optional | Extra origins allowed to call the API with credentials. The site itself is same-origin |
 | `ADMIN_INITIAL_PASSWORD` | first run | Password for the seeded super admin |
+| `CRON_SECRET` | recommended | Secret for the work the site does by itself. Add it in Vercel (Production and Preview) so the nightly cleaning of the events table can run |
+| `ANALYTICS_RETENTION_DAYS` | optional | How many days of the events are kept. 180 by default |
 
 ### 2. Database
 
@@ -63,9 +65,25 @@ Copy `server/.env.example` to `server/.env` and fill it in:
     checks so every card type the editor can create is accepted.
   - `002_atomic_counters.sql` adds the functions that count clicks and views
     inside the database, so parallel clicks are never lost.
+  - `003_analytics.sql` adds the column that tells the visitors apart, so the
+    number of visitors is exact, and the indexes the numbers come from.
 
 After the first install, set the super admin password with the query at the
 end of `schema.sql`.
+
+### 2b. The nightly work
+
+`vercel.json` asks Vercel to call `/api/cron/clean-events` every night at
+4 o'clock. The route only listens to the scheduler: the request must carry
+`CRON_SECRET`. It takes away the events that are older than
+`ANALYTICS_RETENTION_DAYS`, so the table of the events stays small and the
+numbers on the Insights screen stay quick to work out.
+
+The same work can be done by hand:
+
+```bash
+node --env-file=.env server/scripts/clean-old-events.mjs --write
+```
 
 ### 3. Run
 

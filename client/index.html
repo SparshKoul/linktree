@@ -34,9 +34,17 @@
           var known = { home: 1, dashboard: 1, admin: 1, app: 1, contact: 1, pricing: 1, features: 1, solutions: 1 };
           var slug = decodeURIComponent(location.pathname.replace(/^\/(t\/)?/, '').replace(/^@/, '').split('/')[0]);
           if (!slug || known[slug]) return;
+          // The owner of the page wants the truth, not the copy of the edge.
+          var signedIn = false;
+          try {
+            var stored = localStorage.getItem('linktree_user');
+            signedIn = Boolean(stored) && stored !== 'null';
+          } catch (error) {
+            signedIn = false;
+          }
           window.__indiatapsTree = {
             slug: slug,
-            promise: fetch('/api/public/trees/' + encodeURIComponent(slug))
+            promise: fetch('/api/public/trees/' + encodeURIComponent(slug) + (signedIn ? '?owner=1' : ''))
               .then(function (res) {
                 return res.json().catch(function () { return null; }).then(function (body) {
                   return { status: res.status, body: body };

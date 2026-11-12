@@ -62,6 +62,20 @@ export async function isCallerSuperAdmin(userId) {
 const userBlockedCache = new Map();
 const USER_BLOCKED_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+/**
+ * Is this account locked? The state comes with the tree, so the answer
+ * costs nothing.
+ * @param {object|null} state the state of the owner
+ * @returns {boolean|null} null when there is no state to look at
+ */
+export function isOwnerStateBlocked(state) {
+  if (!state) return null;
+  const accountState = state.accountState ?? state.account_state;
+  const tier = state.tier;
+  const blocked = state.isBlocked ?? state.is_blocked;
+  return accountState === 'locked' || tier === 'blocked' || blocked === true;
+}
+
 // Check if tree owner account is blocked/locked
 export async function isTreeOwnerBlocked(adminId, slug = null) {
   const cacheKey = adminId ? `id:${adminId}` : `slug:${slug?.toLowerCase()}`;

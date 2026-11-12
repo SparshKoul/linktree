@@ -21,6 +21,8 @@ export function sanitizeTreeForPublic(tree) {
   // The cards are sent separately, without their passcodes. The copy inside
   // the tree object would leak them.
   delete clone.cards;
+  // The state of the owner is for the server, not for the visitors.
+  delete clone.ownerState;
 
   // Guarantee both camelCase and snake_case for all header & media fields
   const avatarUrl = clone.avatarUrl || clone.avatar_url || clone.customTheme?.avatarUrl || null;
