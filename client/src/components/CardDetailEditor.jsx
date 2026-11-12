@@ -78,7 +78,7 @@ export function CardDetailEditor({
 
   const isMaps =
     card?.type === 'maps' ||
-    Boolean(cardSettings.address) ||
+    cardSettings.platform === 'maps' ||
     Boolean(card?.url && /maps\.google|maps\.app\.goo\.gl/i.test(card.url));
 
   const isReviews =
@@ -147,13 +147,15 @@ export function CardDetailEditor({
 
   const handleSubtitleChange = (val) => {
     setSubtitle(val);
-    onUpdateCard(card.id, {
-      subtitle: val,
-      settings: {
-        ...(card.settings || {}),
-        address: val,
-      },
-    });
+    // The address belongs to a map card. Writing the description there made
+    // every other card look like a map card and showed the wrong thing.
+    const settings = { ...(card.settings || {}) };
+    if (isMaps) {
+      settings.address = val;
+    } else {
+      delete settings.address;
+    }
+    onUpdateCard(card.id, { subtitle: val, settings });
   };
 
   const handleRatingChange = (val) => {
@@ -205,6 +207,7 @@ export function CardDetailEditor({
   const handleLayoutChange = (newLayout) => {
     setLayout(newLayout);
     onUpdateCard(card.id, {
+      layout: newLayout,
       settings: { ...(card.settings || {}), layout: newLayout },
     });
   };

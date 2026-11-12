@@ -49,11 +49,18 @@ export function registerCardRoutes(app) {
     try {
       createdCard = await db.createCard({
         treeId,
+        // Everything the client sends about the card is passed on. The
+        // database layer knows which fields exist and drops the rest.
+        ...req.body,
         type: req.body.type || 'link',
         title: req.body.title || 'New Link',
+        subtitle: req.body.subtitle || '',
         url: req.body.url || 'https://',
-        thumbnailUrl: req.body.thumbnailUrl || null,
+        thumbnailUrl: req.body.thumbnailUrl ?? req.body.thumbnail_url ?? null,
         position: req.body.position || 0,
+        visible: req.body.visible ?? true,
+        animation: req.body.animation || 'none',
+        layout: req.body.layout || req.body.settings?.layout || 'classic',
         lockType: req.body.lockType || req.body.lock_type || 'none',
         lockValue: req.body.lockValue || req.body.lock_value || null,
         settings: req.body.settings || {},

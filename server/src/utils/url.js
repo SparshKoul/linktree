@@ -37,10 +37,14 @@ export function sanitizeCardUrl(url) {
 
 /**
  * Clean the addresses that live inside the settings of a card.
+ *
+ * The address belongs to a map card. When it was written to other cards by
+ * mistake, they started looking like map cards and showed the wrong thing.
  * @param {object} settings
+ * @param {string} [type] the type of the card
  * @returns {object}
  */
-export function sanitizeCardSettings(settings) {
+export function sanitizeCardSettings(settings, type = null) {
   if (!settings || typeof settings !== 'object') return settings || {};
 
   const cleaned = { ...settings };
@@ -57,6 +61,10 @@ export function sanitizeCardSettings(settings) {
       }
       return item;
     });
+  }
+  // Only a map card has an address.
+  if (type && type !== 'maps') {
+    delete cleaned.address;
   }
   return cleaned;
 }

@@ -2,6 +2,91 @@ import { supabase } from './supabase.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { sanitizeCardUrl, sanitizeCardSettings } from '../utils/url.js';
 
+/**
+ * The fields of a card that belong to the owner, and the column each one is
+ * stored in.
+ *
+ * Every place that writes a card uses this list. A field can therefore never
+ * be saved on one path (an edit) and dropped on another (Save tree).
+ */
+const CARD_COLUMN_BY_FIELD = {
+  type: 'type',
+  title: 'title',
+  subtitle: 'subtitle',
+  url: 'url',
+  thumbnailUrl: 'thumbnail_url',
+  position: 'position',
+  visible: 'visible',
+  layout: 'layout',
+  animation: 'animation',
+  lockType: 'lock_type',
+  lockValue: 'lock_value',
+  pinned: 'pinned',
+  groupName: 'group_name',
+  scheduledStart: 'scheduled_start',
+  scheduledEnd: 'scheduled_end',
+};
+
+// The same field can arrive with either spelling.
+const CARD_FIELD_BY_KEY = {
+  ...Object.fromEntries(Object.keys(CARD_COLUMN_BY_FIELD).map((field) => [field, field])),
+  thumbnail_url: 'thumbnailUrl',
+  lock_type: 'lockType',
+  lock_value: 'lockValue',
+  group_name: 'groupName',
+  scheduled_start: 'scheduledStart',
+  scheduled_end: 'scheduledEnd',
+};
+
+/**
+ * The database columns for the fields of a card that are being set.
+ * @param {object} updates
+ * @returns {object}
+ */
+function cardColumnsFrom(updates) {
+  const columns = {};
+  for (const [key, value] of Object.entries(updates || {})) {
+    const field = CARD_FIELD_BY_KEY[key];
+    if (!field || value === undefined) continue;
+    columns[CARD_COLUMN_BY_FIELD[field]] = value;
+  }
+  return columns;
+}
+
+/**
+ * A card as the rest of the app reads it. Every path that returns a card
+ * uses this, so a field can never be saved but not read back.
+ * @param {object} c
+ * @returns {object}
+ */
+function formatCardRecord(c) {
+  if (!c) return null;
+  return {
+    ...c,
+    id: Number(c.id),
+    treeId: Number(c.tree_id ?? c.treeId),
+    type: c.type,
+    title: c.title,
+    subtitle: c.subtitle,
+    url: c.url,
+    thumbnailUrl: c.thumbnail_url ?? c.thumbnailUrl,
+    clicks: Number(c.clicks || 0),
+    position: c.position,
+    visible: c.visible,
+    layout: c.layout,
+    animation: c.animation,
+    lockType: c.lock_type ?? c.lockType ?? 'none',
+    lockValue: c.lock_value ?? c.lockValue ?? null,
+    pinned: c.pinned ?? false,
+    groupName: c.group_name ?? c.groupName ?? null,
+    scheduledStart: c.scheduled_start ?? c.scheduledStart ?? null,
+    scheduledEnd: c.scheduled_end ?? c.scheduledEnd ?? null,
+    settings: c.settings || {},
+    createdAt: c.created_at ?? c.createdAt,
+    updatedAt: c.updated_at ?? c.updatedAt,
+  };
+}
+
 export function formatTreeRecord(data, cards = null, cardCount = 0) {
   if (!data) return null;
   const custom = data.custom_theme || {};
@@ -89,6 +174,8 @@ export function formatTreeRecord(data, cards = null, cardCount = 0) {
   return formatted;
 }
 
+export { cardColumnsFrom, formatCardRecord, CARD_COLUMN_BY_FIELD };
+
 export const db = {
   // --- Trees ---
   async getTrees(adminId) {
@@ -155,25 +242,7 @@ export const db = {
       if (!data) return null;
 
       const rawCards = Array.isArray(data.cards) ? data.cards : await this.getCards(data.id);
-      const cards = (rawCards || []).map((c) => ({
-        id: Number(c.id),
-        treeId: Number(c.tree_id ?? c.treeId ?? data.id),
-        type: c.type,
-        title: c.title,
-        subtitle: c.subtitle,
-        url: c.url,
-        thumbnailUrl: c.thumbnail_url ?? c.thumbnailUrl,
-        clicks: Number(c.clicks || 0),
-        position: c.position,
-        visible: c.visible,
-        layout: c.layout,
-        animation: c.animation,
-        lockType: c.lock_type ?? c.lockType,
-        lockValue: c.lock_value ?? c.lockValue,
-        settings: c.settings || {},
-        createdAt: c.created_at ?? c.createdAt,
-        updatedAt: c.updated_at ?? c.updatedAt,
-      }));
+      const cards = (rawCards || []).map((c) => formatCardRecord({ ...c, tree_id: c.tree_id ?? data.id }));
 
       return formatTreeRecord(data, cards);
     } catch (err) {
@@ -527,14 +596,7 @@ export const db = {
         .maybeSingle();
       if (error) throw error;
       if (!data) return null;
-      return {
-        ...data,
-        id: Number(data.id),
-        treeId: Number(data.tree_id),
-        thumbnailUrl: data.thumbnail_url,
-        lockType: data.lock_type,
-        lockValue: data.lock_value,
-      };
+      return formatCardRecord(data);
     } catch (err) {
       console.warn('[DB getCardById fallback]', err.message);
       return null;
@@ -549,25 +611,7 @@ export const db = {
         .eq('tree_id', treeId)
         .order('position', { ascending: true });
       if (error) throw error;
-      return data.map((c) => ({
-        id: Number(c.id),
-        treeId: Number(c.tree_id),
-        type: c.type,
-        title: c.title,
-        subtitle: c.subtitle,
-        url: c.url,
-        thumbnailUrl: c.thumbnail_url,
-        clicks: c.clicks,
-        position: c.position,
-        visible: c.visible,
-        layout: c.layout,
-        animation: c.animation,
-        lockType: c.lock_type,
-        lockValue: c.lock_value,
-        settings: c.settings || {},
-        createdAt: c.created_at,
-        updatedAt: c.updated_at,
-      }));
+      return data.map(formatCardRecord);
     } catch (err) {
       console.warn('[DB getCards fallback]', err.message);
       return null;
@@ -623,22 +667,27 @@ export const db = {
         if (cdnPdf) settings.pdfUrl = cdnPdf;
       }
 
+      const columns = cardColumnsFrom({
+        ...cardData,
+        url: sanitizeCardUrl(finalUrl),
+        thumbnailUrl: finalThumb,
+        type: cardData.type || 'link',
+        title: cardData.title || '',
+        subtitle: cardData.subtitle || '',
+        position: cardData.position || 0,
+        visible: cardData.visible ?? true,
+        animation: cardData.animation || 'none',
+        layout: cardData.layout || cardData.settings?.layout || 'classic',
+        lockType: cardData.lockType || cardData.lock_type || 'none',
+        lockValue: cardData.lockValue || cardData.lock_value || null,
+      });
+
       const { data, error } = await supabase
         .from('cards')
         .insert({
           tree_id: cardData.treeId || cardData.tree_id,
-          type: cardData.type || 'link',
-          title: cardData.title || '',
-          subtitle: cardData.subtitle || '',
-          url: sanitizeCardUrl(finalUrl),
-          thumbnail_url: finalThumb,
-          position: cardData.position || 0,
-          visible: cardData.visible ?? true,
-          animation: cardData.animation || 'none',
-          layout: cardData.layout || cardData.settings?.layout || 'classic',
-          lock_type: cardData.lockType || cardData.lock_type || 'none',
-          lock_value: cardData.lockValue || cardData.lock_value || null,
-          settings: sanitizeCardSettings(settings),
+          ...columns,
+          settings: sanitizeCardSettings(settings, cardData.type),
         })
         .select()
         .single();
@@ -659,9 +708,9 @@ export const db = {
 
   async updateCard(id, updates) {
     try {
-      const payload = {};
-      if (updates.title !== undefined) payload.title = updates.title;
-      if (updates.subtitle !== undefined) payload.subtitle = updates.subtitle;
+      // Every field of the card that is being set, in one place.
+      const payload = cardColumnsFrom(updates);
+      delete payload.settings;
 
       if (updates.url !== undefined) {
         if (typeof updates.url === 'string' && (updates.url.startsWith('data:application/pdf') || updates.url.startsWith('data:image'))) {
@@ -692,27 +741,19 @@ export const db = {
         }
       }
 
-      if (updates.position !== undefined) payload.position = updates.position;
-      if (updates.visible !== undefined) payload.visible = updates.visible;
-      if (updates.animation !== undefined) payload.animation = updates.animation;
-      if (updates.layout !== undefined) payload.layout = updates.layout;
-      if (updates.lockType !== undefined || updates.lock_type !== undefined) {
-        payload.lock_type = updates.lockType || updates.lock_type;
-      }
-      if (updates.lockValue !== undefined || updates.lock_value !== undefined) {
-        payload.lock_value = updates.lockValue || updates.lock_value;
-      }
       if (updates.settings !== undefined) {
         let existingSettings = {};
+        let existingType = updates.type;
         try {
           const { data: cur } = await supabase
             .from('cards')
-            .select('settings')
+            .select('settings, type')
             .eq('id', id)
             .maybeSingle();
           if (cur?.settings && typeof cur.settings === 'object') {
             existingSettings = cur.settings;
           }
+          existingType = cur?.type;
         } catch {}
 
         const settings = { ...existingSettings, ...updates.settings };
@@ -740,8 +781,13 @@ export const db = {
           });
           if (cdnPdf) settings.pdfUrl = cdnPdf;
         }
-        // Unsafe addresses inside the settings are dropped as well.
-        payload.settings = sanitizeCardSettings(settings);
+        // Unsafe addresses inside the settings are dropped as well, and the
+        // address is only kept for a map card.
+        const cleanedSettings = sanitizeCardSettings(settings, existingType);
+        payload.settings = cleanedSettings;
+        // The layout of the card is shown from the settings, so the column has
+        // to follow it.
+        if (cleanedSettings.layout !== undefined) payload.layout = cleanedSettings.layout;
       }
       if (updates.clicks !== undefined) payload.clicks = updates.clicks;
       payload.updated_at = new Date().toISOString();
@@ -753,12 +799,7 @@ export const db = {
         .select()
         .single();
       if (error) throw error;
-      return {
-        ...data,
-        id: Number(data.id),
-        treeId: Number(data.tree_id),
-        thumbnailUrl: data.thumbnail_url,
-      };
+      return formatCardRecord(data);
     } catch (err) {
       console.warn('[DB updateCard failed]', err.message);
       throw err;
@@ -859,18 +900,24 @@ export const db = {
           return {
             clientId: c.id ?? c.cardId ?? null,
             tree_id: treeId,
-            type: c.type || 'link',
-            title: c.title || '',
-            subtitle: c.subtitle || '',
-            url: sanitizeCardUrl(finalUrl),
-            thumbnail_url: finalThumb,
-            position: i,
-            visible: c.visible ?? true,
-            animation: c.animation || 'none',
-            layout: c.layout || c.settings?.layout || 'classic',
-            lock_type: c.lockType || c.lock_type || 'none',
-            lock_value: c.lockValue || c.lock_value || null,
-            settings: sanitizeCardSettings(settings),
+            ...cardColumnsFrom({
+              type: c.type || 'link',
+              title: c.title || '',
+              subtitle: c.subtitle || '',
+              url: sanitizeCardUrl(finalUrl),
+              thumbnailUrl: finalThumb,
+              position: i,
+              visible: c.visible ?? true,
+              animation: c.animation || 'none',
+              layout: c.settings?.layout || c.layout || 'classic',
+              lockType: c.lockType || c.lock_type || 'none',
+              lockValue: c.lockValue || c.lock_value || null,
+              pinned: c.pinned,
+              groupName: c.groupName ?? c.group_name,
+              scheduledStart: c.scheduledStart ?? c.scheduled_start,
+              scheduledEnd: c.scheduledEnd ?? c.scheduled_end,
+            }),
+            settings: sanitizeCardSettings(settings, c.type || 'link'),
           };
         })
       );
@@ -885,17 +932,7 @@ export const db = {
       const savedCards = await Promise.all(
         preparedCards.map(async (prepared) => {
           const row = {
-            type: prepared.type,
-            title: prepared.title,
-            subtitle: prepared.subtitle,
-            url: prepared.url,
-            thumbnail_url: prepared.thumbnail_url,
-            position: prepared.position,
-            visible: prepared.visible,
-            animation: prepared.animation,
-            layout: prepared.layout,
-            lock_type: prepared.lock_type,
-            lock_value: prepared.lock_value,
+            ...cardColumnsFrom(prepared),
             settings: sanitizeCardSettings(prepared.settings),
             updated_at: new Date().toISOString(),
           };
@@ -941,23 +978,7 @@ export const db = {
         if (error) throw error;
       }
 
-      return savedCards.map((c) => ({
-        id: Number(c.id),
-        treeId: Number(c.tree_id),
-        type: c.type,
-        title: c.title,
-        subtitle: c.subtitle,
-        url: c.url,
-        thumbnailUrl: c.thumbnail_url,
-        clicks: c.clicks,
-        position: c.position,
-        visible: c.visible,
-        layout: c.layout,
-        animation: c.animation,
-        lockType: c.lock_type,
-        lockValue: c.lock_value,
-        settings: c.settings || {},
-      }));
+      return savedCards.map(formatCardRecord);
     } catch (err) {
       console.warn('[DB syncTreeCards failed]', err.message);
       throw err;

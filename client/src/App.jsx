@@ -132,6 +132,11 @@ export function App() {
   const updateTreeTimerRef = useRef(null);
   const updateTreeAbortRef = useRef(null);
   const pendingUpdatesRef = useRef({});
+  // The changes of a card that still have to go to the server, and the
+  // number of the last request per card.
+  const pendingCardUpdatesRef = useRef({});
+  const cardUpdateTimersRef = useRef({});
+  const cardUpdateSequenceRef = useRef({});
 
   // Client-side SaaS routing (Main Landing '/' vs Dashboard '/dashboard' vs Public Tree '/:slug')
   const [currentPath, setCurrentPath] = useState(() => {
@@ -428,7 +433,11 @@ export function App() {
     const timeoutId = setTimeout(() => abortCtrl.abort(), 15000);
 
     try {
-      // 1. Immediately ensure local storage holds active state
+      // 1. Send the changes of the cards that are still waiting, so the tree
+      //    below holds the newest state of every card.
+      await flushPendingCardUpdates();
+
+      // 2. Immediately ensure local storage holds active state
       storage.saveTree(currentTree);
       const activeCards = (currentTree.cards && currentTree.cards.length > 0)
         ? currentTree.cards
@@ -672,6 +681,86 @@ export function App() {
     }
   };
 
+  /**
+   * Send a change of one card to the server.
+   * The sequence number makes sure that a slow answer never overwrites a
+   * newer one.
+   */
+  const sendCardUpdate = async (cardId, updates) => {
+    const key = String(cardId);
+    const sequence = (cardUpdateSequenceRef.current[key] || 0) + 1;
+    cardUpdateSequenceRef.current[key] = sequence;
+
+    try {
+      const res = await fetch(`/api/admin/cards/${cardId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(updates),
+      });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        setTopToast({
+          title: 'Change not saved',
+          subtitle: error.error || 'The database refused this change. It is saved in this browser only.',
+        });
+        setTimeout(() => setTopToast(null), 6000);
+        return;
+      }
+
+      const updatedDb = await res.json().catch(() => null);
+      if (!updatedDb) return;
+      // A newer change was already sent for this card: this answer is old.
+      if (cardUpdateSequenceRef.current[key] !== sequence) return;
+
+      storage.updateCard(cardId, updatedDb);
+      setCurrentTree((prev) =>
+        prev
+          ? {
+              ...prev,
+              cards: (prev.cards || []).map((c) =>
+                String(c.id) === String(cardId)
+                  ? {
+                      ...c,
+                      ...updatedDb,
+                      settings: {
+                        ...(c.settings || {}),
+                        ...(updatedDb.settings || {}),
+                      },
+                    }
+                  : c
+              ),
+            }
+          : prev
+      );
+      if (activeCardDetail && String(activeCardDetail.id) === String(cardId)) {
+        setActiveCardDetail((prev) =>
+          prev
+            ? {
+                ...prev,
+                ...updatedDb,
+                settings: {
+                  ...(prev.settings || {}),
+                  ...(updatedDb.settings || {}),
+                },
+              }
+            : null
+        );
+      }
+    } catch {
+      // The server could not be reached. The change stays in this browser and
+      // goes out with the next save.
+    }
+  };
+
+  /**
+   * The editor writes on every keystroke. The change shows in the preview at
+   * once, but only the last change of a burst is sent, so the server never
+   * receives two writes that can arrive in the wrong order.
+   */
   const handleUpdateCard = async (cardId, updates) => {
     if (!currentTree || !currentTree.cards) return;
 
@@ -691,64 +780,30 @@ export function App() {
       );
     }
 
-    // Sync to Supabase backend and update CDN URLs if returned
-    fetch(`/api/admin/cards/${cardId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body: JSON.stringify(updates),
-    })
-      .then(async (r) => {
-        if (r.ok) return r.json();
-        const error = await r.json().catch(() => ({}));
-        setTopToast({
-          title: 'Change not saved',
-          subtitle: error.error || 'The database refused this change. It is saved in this browser only.',
-        });
-        setTimeout(() => setTopToast(null), 6000);
-        return null;
-      })
-      .then((updatedDb) => {
-        if (updatedDb) {
-          storage.updateCard(cardId, updatedDb);
-          setCurrentTree((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  cards: (prev.cards || []).map((c) =>
-                    String(c.id) === String(cardId)
-                      ? {
-                          ...c,
-                          ...updatedDb,
-                          settings: {
-                            ...(c.settings || {}),
-                            ...(updatedDb.settings || {}),
-                          },
-                        }
-                      : c
-                  ),
-                }
-              : prev
-          );
-          if (activeCardDetail && String(activeCardDetail.id) === String(cardId)) {
-            setActiveCardDetail((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    ...updatedDb,
-                    settings: {
-                      ...(prev.settings || {}),
-                      ...(updatedDb.settings || {}),
-                    },
-                  }
-                : null
-            );
-          }
-        }
-      })
-      .catch(() => {});
+    const key = String(cardId);
+    pendingCardUpdatesRef.current[key] = {
+      ...(pendingCardUpdatesRef.current[key] || {}),
+      ...updates,
+    };
+    clearTimeout(cardUpdateTimersRef.current[key]);
+    cardUpdateTimersRef.current[key] = setTimeout(() => {
+      const pending = pendingCardUpdatesRef.current[key];
+      delete pendingCardUpdatesRef.current[key];
+      if (pending) sendCardUpdate(cardId, pending);
+    }, 350);
+  };
+
+  /**
+   * Send the changes that are still waiting before the whole tree is saved.
+   */
+  const flushPendingCardUpdates = async () => {
+    const pending = pendingCardUpdatesRef.current;
+    pendingCardUpdatesRef.current = {};
+    const sends = Object.entries(pending).map(([cardId, updates]) => {
+      clearTimeout(cardUpdateTimersRef.current[cardId]);
+      return sendCardUpdate(cardId, updates);
+    });
+    await Promise.all(sends);
   };
 
   const promptDeleteCard = (cardId) => {

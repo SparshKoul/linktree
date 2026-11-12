@@ -64,7 +64,7 @@ export function FaviconIcon({ card, className = 'w-5 h-5', containerClassName = 
   // 2. Maps type or map URL
   if (
     type === 'maps' ||
-    Boolean(card?.settings?.address) ||
+    card?.settings?.platform === 'maps' ||
     url.includes('maps.app.goo.gl') ||
     url.includes('google.com/maps')
   ) {

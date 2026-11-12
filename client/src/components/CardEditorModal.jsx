@@ -19,7 +19,7 @@ export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
 
   const handleSave = () => {
     const isReviews = card.type === 'reviews' || card.settings?.rating != null;
-    const isMaps = card.type === 'maps' || card.settings?.address;
+    const isMaps = card.type === 'maps' || card.settings?.platform === 'maps';
     const computedSubtitle = isReviews
       ? `${rating} ★ (${reviewCount} reviews)`
       : isMaps
@@ -34,6 +34,8 @@ export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
       ...(isReviews ? { rating: parseFloat(rating), reviewCount: parseInt(reviewCount, 10), reviewsCount: parseInt(reviewCount, 10) } : {}),
       ...(isMaps ? { address } : {}),
     };
+    // The address belongs to a map card only.
+    if (!isMaps) delete updatedSettings.address;
 
     onSave(card.id, {
       title,

@@ -631,7 +631,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
   const layout = card.settings?.layout || 'classic';
   const isMap =
     card.type === 'maps' ||
-    Boolean(card.settings?.address) ||
+    card.settings?.platform === 'maps' ||
     Boolean(card.url && /maps\.google|maps\.app\.goo\.gl/i.test(card.url));
   const isMenu =
     card.type === 'menu' ||
@@ -893,8 +893,17 @@ export function CardRenderer({ card, theme, isPreview = false }) {
             </div>
           </div>
         ) : (
-          <div className="flex-1 text-center font-bold text-sm sm:text-base truncate leading-snug py-0.5 px-6">
-            {card.title}
+          <div className="flex-1 text-center py-0.5 px-6">
+            <div className="font-bold text-sm sm:text-base truncate leading-snug">{card.title}</div>
+            {/* A menu, pdf, gallery or video card shows its description too */}
+            {subtitle && isLocalMedia && (
+              <div
+                className="text-[10px] sm:text-[11px] font-normal opacity-70 mt-0.5 leading-tight truncate"
+                style={{ color: 'currentColor' }}
+              >
+                {subtitle}
+              </div>
+            )}
           </div>
         )}
 
@@ -1206,6 +1215,11 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                 </>
               )}
             </div>
+            {subtitle && (
+              <p className="text-xs text-gray-600 text-center mt-1.5 px-2 leading-relaxed">
+                {subtitle}
+              </p>
+            )}
           </div>
 
           {/* Scrollable Media Body */}
