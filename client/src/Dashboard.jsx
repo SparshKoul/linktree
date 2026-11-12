@@ -124,6 +124,8 @@ export function Dashboard() {
   const [treeUndoSecondsLeft, setTreeUndoSecondsLeft] = useState(15);
   const treeUndoIntervalRef = useRef(null);
   const [cardMenuId, setCardMenuId] = useState(null);
+  // Menus near the bottom of the screen open upward so they are not cut off.
+  const [cardMenuOpenUp, setCardMenuOpenUp] = useState(false);
   const [draggedCardIndex, setDraggedCardIndex] = useState(null);
   const avatarInputRef = useRef(null);
   const [isBioBannerVisible, setIsBioBannerVisible] = useState(initialSettings.bioBannerVisible);
@@ -1892,7 +1894,7 @@ export function Dashboard() {
                 />
               </div>
             ) : (
-              <div className="bg-white rounded-none lg:rounded-[28px] lg:xl:rounded-[32px] px-4 sm:px-5 lg:px-2.5 lg:sm:px-3 py-3 lg:py-4 sm:py-5 border-0 lg:border border-gray-200/80 shadow-none lg:shadow-2xs flex-1 overflow-y-auto card-scrollbar space-y-3 lg:space-y-4 pb-20 lg:pb-5">
+              <div className="bg-white rounded-none rounded-b-[28px] lg:rounded-[28px] lg:xl:rounded-[32px] px-4 sm:px-5 lg:px-2.5 lg:sm:px-3 py-3 lg:py-4 sm:py-5 border-0 lg:border border-gray-200/80 shadow-none lg:shadow-2xs flex-1 overflow-y-auto card-scrollbar space-y-3 lg:space-y-4 pb-5 mb-20 lg:mb-0 lg:pb-5">
                 {/* Mobile Top Action Bar matching uploaded Image 0 */}
                 <div className="lg:hidden flex items-center justify-between pb-1 -mx-1">
                   <button
@@ -2691,7 +2693,17 @@ export function Dashboard() {
 
                               <div className="relative">
                                 <button
-                                  onClick={() => setCardMenuId(cardMenuId === card.id ? null : card.id)}
+                                  onClick={(e) => {
+                                    // Not enough room below inside the scroll
+                                    // sheet? Open the menu above the dots.
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const scroller = e.currentTarget.closest('.overflow-y-auto');
+                                    const limit = scroller
+                                      ? scroller.getBoundingClientRect().bottom
+                                      : window.innerHeight;
+                                    setCardMenuOpenUp(limit - rect.bottom < 240);
+                                    setCardMenuId(cardMenuId === card.id ? null : card.id);
+                                  }}
                                   className="p-1.5 rounded-xl text-gray-400 hover:text-black hover:bg-gray-100 transition-colors cursor-pointer"
                                   title="More options"
                                 >
@@ -2705,7 +2717,7 @@ export function Dashboard() {
                                       className="fixed inset-0 z-30"
                                       onClick={() => setCardMenuId(null)}
                                     />
-                                    <div className="absolute right-0 top-9 w-36 bg-white rounded-2xl shadow-xl border border-gray-100 p-1.5 z-40 text-xs font-semibold space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                                    <div className={`absolute right-0 ${cardMenuOpenUp ? 'bottom-9' : 'top-9'} w-36 bg-white rounded-2xl shadow-xl border border-gray-100 p-1.5 z-40 text-xs font-semibold space-y-0.5 animate-in fade-in zoom-in-95 duration-100`}>
                                       <button
                                         onClick={() => {
                                           setCardMenuId(null);
