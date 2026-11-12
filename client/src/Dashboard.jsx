@@ -60,7 +60,6 @@ import {
 import { TreeSwitcher } from './components/TreeSwitcher.jsx';
 import { CreateTreeModal } from './components/CreateTreeModal.jsx';
 import { AddCardModal } from './components/AddCardModal.jsx';
-import { CardEditorModal } from './components/CardEditorModal.jsx';
 import { CardDetailEditor } from './components/CardDetailEditor.jsx';
 import { CardsDashboard } from './components/CardsDashboard.jsx';
 import { FaviconIcon } from './components/FaviconIcon.jsx';
@@ -102,7 +101,6 @@ export function Dashboard() {
   const [isAddCardOpen, setIsAddCardOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState('login');
-  const [editingCard, setEditingCard] = useState(null);
   const [activeCardDetail, setActiveCardDetail] = useState(null);
   const [topToast, setTopToast] = useState(null);
   const [footerEnabled, setFooterEnabled] = useState(initialSettings.footerEnabled);
@@ -3351,14 +3349,6 @@ export function Dashboard() {
         onAddCard={handleAddCard}
       />
 
-      {/* Card Settings Editor Modal */}
-      <CardEditorModal
-        card={editingCard}
-        isOpen={!!editingCard}
-        onClose={() => setEditingCard(null)}
-        onSave={handleUpdateCard}
-        onDelete={handleDeleteCard}
-      />
 
       {/* Create Tree Modal */}
       <CreateTreeModal
