@@ -6,7 +6,6 @@ import {
   Loader2,
   ChevronRight,
   LayoutGrid,
-  Tag,
   MessageSquare,
   Send,
   Heart,
@@ -317,28 +316,6 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
             <span className="absolute -bottom-1 -right-1 bg-red-600 text-white font-black text-[7px] px-1 py-0.5 rounded-[3px] leading-none uppercase">
               PDF
             </span>
-          </div>
-        ),
-      },
-      {
-        id: 'product',
-        title: 'Product',
-        desc: 'Sell products and physical merchandise',
-        type: 'product',
-        renderIcon: () => (
-          <div className="w-9 h-9 rounded-full bg-[#8B5CF6] text-white flex items-center justify-center shrink-0">
-            <Tag className="w-4 h-4" />
-          </div>
-        ),
-      },
-      {
-        id: 'store',
-        title: 'Store',
-        desc: 'Display products directly on your profile',
-        type: 'product',
-        renderIcon: () => (
-          <div className="w-9 h-9 rounded-full bg-[#10B981] text-white flex items-center justify-center shrink-0">
-            <ShoppingBag className="w-4 h-4" />
           </div>
         ),
       },
@@ -663,8 +640,8 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
 
               {/* Right Column: 4 Quick Tiles + Scrollable Integrations */}
               <div className="flex-1 overflow-y-auto space-y-3 max-h-[58vh] lg:max-h-[360px] card-scrollbar min-h-0">
-                {/* 4 Quick Tiles */}
-                <div className="grid grid-cols-4 gap-2">
+                {/* Quick Tiles */}
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => {
                       onAddCard('collapsible', 'My Collection');
@@ -685,28 +662,6 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                   >
                     <span className="font-bold text-xs text-[#111111]">Link</span>
                     <Link2 className="w-4 h-4 lg:w-5 lg:h-5 text-black stroke-[1.8]" />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      onAddCard('product', 'My Product', { url: '', isSettingUp: true });
-                      onClose();
-                    }}
-                    className="bg-[#F4F4F5] hover:bg-[#E8E8EA] p-2.5 lg:p-3 rounded-2xl flex flex-col justify-between h-[72px] lg:h-[88px] text-left transition-colors cursor-pointer"
-                  >
-                    <span className="font-bold text-xs text-[#111111]">Product</span>
-                    <Tag className="w-4 h-4 lg:w-5 lg:h-5 text-black stroke-[1.8]" />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      onAddCard('contact_form', 'Contact Form');
-                      onClose();
-                    }}
-                    className="bg-[#F4F4F5] hover:bg-[#E8E8EA] p-2.5 lg:p-3 rounded-2xl flex flex-col justify-between h-[72px] lg:h-[88px] text-left transition-colors cursor-pointer"
-                  >
-                    <span className="font-bold text-xs text-[#111111]">Form</span>
-                    <MessageSquare className="w-4 h-4 lg:w-5 lg:h-5 text-black stroke-[1.8]" />
                   </button>
                 </div>
 
