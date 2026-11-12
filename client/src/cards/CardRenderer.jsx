@@ -873,8 +873,10 @@ function CardRendererView({ card, theme, isPreview = false }) {
         ) : (
           <div className="flex-1 text-center py-0.5 px-6">
             <div className="font-bold text-sm sm:text-base truncate leading-snug">{card.title}</div>
-            {/* A menu, pdf, gallery or video card shows its description too */}
-            {subtitle && isLocalMedia && (
+            {/* Whatever the owner wrote as the subtitle is shown here too —
+                for instagram, whatsapp, email, local media and every other
+                card without a thumbnail. A plain link keeps its clean pill. */}
+            {subtitle && subtitle !== card.title && (
               <div
                 className="text-[10px] sm:text-[11px] font-normal opacity-70 mt-0.5 leading-tight truncate"
                 style={{ color: 'currentColor' }}
