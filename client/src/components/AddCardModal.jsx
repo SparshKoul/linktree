@@ -487,6 +487,8 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
           <button
             onClick={onClose}
             className="p-1.5 rounded-full text-gray-500 hover:text-black hover:bg-gray-100 transition-colors cursor-pointer"
+            title="Close"
+            aria-label="Close"
           >
             <X className="w-4 h-4 stroke-[2.2]" />
           </button>

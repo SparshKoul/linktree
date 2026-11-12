@@ -142,10 +142,18 @@ export function PublicTreePage({ slug }) {
   useEffect(() => {
     if (!treeData?.tree) return;
     const t = treeData.tree;
-    const title = t.title || t.name || slug;
-    const pageTitle = `${title} | IndiaTaps`;
+
+    // What the owner wrote for the search engines and the sharing preview.
+    const seo = t.seo || t.customTheme?.seo || {};
+    const title = seo.title || t.title || t.name || slug;
+    const description =
+      seo.description ||
+      t.bio ||
+      `View ${t.title || t.name || slug}'s links and digital card on IndiaTaps`;
+
     const originalTitle = document.title;
-    document.title = pageTitle;
+    const originalFavicon = document.querySelector('link[rel="icon"]')?.getAttribute('href');
+    document.title = seo.title || `${t.title || t.name || slug} | IndiaTaps`;
 
     const updateMeta = (selector, attr, value) => {
       let el = document.querySelector(selector);
@@ -159,9 +167,10 @@ export function PublicTreePage({ slug }) {
     };
 
     updateMeta('meta[property="og:title"]', 'content', title);
-    updateMeta('meta[property="og:description"]', 'content', t.bio || `View ${title}'s links and digital card on IndiaTaps`);
+    updateMeta('meta[property="og:description"]', 'content', description);
     updateMeta('meta[name="twitter:title"]', 'content', title);
-    updateMeta('meta[name="twitter:description"]', 'content', t.bio || `View ${title}'s links and digital card on IndiaTaps`);
+    updateMeta('meta[name="twitter:description"]', 'content', description);
+    updateMeta('meta[name="description"]', 'content', description);
 
     const avatar = t.avatarUrl || t.customTheme?.avatarUrl;
     if (avatar) {
@@ -169,8 +178,23 @@ export function PublicTreePage({ slug }) {
       updateMeta('meta[name="twitter:image"]', 'content', avatar);
     }
 
+    // The icon of this page, the one the owner chose in the editor.
+    const favicon = seo.faviconUrl;
+    if (favicon) {
+      let link = document.querySelector('link[rel="icon"]');
+      if (!link) {
+        link = document.createElement('link');
+        link.setAttribute('rel', 'icon');
+        document.head.appendChild(link);
+      }
+      link.setAttribute('href', favicon);
+    }
+
     return () => {
       document.title = originalTitle;
+      if (originalFavicon) {
+        document.querySelector('link[rel="icon"]')?.setAttribute('href', originalFavicon);
+      }
     };
   }, [treeData, slug]);
 

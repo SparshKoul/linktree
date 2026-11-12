@@ -690,7 +690,11 @@ export function CardDetailEditor({
                     placeholder={isReviews ? 'e.g. Riyast Cafe' : isMaps ? 'e.g. Riyast Store' : 'Card title'}
                     className="w-full bg-transparent text-sm font-bold text-[#111111] focus:outline-none"
                   />
-                  <button className="text-gray-400 hover:text-black p-1 shrink-0">
+                  <button
+                    className="text-gray-400 hover:text-black p-1 shrink-0"
+                    title="Write the title for me"
+                    aria-label="Write the title for me"
+                  >
                     <Sparkles className="w-4 h-4" />
                   </button>
                 </div>
@@ -1102,7 +1106,11 @@ export function CardDetailEditor({
                     }
                     className="w-full bg-transparent text-sm font-semibold text-[#111111] focus:outline-none font-mono"
                   />
-                  <button className="text-gray-400 hover:text-black p-1 shrink-0">
+                  <button
+                    className="text-gray-400 hover:text-black p-1 shrink-0"
+                    title="Write the address for me"
+                    aria-label="Write the address for me"
+                  >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
                 </div>

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Image, Trash2, Check, RotateCcw, RotateCw } from 'lucide-react';
+import { Image, Trash2, Check, RotateCcw, RotateCw, Upload } from 'lucide-react';
 
 const FONTS = [
   'Inter',
@@ -31,6 +31,7 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
     altFontEnabled: currentTree?.altFontEnabled || currentTree?.customTheme?.altFontEnabled || false,
     titleFont: currentTree?.titleFont || currentTree?.customTheme?.titleFont || 'Inter',
     titleColor: currentTree?.titleColor || currentTree?.customTheme?.titleColor || '#000000',
+    seo: currentTree?.seo || currentTree?.customTheme?.seo || { title: '', description: '', faviconUrl: '' },
   });
 
   const [history, setHistory] = useState([initialSnapshot.current]);
@@ -54,6 +55,7 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
         altFontEnabled: currentTree?.altFontEnabled || currentTree?.customTheme?.altFontEnabled || false,
         titleFont: currentTree?.titleFont || currentTree?.customTheme?.titleFont || 'Inter',
         titleColor: currentTree?.titleColor || currentTree?.customTheme?.titleColor || '#000000',
+        seo: currentTree?.seo || currentTree?.customTheme?.seo || { title: '', description: '', faviconUrl: '' },
       };
       initialSnapshot.current = snap;
     }
@@ -144,6 +146,60 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
           })
           .catch(() => {});
       }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // The icon of the page. It is shown in the browser tab, in a bookmark and
+  // in the preview when the link is shared.
+  const handleFaviconSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const rawDataUrl = event.target?.result;
+      if (typeof rawDataUrl !== 'string') return;
+
+      // A favicon is shown at 16 or 32 pixels, so it is made small here.
+      const image = new Image();
+      image.onload = () => {
+        try {
+          const size = 64;
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const context = canvas.getContext('2d');
+          context.drawImage(image, 0, 0, size, size);
+          const small = canvas.toDataURL('image/png');
+
+          commitChange({
+            seo: { ...(current.seo || {}), faviconUrl: small },
+          });
+
+          fetch('/api/admin/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ file: small, filename: file.name, folder: 'favicons' }),
+          })
+            .then((r) => r.json())
+            .then((data) => {
+              if (data?.url) {
+                commitChange({
+                  seo: { ...(current.seo || {}), faviconUrl: data.url },
+                });
+              }
+            })
+            .catch(() => {});
+        } catch {
+          // The browser could not make the picture smaller: keep the original.
+          commitChange({
+            seo: { ...(current.seo || {}), faviconUrl: rawDataUrl },
+          });
+        }
+      };
+      image.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
   };
@@ -630,6 +686,69 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
                 {current.titleColor}
               </span>
             </label>
+          </div>
+        </div>
+
+        {/* ROW 8: What people see when the link is shared */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6 pt-3 mt-1 border-t border-gray-100">
+          <div className="w-28 sm:w-36 shrink-0">
+            <label className="font-bold text-gray-900 text-[13px]">When shared</label>
+            <p className="text-[10px] text-gray-400 mt-0.5">
+              The title, the description and the small picture people see when the link is shared.
+            </p>
+          </div>
+
+          <div className="flex-1 w-full space-y-3">
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-gray-500">Title</label>
+              <input
+                type="text"
+                value={current.seo?.title || ''}
+                onChange={(e) => commitChange({ seo: { ...(current.seo || {}), title: e.target.value } })}
+                placeholder="Riyast Boutique · Menu, locations and contact"
+                maxLength={70}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-[#111111] focus:outline-none focus:border-[#7033FF]"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-gray-500">Description</label>
+              <textarea
+                value={current.seo?.description || ''}
+                onChange={(e) => commitChange({ seo: { ...(current.seo || {}), description: e.target.value } })}
+                placeholder="A short line about what is on this page"
+                maxLength={200}
+                rows={2}
+                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-xs text-[#111111] focus:outline-none focus:border-[#7033FF] resize-none"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-gray-500">Small picture (icon)</label>
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl border border-gray-200 bg-white flex items-center justify-center overflow-hidden shrink-0">
+                  {current.seo?.faviconUrl ? (
+                    <img src={current.seo.faviconUrl} alt="The icon of this page" className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-[9px] text-gray-300 font-bold">none</span>
+                  )}
+                </div>
+                <label className="px-3 py-2 rounded-full bg-[#F6F6F7] border border-gray-200/90 hover:border-gray-300 cursor-pointer text-xs font-bold text-gray-900 flex items-center gap-2">
+                  <Upload className="w-3.5 h-3.5" />
+                  {current.seo?.faviconUrl ? 'Change' : 'Choose a picture'}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleFaviconSelect} />
+                </label>
+                {current.seo?.faviconUrl && (
+                  <button
+                    type="button"
+                    onClick={() => commitChange({ seo: { ...(current.seo || {}), faviconUrl: '' } })}
+                    className="px-3 py-2 rounded-full text-xs font-bold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

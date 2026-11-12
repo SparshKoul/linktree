@@ -128,6 +128,17 @@ export function Dashboard() {
   const [isBioBannerVisible, setIsBioBannerVisible] = useState(initialSettings.bioBannerVisible);
   const [isSavingTree, setIsSavingTree] = useState(false);
   const [treeSavedRecently, setTreeSavedRecently] = useState(false);
+  // What the owner is told about their changes: nothing, saving, saved or failed.
+  const [changeStatus, setChangeStatus] = useState('idle');
+  const changeStatusTimerRef = useRef(null);
+
+  const markChangeStatus = (status) => {
+    setChangeStatus(status);
+    clearTimeout(changeStatusTimerRef.current);
+    if (status === 'saved' || status === 'failed') {
+      changeStatusTimerRef.current = setTimeout(() => setChangeStatus('idle'), 3000);
+    }
+  };
   const updateTreeTimerRef = useRef(null);
   const updateTreeAbortRef = useRef(null);
   const pendingUpdatesRef = useRef({});
@@ -365,6 +376,7 @@ export function Dashboard() {
       const controller = new AbortController();
       updateTreeAbortRef.current = controller;
 
+      setChangeStatus('saving');
       try {
         const res = await fetch(`/api/admin/trees/${currentTree.id}`, {
           method: 'PUT',
@@ -383,6 +395,7 @@ export function Dashboard() {
             setCurrentTree((prev) => (prev && prev.id === currentTree.id ? { ...prev, ...updatedDb } : prev));
           }
         }
+        markChangeStatus('saved');
       } catch (err) {
         // Aborted or temporary network hiccup - smoothly ignored as state is safely in localStorage
       }
@@ -404,6 +417,7 @@ export function Dashboard() {
     pendingUpdatesRef.current = {};
 
     setIsSavingTree(true);
+    setChangeStatus('saving');
 
     // Guaranteed 15-second safety timeout so the button can NEVER hang in "Saving..."
     const abortCtrl = new AbortController();
@@ -519,6 +533,7 @@ export function Dashboard() {
       }
 
       setTreeSavedRecently(true);
+      markChangeStatus('saved');
       setTopToast({
         title: 'Tree Saved to Database!',
         subtitle: `All cards and state are live across devices on indiataps.com/${currentSlug}`,
@@ -668,6 +683,7 @@ export function Dashboard() {
     const sequence = (cardUpdateSequenceRef.current[key] || 0) + 1;
     cardUpdateSequenceRef.current[key] = sequence;
 
+    setChangeStatus('saving');
     try {
       const res = await fetch(`/api/admin/cards/${cardId}`, {
         method: 'PUT',
@@ -680,6 +696,7 @@ export function Dashboard() {
 
       if (!res.ok) {
         const error = await res.json().catch(() => ({}));
+        markChangeStatus('failed');
         setTopToast({
           title: 'Change not saved',
           subtitle: error.error || 'The database refused this change. It is saved in this browser only.',
@@ -690,6 +707,7 @@ export function Dashboard() {
 
       const updatedDb = await res.json().catch(() => null);
       if (!updatedDb) return;
+      markChangeStatus('saved');
       // A newer change was already sent for this card: this answer is old.
       if (cardUpdateSequenceRef.current[key] !== sequence) return;
 
@@ -1362,7 +1380,11 @@ export function Dashboard() {
 
       {/* Floating Toast Notification */}
       {topToast && (
-        <div className="fixed top-3 sm:top-22 left-3 right-3 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-[min(92vw,520px)] z-[60] bg-white border border-gray-200 rounded-2xl sm:rounded-full pl-3.5 pr-3 sm:pr-2 py-2.5 sm:py-1.5 shadow-xl flex items-center gap-3 text-xs animate-in fade-in slide-in-from-top-3">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed top-3 sm:top-22 left-3 right-3 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-[min(92vw,520px)] z-[60] bg-white border border-gray-200 rounded-2xl sm:rounded-full pl-3.5 pr-3 sm:pr-2 py-2.5 sm:py-1.5 shadow-xl flex items-center gap-3 text-xs animate-in fade-in slide-in-from-top-3"
+        >
           <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center shrink-0">
             <Check className="w-3 h-3 stroke-[3]" />
           </div>
@@ -1382,6 +1404,33 @@ export function Dashboard() {
             <span className="hidden sm:inline">Share link</span>
             <Share2 className="w-3.5 h-3.5 sm:hidden" />
           </button>
+        </div>
+      )}
+
+      {/* What is going on with the changes. It stays visible in every part of
+          the dashboard, also while a card is being edited. */}
+      {changeStatus !== 'idle' && (
+        <div
+          className="fixed bottom-20 right-3 sm:bottom-auto sm:top-22 sm:right-6 z-[55] flex items-center gap-1.5 text-[10px] font-semibold text-gray-600 bg-white/95 backdrop-blur-md border border-gray-200/90 rounded-full pl-2.5 pr-3 py-1.5 shadow-lg"
+          role="status"
+          aria-live="polite"
+        >
+          {changeStatus === 'saving' ? (
+            <>
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>Saving your changes...</span>
+            </>
+          ) : changeStatus === 'failed' ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-red-500" />
+              <span className="text-red-600">Not saved, try again</span>
+            </>
+          ) : (
+            <>
+              <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
+              <span>All changes saved</span>
+            </>
+          )}
         </div>
       )}
 
@@ -1416,7 +1465,11 @@ export function Dashboard() {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <button className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+                  <button
+                    className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                    title="Notifications"
+                    aria-label="Notifications"
+                  >
                     <Bell className="w-4 h-4" />
                   </button>
                   <button
@@ -2289,6 +2342,7 @@ export function Dashboard() {
                   </button>
                 </div>
 
+
                 {/* Cards List with Internal Scroll Matching Reference */}
                 {activeTab === 'links' && (
                   <div className="space-y-3 pt-1.5">
@@ -2375,6 +2429,30 @@ export function Dashboard() {
                         return (
                           <div
                             key={card.id}
+                            // The row opens the card, so it has to be usable
+                            // with the keyboard as well.
+                            role={isReordering ? undefined : 'button'}
+                            tabIndex={isReordering ? undefined : 0}
+                            aria-label={
+                              isReordering
+                                ? undefined
+                                : `Edit ${card.title || 'this card'}`
+                            }
+                            onKeyDown={(e) => {
+                              if (isReordering) return;
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                setActiveCardDetail(card);
+                              }
+                            }}
+                            onFocus={(e) => {
+                              if (isReordering) return;
+                              e.currentTarget.style.outline = '2px solid #7033FF';
+                              e.currentTarget.style.outlineOffset = '2px';
+                            }}
+                            onBlur={(e) => {
+                              e.currentTarget.style.outline = 'none';
+                            }}
                             draggable={isReordering && !filterHiddenOnly}
                             onDragStart={(e) => {
                               if (!isReordering) return;
@@ -3017,7 +3095,11 @@ export function Dashboard() {
 
       {/* Undo Toast with live 15s timer */}
       {undoToast && lastDeletedCards && lastDeletedCards.length > 0 && (
-        <div className="fixed bottom-20 left-3 right-3 sm:bottom-6 sm:left-24 sm:right-auto z-50 bg-[#111111] text-white pl-4 pr-2.5 py-2.5 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 text-xs animate-in slide-in-from-bottom-5">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-20 left-3 right-3 sm:bottom-6 sm:left-24 sm:right-auto z-50 bg-[#111111] text-white pl-4 pr-2.5 py-2.5 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 text-xs animate-in slide-in-from-bottom-5"
+        >
           <div className="w-5 h-5 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
             <Trash2 className="w-3 h-3" />
           </div>
@@ -3079,7 +3161,11 @@ export function Dashboard() {
 
       {/* Tree Undo Toast with live 15s timer */}
       {treeUndoToast && lastDeletedTreeData && (
-        <div className="fixed bottom-20 left-3 right-3 sm:bottom-6 sm:left-24 sm:right-auto z-50 bg-[#111111] text-white pl-4 pr-2.5 py-2.5 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 text-xs animate-in slide-in-from-bottom-5">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-20 left-3 right-3 sm:bottom-6 sm:left-24 sm:right-auto z-50 bg-[#111111] text-white pl-4 pr-2.5 py-2.5 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 text-xs animate-in slide-in-from-bottom-5"
+        >
           <div className="w-5 h-5 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
             <Trash2 className="w-3 h-3" />
           </div>
