@@ -1168,10 +1168,14 @@ export function Dashboard() {
   const basePreset =
     PRESET_THEMES.find((p) => p.id === currentTree?.themeId)?.theme ||
     PRESET_THEMES[0].theme;
-  const activeTheme = {
+  let activeTheme = {
     ...basePreset,
     ...(currentTree?.customTheme || {}),
   };
+  // Guarantee backgroundValue always exists (fallback to preset)
+  if (!activeTheme.backgroundValue) {
+    activeTheme.backgroundValue = basePreset.backgroundValue;
+  }
 
   const isFooterEnabled =
     currentTree?.footerEnabled !== undefined
