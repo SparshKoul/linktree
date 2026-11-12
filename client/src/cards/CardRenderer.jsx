@@ -309,6 +309,12 @@ function CardRendererView({ card, theme, isPreview = false }) {
     }
   };
 
+  // The owner does not want the newsletter / contact forms and the product
+  // card on the site right now, so these kinds of card simply do not render.
+  if (card.type === 'email_signup' || card.type === 'contact_form' || card.type === 'product') {
+    return null;
+  }
+
   // 1. Header Card
   if (card.type === 'header') {
     return (
