@@ -49,8 +49,6 @@ import { trackingHeaders } from '../services/visitor.js';
 
 function CardRendererView({ card, theme, isPreview = false }) {
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
-  const [emailSubmitted, setEmailSubmitted] = useState(false);
-  const [formSubmitted, setFormSubmitted] = useState(false);
   const [emailInput, setEmailInput] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [msgInput, setMsgInput] = useState('');
@@ -497,35 +495,28 @@ function CardRendererView({ card, theme, isPreview = false }) {
     return (
       <div className="w-full p-4 rounded-2xl space-y-2.5 text-center shadow-2xs" style={buttonStyleObj}>
         <div className="font-bold text-xs">{card.title || 'Join Newsletter'}</div>
-        {emailSubmitted ? (
-          <div className="text-xs font-semibold text-green-600 flex items-center justify-center gap-1">
-            <Check className="w-3.5 h-3.5" />
-            <span>Thank you for subscribing!</span>
-          </div>
-        ) : (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (emailInput.includes('@')) setEmailSubmitted(true);
-            }}
-            className="flex gap-2"
+        <form
+          onSubmit={(e) => {
+            // Nothing can be sent yet, so no outcome is ever claimed here.
+            e.preventDefault();
+          }}
+          className="flex gap-2"
+        >
+          <input
+            type="email"
+            required
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            placeholder="Your email address"
+            className="flex-1 px-3 py-2 rounded-xl bg-black/5 text-xs placeholder:text-gray-400 focus:outline-none"
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 rounded-xl bg-black text-white text-xs font-bold hover:bg-gray-800 transition-colors"
           >
-            <input
-              type="email"
-              required
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              placeholder="Your email address"
-              className="flex-1 px-3 py-2 rounded-xl bg-black/5 text-xs placeholder:text-gray-400 focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-xl bg-black text-white text-xs font-bold hover:bg-gray-800 transition-colors"
-            >
-              Join
-            </button>
-          </form>
-        )}
+            Join
+          </button>
+        </form>
       </div>
     );
   }
@@ -535,42 +526,36 @@ function CardRendererView({ card, theme, isPreview = false }) {
     return (
       <div className="w-full p-4 rounded-2xl space-y-3 text-left shadow-2xs" style={buttonStyleObj}>
         <div className="font-bold text-xs text-center">{card.title || 'Send a Message'}</div>
-        {formSubmitted ? (
-          <div className="text-xs font-semibold text-green-600 py-2 text-center">
-            Message received! We will respond shortly.
-          </div>
-        ) : (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (nameInput && msgInput) setFormSubmitted(true);
-            }}
-            className="space-y-2"
+        <form
+          onSubmit={(e) => {
+            // Nothing can be sent yet, so no outcome is ever claimed here.
+            e.preventDefault();
+          }}
+          className="space-y-2"
+        >
+          <input
+            type="text"
+            required
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            placeholder="Your name"
+            className="w-full px-3 py-2 rounded-xl bg-black/5 text-xs placeholder:text-gray-400 focus:outline-none"
+          />
+          <textarea
+            rows={2}
+            required
+            value={msgInput}
+            onChange={(e) => setMsgInput(e.target.value)}
+            placeholder="Your message..."
+            className="w-full px-3 py-2 rounded-xl bg-black/5 text-xs placeholder:text-gray-400 focus:outline-none"
+          />
+          <button
+            type="submit"
+            className="w-full py-2 rounded-xl bg-black text-white text-xs font-bold hover:bg-gray-800 transition-colors"
           >
-            <input
-              type="text"
-              required
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              placeholder="Your name"
-              className="w-full px-3 py-2 rounded-xl bg-black/5 text-xs placeholder:text-gray-400 focus:outline-none"
-            />
-            <textarea
-              rows={2}
-              required
-              value={msgInput}
-              onChange={(e) => setMsgInput(e.target.value)}
-              placeholder="Your message..."
-              className="w-full px-3 py-2 rounded-xl bg-black/5 text-xs placeholder:text-gray-400 focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="w-full py-2 rounded-xl bg-black text-white text-xs font-bold hover:bg-gray-800 transition-colors"
-            >
-              Send Message
-            </button>
-          </form>
-        )}
+            Send Message
+          </button>
+        </form>
       </div>
     );
   }
