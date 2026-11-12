@@ -3090,6 +3090,8 @@ export function Dashboard() {
                       ? { backgroundColor: (activeTheme?.backgroundValue?.startsWith('#') ? activeTheme.backgroundValue : (activeTheme?.backgroundColor || '#F3F3F1')), filter: 'none', transform: 'none' }
                       : activeTheme?.backgroundImageUrl
                       ? { backgroundImage: `url("${activeTheme.backgroundImageUrl}") center / cover no-repeat`, filter: 'none', transform: 'none' }
+                      : (typeof activeTheme?.backgroundValue === 'string' && activeTheme.backgroundValue.startsWith('url('))
+                      ? { backgroundImage: activeTheme.backgroundValue, filter: 'none', transform: 'none' }
                       : { backgroundColor: activeTheme?.backgroundValue || activeTheme?.backgroundColor || '#111111', filter: 'none', transform: 'none' }
                   }
                 />
