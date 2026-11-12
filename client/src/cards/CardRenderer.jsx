@@ -45,6 +45,7 @@ import {
 import { FaviconIcon } from '../components/FaviconIcon.jsx';
 import { PdfViewer } from '../components/PdfViewer.jsx';
 import { safeHref } from '../constants/urls.js';
+import { reviewsLine, cardNeedsALink } from '../constants/cardText.js';
 import { trackingHeaders } from '../services/visitor.js';
 
 export function CardRenderer({ card, theme, isPreview = false }) {
@@ -138,12 +139,8 @@ export function CardRenderer({ card, theme, isPreview = false }) {
 
   const isLocalMedia = isGallery || isPdfOrMenu || isLocalVideo;
 
-  const defaultGalleryImages = [
-    'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80',
-    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80',
-  ];
-
+  // A gallery shows the pictures of the owner. When there are none, there is
+  // nothing to show: no pictures of somebody else are put in their place.
   const hasUploadedImages =
     Array.isArray(cardSettings.images) &&
     cardSettings.images.length > 0 &&
@@ -161,9 +158,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
               }
         )
         .filter((it) => it.url && it.url.trim() !== '')
-    : (thumbnailUrl ? [thumbnailUrl, ...defaultGalleryImages.slice(1)] : defaultGalleryImages).map(
-        (url) => ({ url, isVid: isVideoMedia(url), formattedSize: '' })
-      );
+    : [];
 
   const galleryImages = galleryItems.map((it) => it.url);
 
@@ -206,12 +201,16 @@ export function CardRenderer({ card, theme, isPreview = false }) {
       ? 'animate-bounce'
       : '';
 
-  // Incomplete / Unconfigured setup card: hidden on live preview if no title and no url
-  const isUnconfigured =
-    (!card.title || card.title.trim() === '') &&
-    (!card.url || card.url.trim() === '' || card.url.trim() === 'https://');
+  // A card that goes nowhere is not shown. The owner still sees it in the
+  // dashboard, with a button to finish it.
+  const needsALink = cardNeedsALink(card.type) && !isLocalMedia;
+  const hasNoLink = !card.url || card.url.trim() === '' || card.url.trim() === 'https://';
+  // A gallery without pictures and a document without a file have nothing
+  // to show either.
+  const isEmptyGallery = isGallery && galleryItems.length === 0;
+  const isEmptyDocument = (isPdfOrMenu || isLocalVideo) && hasNoLink;
 
-  if (isPreview && isUnconfigured) {
+  if ((needsALink && hasNoLink) || isEmptyGallery || isEmptyDocument) {
     return null;
   }
 
@@ -623,9 +622,9 @@ export function CardRenderer({ card, theme, isPreview = false }) {
           </div>
           {isAccordionOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
-        {isAccordionOpen && (
+        {isAccordionOpen && card.settings?.content && (
           <div className="px-4 pb-3 pt-1 text-xs opacity-80 text-left border-t border-black/5 leading-relaxed">
-            {card.settings?.content || 'Additional links and information are grouped inside this collection.'}
+            {card.settings.content}
           </div>
         )}
       </div>
@@ -648,17 +647,16 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     card.type === 'reviews' ||
     Boolean(cardSettings.rating || cardSettings.reviewCount || cardSettings.reviewsCount);
   const reviewsCountVal = cardSettings.reviewCount ?? cardSettings.reviewsCount;
-  const reviewsSubtitleFallback =
-    cardSettings.rating != null || reviewsCountVal != null
-      ? `${cardSettings.rating ?? 5.0} ★ (${reviewsCountVal ?? 48} reviews)`
-      : '';
+  // The line under the title of a reviews card is what the owner wrote.
+  // Nothing is put there when they wrote nothing.
+  const reviewsSubtitleFallback = reviewsLine(cardSettings.rating, reviewsCountVal);
 
   const subtitle =
     card.subtitle ||
     card.settings?.address ||
     (isReviewsCard ? reviewsSubtitleFallback : '') ||
     card.settings?.subtitle ||
-    (isPdf ? 'PDF Menu' : '');
+    '';
 
   // Plain links with no custom thumbnail render as clean centered text pills
   const hasCustomThumbnail = Boolean(thumbnailUrl);
@@ -700,7 +698,8 @@ export function CardRenderer({ card, theme, isPreview = false }) {
           {/* Top Media / Realistic Street Map covering the card top */}
           <div className="relative w-full aspect-[16/10] sm:aspect-video rounded-[22px] overflow-hidden bg-[#FAF6EE] border border-black/5 flex items-center justify-center shadow-inner">
             {isMap ? (
-              <svg className="w-full h-full" viewBox="0 0 320 200" fill="none" preserveAspectRatio="none">
+              <div className="relative w-full h-full">
+                <svg className="w-full h-full" viewBox="0 0 320 200" fill="none" preserveAspectRatio="none">
                 {/* Background terrain */}
                 <rect width="320" height="200" fill="#FAF6EE" />
                 {/* Green Park blocks */}
@@ -723,9 +722,11 @@ export function CardRenderer({ card, theme, isPreview = false }) {
                   <path d="M12 2C7.03 2 3 6.03 3 11c0 6.2 9 15 9 15s9-8.8 9-15c0-4.97-4.03-9-9-9z" fill="#EA4335" />
                   <circle cx="12" cy="11" r="3.5" fill="#FFFFFF" />
                 </g>
-                {/* Subtle map watermark */}
-                <text x="312" y="193" textAnchor="end" fill="#9CA3AF" fontSize="7" fontFamily="sans-serif">Map data ©</text>
-              </svg>
+                </svg>
+                <div className="absolute bottom-1.5 right-3 text-[9px] font-semibold text-gray-400">
+                  Illustration of a map
+                </div>
+              </div>
             ) : isPdfOrMenu && pdfUrl ? (
               <div
                 className="w-full h-full relative overflow-hidden bg-white flex items-center justify-center"
@@ -1234,6 +1235,11 @@ export function CardRenderer({ card, theme, isPreview = false }) {
           >
             {isGallery && (
               <>
+                {galleryItems.length === 0 && (
+                  <div className="text-center text-xs text-gray-500 py-10">
+                    There are no pictures in this gallery yet.
+                  </div>
+                )}
                 {galleryItems.map((item, idx) => (
                   <div
                     key={idx}

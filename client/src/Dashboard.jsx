@@ -2298,7 +2298,7 @@ export function Dashboard() {
                 {/* Action Buttons Row: [ ⊞ Add collection ], [ + Add ], and [ 💾 Save tree ] */}
                 <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   <button
-                    onClick={() => handleAddCard('collapsible', 'Add collection title', { subtitle: 'Add or drag & drop an existing link' })}
+                    onClick={() => handleAddCard('collapsible', '', { subtitle: '', isSettingUp: true })}
                     className="h-11 py-2.5 px-2 sm:px-3 rounded-full bg-[#EAEAE8] hover:bg-[#E2E2E0] text-xs font-bold text-[#111111] flex items-center justify-center gap-1.5 sm:gap-2 transition-colors cursor-pointer truncate"
                   >
                     {/* Collection grid icon */}
@@ -2418,12 +2418,17 @@ export function Dashboard() {
                         const isHidden = card.visible === false;
                         const isDragging = draggedCardIndex === index;
                         const displaySubtitle = card.type === 'collapsible'
-                          ? (card.subtitle || 'Add or drag & drop an existing link')
+                          ? (card.subtitle || '')
                           : isGallery
-                            ? (card.subtitle || `Gallery · ${card.settings?.images?.length || 0} items`)
+                            ? (card.subtitle || '')
                             : card.url
                               ? card.url.replace(/^https?:\/\//, '').split('/')[0]
                               : (card.subtitle || '');
+                        // A card that has no name yet is named here, in the
+                        // list of the owner only. Nothing is put on the
+                        // public page.
+                        const displayTitle = card.title ||
+                          (card.type === 'collapsible' ? 'Collection' : 'Untitled card');
 
                         return (
                           <div
@@ -2532,8 +2537,14 @@ export function Dashboard() {
 
                               <div className="min-w-0 space-y-1">
                                 <div className="flex items-center gap-1.5 min-w-0">
-                                  <span className={`font-bold text-[13px] sm:text-sm truncate leading-snug ${isHidden ? 'text-gray-500' : 'text-[#111111]'}`}>
-                                    {card.title}
+                                  <span className={`font-bold text-[13px] sm:text-sm truncate leading-snug ${
+                                    !card.title
+                                      ? 'text-gray-400 italic'
+                                      : isHidden
+                                        ? 'text-gray-500'
+                                        : 'text-[#111111]'
+                                  }`}>
+                                    {displayTitle}
                                   </span>
                                   {isHidden && (
                                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gray-300/80 text-[9px] font-bold text-gray-600 shrink-0">

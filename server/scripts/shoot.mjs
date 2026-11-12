@@ -150,11 +150,12 @@ async function main() {
       const result = await send('Runtime.evaluate', {
         expression: `(() => {
           const wanted = ${JSON.stringify(wanted.trim())};
-          const buttons = [...document.querySelectorAll('button')];
-          const button = buttons.find((b) => b.innerText.trim() === wanted)
-            || buttons.find((b) => b.innerText.includes(wanted))
-            || buttons.find((b) => b.title === wanted)
-            || buttons.find((b) => b.getAttribute('aria-label') === wanted);
+          const all = [...document.querySelectorAll('button, a, [role="button"], div, span')];
+          const byText = all.filter((b) => b.innerText && b.innerText.trim() === wanted);
+          // The deepest one is the element itself, not its wrapper.
+          const button = byText[byText.length - 1]
+            || all.find((b) => b.title === wanted)
+            || all.find((b) => b.getAttribute('aria-label') === wanted);
           if (button) button.click();
           return button ? 'clicked' : 'not found';
         })()`,

@@ -97,41 +97,33 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
   const handleSelectMaps = async (type = 'maps') => {
     setLoadingResultId(type);
 
-    const mapsUrl = query.trim() || 'https://maps.google.com';
-    const placeTitle = query.trim() || 'Location Pin';
-    const placeAddress = query.trim() || 'Location address';
+    // Only what the owner typed is kept. Nothing is made up for them:
+    // no rating, no number of reviews, no address.
+    const typed = query.trim();
+    const isAddress = /^https?:\/\//i.test(typed);
+    const mapsUrl = isAddress ? typed : '';
+    const placeTitle = typed && !isAddress ? typed : '';
 
     setTimeout(async () => {
       if (type === 'maps') {
-        const cardData = {
-          type: 'maps',
-          title: placeTitle,
-          subtitle: placeAddress,
+        await onAddCard('maps', placeTitle, {
+          placeName: placeTitle,
+          address: '',
+          subtitle: '',
           url: mapsUrl,
-          settings: {
-            placeName: placeTitle,
-            address: placeAddress,
-            layout: 'classic',
-            hasMapThumbnail: true,
-            isSettingUp: true,
-          },
-        };
-        await onAddCard('maps', placeTitle, cardData.settings);
+          layout: 'classic',
+          hasMapThumbnail: true,
+          isSettingUp: true,
+        });
       } else {
         // Reviews
-        const cardData = {
-          type: 'reviews',
-          title: `Reviews · ${placeTitle}`,
-          subtitle: '4.8 ★ (142 reviews)',
+        await onAddCard('reviews', placeTitle ? `Reviews · ${placeTitle}` : 'Google Reviews', {
+          placeName: placeTitle,
+          subtitle: '',
           url: mapsUrl,
-          settings: {
-            placeName: placeTitle,
-            rating: 4.8,
-            reviewCount: 142,
-            hasMapThumbnail: true,
-          },
-        };
-        await onAddCard('reviews', `Reviews · ${placeTitle}`, cardData.settings);
+          layout: 'classic',
+          isSettingUp: true,
+        });
       }
 
       setLoadingResultId(null);
@@ -722,10 +714,10 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                       onClick={() => {
                         if (item.id === 'maps') {
                           onAddCard('maps', 'Google Maps Location', {
-                            placeName: 'Google Maps Location',
-                            address: 'Store or Office address',
-                            subtitle: 'Store or Office address',
-                            url: 'https://maps.google.com',
+                            placeName: '',
+                            address: '',
+                            subtitle: '',
+                            url: '',
                             layout: 'classic',
                             hasMapThumbnail: true,
                             isSettingUp: true,
@@ -733,29 +725,30 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                           onClose();
                         } else if (item.id === 'whatsapp') {
                           onAddCard('whatsapp', 'WhatsApp Us', {
-                            url: 'https://wa.me/1234567890',
+                            url: '',
                             platform: 'whatsapp',
+                            isSettingUp: true,
                           });
                           onClose();
                         } else if (item.id === 'reviews') {
                           onAddCard('reviews', 'Google Reviews', {
-                            placeName: 'Google Reviews',
-                            subtitle: '5.0 ★ (48 reviews)',
-                            url: 'https://google.com',
-                            rating: 5,
-                            reviewCount: 48,
-                            reviewsCount: 48,
-                            hasMapThumbnail: true,
+                            placeName: '',
+                            subtitle: '',
+                            url: '',
+                            layout: 'classic',
+                            isSettingUp: true,
                           });
                           onClose();
                         } else if (item.id === 'phone') {
                           onAddCard('phone', 'Phone Number', {
-                            url: 'tel:+1234567890',
+                            url: '',
+                            isSettingUp: true,
                           });
                           onClose();
                         } else if (item.id === 'email') {
                           onAddCard('email', 'Mail', {
-                            url: 'mailto:hello@example.com',
+                            url: '',
+                            isSettingUp: true,
                           });
                           onClose();
                         } else if (item.id === 'restaurant_menu' || item.id === 'menu') {
@@ -764,7 +757,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                             platform: 'menu',
                             isPdf: true,
                             pdfName: '',
-                            subtitle: 'PDF Menu · View items & prices',
+                            subtitle: '',
                             layout: 'classic',
                             isSettingUp: true,
                           });
@@ -775,7 +768,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                             platform: 'menu',
                             isPdf: true,
                             pdfName: '',
-                            subtitle: 'PDF Resume · View & download',
+                            subtitle: '',
                             layout: 'classic',
                             isSettingUp: true,
                           });
@@ -784,26 +777,30 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                           onAddCard('gallery', 'Gallery', {
                             url: '',
                             platform: 'gallery',
-                            subtitle: 'Gallery · 0 items',
+                            subtitle: '',
                             images: [],
                             layout: 'classic',
+                            isSettingUp: true,
                           });
                           onClose();
                         } else if (item.id === 'youtube') {
                           onAddCard('video', 'YouTube', {
-                            url: 'https://youtube.com',
+                            url: '',
                             platform: 'youtube',
+                            isSettingUp: true,
                           });
                           onClose();
                         } else if (item.id === 'instagram') {
                           onAddCard('instagram', 'Instagram', {
-                            url: 'https://instagram.com',
+                            url: '',
                             platform: 'instagram',
+                            isSettingUp: true,
                           });
                           onClose();
                         } else {
                           onAddCard(item.type, item.title, {
-                            url: 'https://example.com',
+                            url: '',
+                            isSettingUp: true,
                           });
                           onClose();
                         }

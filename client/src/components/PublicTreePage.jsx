@@ -531,14 +531,18 @@ export function PublicTreePage({ slug }) {
             );
 
             if (layout === 'hero') {
-              const heroImage =
-                heroUrl ||
-                avatarUrl ||
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80';
+              // Only a picture of the owner is shown. When there is none,
+              // the shape of the page is kept without a picture of
+              // somebody else.
+              const heroImage = heroUrl || avatarUrl || '';
               return (
                 <div className="w-full flex flex-col items-center text-center -mt-4 mb-3">
                   <div className="w-full h-52 sm:h-64 relative overflow-hidden rounded-3xl shadow-md bg-rose-600">
-                    <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
+                    {heroImage ? (
+                      <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-pink-300 via-rose-300 to-rose-400" />
+                    )}
                     <div
                       className="absolute inset-x-0 bottom-0 h-20"
                       style={{

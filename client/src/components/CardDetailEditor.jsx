@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { FaviconIcon } from './FaviconIcon.jsx';
 import { PdfViewer } from './PdfViewer.jsx';
+import { reviewsLine, galleryLine } from '../constants/cardText.js';
 
 export const formatFileSize = (bytes) => {
   if (!bytes || isNaN(bytes)) return '';
@@ -115,8 +116,12 @@ export function CardDetailEditor({
   const [url, setUrl] = useState(card?.url ?? '');
   const [thumbnailUrl, setThumbnailUrl] = useState(card?.thumbnailUrl ?? '');
   const [layout, setLayout] = useState(cardSettings.layout || 'classic');
-  const [rating, setRating] = useState(cardSettings.rating ?? 5.0);
-  const [reviewCount, setReviewCount] = useState(cardSettings.reviewCount ?? cardSettings.reviewsCount ?? 48);
+  // The rating and the number of reviews are what the owner writes down.
+  // They start empty: nothing is filled in for them.
+  const [rating, setRating] = useState(cardSettings.rating ?? '');
+  const [reviewCount, setReviewCount] = useState(
+    cardSettings.reviewCount ?? cardSettings.reviewsCount ?? ''
+  );
   const [showMenu, setShowMenu] = useState(false);
   const fileInputRef = useRef(null);
   const pdfInputRef = useRef(null);
@@ -133,8 +138,8 @@ export function CardDetailEditor({
       setUrl(card.url ?? '');
       setThumbnailUrl(card.thumbnailUrl ?? '');
       setLayout(card.settings?.layout || 'classic');
-      setRating(card.settings?.rating ?? 5.0);
-      setReviewCount(card.settings?.reviewCount ?? card.settings?.reviewsCount ?? 48);
+      setRating(card.settings?.rating ?? '');
+      setReviewCount(card.settings?.reviewCount ?? card.settings?.reviewsCount ?? '');
     }
   }, [card?.id]);
 
@@ -158,38 +163,36 @@ export function CardDetailEditor({
     onUpdateCard(card.id, { subtitle: val, settings });
   };
 
+  // The line under the title of a reviews card is written by the owner:
+  // "4.8 ★ (120 reviews)". Nothing is put there that they did not type.
   const handleRatingChange = (val) => {
-    const num = parseFloat(val) || 0;
+    const num = parseFloat(val);
     setRating(val);
-    const count = reviewCount || 48;
-    const newSubtitle = `${val} ★ (${count} reviews)`;
+    const newSubtitle = reviewsLine(val, reviewCount);
     setSubtitle(newSubtitle);
-    onUpdateCard(card.id, {
-      subtitle: newSubtitle,
-      settings: {
-        ...(card.settings || {}),
-        rating: num,
-        reviewCount: parseInt(count, 10),
-        reviewsCount: parseInt(count, 10),
-      },
-    });
+    const settings = { ...(card.settings || {}) };
+    if (Number.isNaN(num)) {
+      delete settings.rating;
+    } else {
+      settings.rating = num;
+    }
+    onUpdateCard(card.id, { subtitle: newSubtitle, settings });
   };
 
   const handleReviewCountChange = (val) => {
-    const count = parseInt(val, 10) || 0;
+    const count = parseInt(val, 10);
     setReviewCount(val);
-    const r = rating || 5.0;
-    const newSubtitle = `${r} ★ (${val} reviews)`;
+    const newSubtitle = reviewsLine(rating, val);
     setSubtitle(newSubtitle);
-    onUpdateCard(card.id, {
-      subtitle: newSubtitle,
-      settings: {
-        ...(card.settings || {}),
-        rating: parseFloat(r),
-        reviewCount: count,
-        reviewsCount: count,
-      },
-    });
+    const settings = { ...(card.settings || {}) };
+    if (Number.isNaN(count)) {
+      delete settings.reviewCount;
+      delete settings.reviewsCount;
+    } else {
+      settings.reviewCount = count;
+      settings.reviewsCount = count;
+    }
+    onUpdateCard(card.id, { subtitle: newSubtitle, settings });
   };
 
   const handleUrlChange = (val) => {
@@ -476,7 +479,7 @@ export function CardDetailEditor({
     const updated = existing.filter((_, idx) => idx !== indexToRemove);
     const totalSize = updated.reduce((acc, it) => acc + (it.size || 0), 0);
     const sizeTag = totalSize > 0 ? ` · ${formatFileSize(totalSize)}` : '';
-    const newSubtitle = updated.length > 0 ? `Gallery · ${updated.length} items${sizeTag}` : 'Gallery · 0 items';
+    const newSubtitle = galleryLine(updated.length, sizeTag.trim());
 
     setSubtitle(newSubtitle);
     onUpdateCard(card.id, {
@@ -630,7 +633,9 @@ export function CardDetailEditor({
                   Google Reviews Card
                 </div>
                 <div className="text-[11px] text-[#A16207]">
-                  Customize your business rating score, review count, and link directly to your Google review page.
+                  Link to your Google review page. If you write your rating and the
+                  number of reviews below, they are shown under the title. Nothing is
+                  filled in for you.
                 </div>
               </div>
             </div>
@@ -699,7 +704,7 @@ export function CardDetailEditor({
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-gray-300 transition-colors">
                   <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">
-                    Star Rating (1.0 - 5.0)
+                    Your Star Rating (1.0 - 5.0)
                   </label>
                   <div className="flex items-center justify-between gap-2">
                     <input
@@ -708,8 +713,9 @@ export function CardDetailEditor({
                       min="1.0"
                       max="5.0"
                       value={rating}
+                      placeholder="e.g. 4.8"
                       onChange={(e) => handleRatingChange(e.target.value)}
-                      className="w-full bg-transparent text-sm font-bold text-[#111111] focus:outline-none"
+                      className="w-full bg-transparent text-sm font-bold text-[#111111] focus:outline-none placeholder:text-gray-300"
                     />
                     <Star className="w-4 h-4 fill-amber-400 text-amber-500 shrink-0" />
                   </div>
@@ -717,15 +723,16 @@ export function CardDetailEditor({
 
                 <div className="p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-gray-300 transition-colors">
                   <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">
-                    Number of Reviews
+                    Your Number of Reviews
                   </label>
                   <div className="flex items-center justify-between gap-2">
                     <input
                       type="number"
                       min="1"
                       value={reviewCount}
+                      placeholder="e.g. 120"
                       onChange={(e) => handleReviewCountChange(e.target.value)}
-                      className="w-full bg-transparent text-sm font-bold text-[#111111] focus:outline-none"
+                      className="w-full bg-transparent text-sm font-bold text-[#111111] focus:outline-none placeholder:text-gray-300"
                     />
                     <span className="text-[11px] font-bold text-gray-400 shrink-0">reviews</span>
                   </div>
@@ -748,7 +755,7 @@ export function CardDetailEditor({
                       isMaps
                         ? 'e.g. 123 Main St, New York'
                         : isReviews
-                        ? 'e.g. 5.0 ★ (48 reviews)'
+                        ? 'e.g. 4.8 ★ (120 reviews)'
                         : 'e.g. Brief description or subtitle'
                     }
                     className="w-full bg-transparent text-sm font-semibold text-[#111111] focus:outline-none"
@@ -805,7 +812,7 @@ export function CardDetailEditor({
                           type="button"
                           onClick={() => {
                             onUpdateCard(card.id, {
-                              subtitle: 'Gallery · 0 items',
+                              subtitle: '',
                               thumbnailUrl: '',
                               settings: {
                                 ...cardSettings,

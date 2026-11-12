@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, Trash2, Sparkles, Lock, DollarSign, Calendar, ExternalLink, Star, MapPin } from 'lucide-react';
+import { reviewsLine } from '../constants/cardText.js';
 
 export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
   if (!isOpen || !card) return null;
@@ -9,33 +10,53 @@ export function CardEditorModal({ card, isOpen, onClose, onSave, onDelete }) {
   const [animation, setAnimation] = useState(card.animation || 'none');
   const [lockType, setLockType] = useState(card.lockType || 'none');
   const [lockValue, setLockValue] = useState(card.lockValue || card.lock_value || '');
-  const [price, setPrice] = useState(card.settings?.price || '$49.00');
-  const [eventDate, setEventDate] = useState(card.settings?.date || 'DEC 20');
-  const [venue, setVenue] = useState(card.settings?.venue || 'Showcase Stage');
+  // Everything here starts empty. A price, a date, a place, a rating or a
+  // number of reviews is only shown when the owner writes it down.
+  const [price, setPrice] = useState(card.settings?.price || '');
+  const [eventDate, setEventDate] = useState(card.settings?.date || '');
+  const [venue, setVenue] = useState(card.settings?.venue || '');
   const [content, setContent] = useState(card.settings?.content || '');
-  const [rating, setRating] = useState(card.settings?.rating ?? 5.0);
-  const [reviewCount, setReviewCount] = useState(card.settings?.reviewCount ?? card.settings?.reviewsCount ?? 48);
+  const [rating, setRating] = useState(card.settings?.rating ?? '');
+  const [reviewCount, setReviewCount] = useState(card.settings?.reviewCount ?? card.settings?.reviewsCount ?? '');
   const [address, setAddress] = useState(card.settings?.address || card.subtitle || '');
 
   const handleSave = () => {
     const isReviews = card.type === 'reviews' || card.settings?.rating != null;
     const isMaps = card.type === 'maps' || card.settings?.platform === 'maps';
+    // The line under the title of a reviews card is what the owner typed.
     const computedSubtitle = isReviews
-      ? `${rating} ★ (${reviewCount} reviews)`
+      ? reviewsLine(rating, reviewCount)
       : isMaps
       ? address
       : card.subtitle;
+
+    const reviewsSettings = {};
+    const star = parseFloat(rating);
+    const count = parseInt(reviewCount, 10);
+    if (!Number.isNaN(star)) reviewsSettings.rating = star;
+    if (!Number.isNaN(count)) {
+      reviewsSettings.reviewCount = count;
+      reviewsSettings.reviewsCount = count;
+    }
 
     const updatedSettings = {
       ...(card.settings || {}),
       ...(card.type === 'product' ? { price } : {}),
       ...(card.type === 'events' ? { date: eventDate, venue } : {}),
       ...(card.type === 'collapsible' || card.type === 'text' || card.type === 'custom_html' ? { content } : {}),
-      ...(isReviews ? { rating: parseFloat(rating), reviewCount: parseInt(reviewCount, 10), reviewsCount: parseInt(reviewCount, 10) } : {}),
+      ...(isReviews ? reviewsSettings : {}),
       ...(isMaps ? { address } : {}),
     };
     // The address belongs to a map card only.
     if (!isMaps) delete updatedSettings.address;
+    // A rating that is not there is not written down either.
+    if (isReviews) {
+      if (reviewsSettings.rating === undefined) delete updatedSettings.rating;
+      if (reviewsSettings.reviewCount === undefined) {
+        delete updatedSettings.reviewCount;
+        delete updatedSettings.reviewsCount;
+      }
+    }
 
     onSave(card.id, {
       title,
