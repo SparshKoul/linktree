@@ -107,6 +107,8 @@ export function CardDetailEditor({
       (card?.title || '').toLowerCase().includes('gallery')
     );
 
+  const isCollapsible = card?.type === 'collapsible';
+
   const MAX_GALLERY_ITEMS = 10;
   const MAX_GALLERY_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB limit per container
   const MAX_PDF_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB limit for PDF / resume
@@ -117,6 +119,7 @@ export function CardDetailEditor({
   const [url, setUrl] = useState(card?.url ?? '');
   const [thumbnailUrl, setThumbnailUrl] = useState(card?.thumbnailUrl ?? '');
   const [layout, setLayout] = useState(cardSettings.layout || 'classic');
+  const [content, setContent] = useState(cardSettings.content ?? '');
   const [showMenu, setShowMenu] = useState(false);
   const fileInputRef = useRef(null);
   const pdfInputRef = useRef(null);
@@ -133,6 +136,7 @@ export function CardDetailEditor({
       setUrl(card.url ?? '');
       setThumbnailUrl(card.thumbnailUrl ?? '');
       setLayout(card.settings?.layout || 'classic');
+      setContent(cardSettings.content ?? '');
     }
   }, [card?.id]);
 
@@ -154,6 +158,12 @@ export function CardDetailEditor({
       delete settings.address;
     }
     onUpdateCard(card.id, { subtitle: val, settings });
+  };
+
+  const handleContentChange = (val) => {
+    setContent(val);
+    // The content of a collection card is what its accordion opens to.
+    onUpdateCard(card.id, { settings: { ...cardSettings, content: val } });
   };
 
   const handleUrlChange = (val) => {
@@ -684,6 +694,25 @@ export function CardDetailEditor({
                 </div>
               </div>
             </div>
+
+            {/* Collection content - what the accordion opens to. The public
+                card shows it only when the owner wrote something. */}
+            {isCollapsible && (
+              <div className="space-y-1">
+                <div className="p-3.5 rounded-2xl bg-white border border-gray-200 shadow-2xs hover:border-gray-300 transition-colors">
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-0.5">
+                    Collection Content
+                  </label>
+                  <textarea
+                    value={content}
+                    onChange={(e) => handleContentChange(e.target.value)}
+                    placeholder="What should the collection open to?"
+                    rows={4}
+                    className="w-full bg-transparent text-sm font-semibold text-[#111111] focus:outline-none resize-none"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Dedicated Gallery Upload for Photos & Videos */}
             {isGallery && (() => {
