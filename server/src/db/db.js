@@ -393,6 +393,23 @@ export const db = {
         );
       }
 
+      // The wallpaper of a video style is a picture too. It must not stay
+      // inside the tree: a picture of a few megabytes makes every page of
+      // the tree slow to open.
+      let wallpaperVideo = updates.customTheme?.wallpaperVideoUrl;
+      if (typeof wallpaperVideo === 'string' && wallpaperVideo.startsWith('data:image')) {
+        uploadPromises.push(
+          this.uploadAsset({
+            base64Data: wallpaperVideo,
+            filename: 'wallpaper.png',
+            folder: 'wallpapers',
+            treeId: id,
+          }).then((cdn) => {
+            if (cdn) wallpaperVideo = cdn;
+          })
+        );
+      }
+
       if (uploadPromises.length > 0) {
         await Promise.all(uploadPromises);
       }
@@ -452,6 +469,7 @@ export const db = {
         ...(titleStyleVal !== undefined ? { titleStyle: titleStyleVal } : {}),
         ...(logo !== undefined ? { logoUrl: logo } : {}),
         ...(bgImg !== undefined ? { backgroundImageUrl: bgImg } : {}),
+        ...(wallpaperVideo !== undefined ? { wallpaperVideoUrl: wallpaperVideo } : {}),
         ...(altFontVal !== undefined ? { altFontEnabled: altFontVal } : {}),
         ...(titleFontVal !== undefined ? { titleFont: titleFontVal } : {}),
         ...(titleColorVal !== undefined ? { titleColor: titleColorVal } : {}),
@@ -1535,8 +1553,19 @@ export const db = {
       if (error) throw error;
 
       const events = data || [];
-      const tree = await this.getTreeById(numId);
-      const cards = tree?.cards || [];
+
+      // The tree and its cards are asked for at the same time as the events:
+      // one round trip instead of three in a row.
+      const [treeRow, cardRows] = await Promise.all([
+        supabase
+          .from('trees')
+          .select('views_count, clicks_count')
+          .eq('id', numId)
+          .maybeSingle(),
+        supabase.from('cards').select('id, title, type').eq('tree_id', numId),
+      ]);
+      const tree = treeRow.data || {};
+      const cards = cardRows.data || [];
 
       const daily = {};
       const dayKey = (value) => String(value).slice(0, 10);
@@ -1621,8 +1650,8 @@ export const db = {
           clicksToday: daily[today]?.clicks || 0,
           viewsYesterday: daily[yesterday]?.views || 0,
           clicksYesterday: daily[yesterday]?.clicks || 0,
-          allTimeViews: Number(tree?.viewsCount || 0),
-          allTimeClicks: Number(tree?.clicksCount || 0),
+          allTimeViews: Number(tree?.views_count || 0),
+          allTimeClicks: Number(tree?.clicks_count || 0),
         },
         daily: Object.entries(daily).map(([date, counts]) => ({ date, ...counts })),
         devices,

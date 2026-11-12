@@ -202,6 +202,27 @@ export function WallpaperEditor({ current, commitChange }) {
           wallpaperVideoUrl: dataUrl,
           backgroundImageUrl: dataUrl,
         });
+
+        // The picture goes to the storage. A picture of a few megabytes
+        // inside the tree makes every page of it slow to open.
+        fetch('/api/admin/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ file: dataUrl, filename: file.name, folder: 'wallpapers' }),
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((res) => {
+            if (res?.url && !res.fallback) {
+              syncBackgroundValue({
+                wallpaperStyle: 'video',
+                backgroundType: 'video',
+                wallpaperVideoUrl: res.url,
+                backgroundImageUrl: res.url,
+              });
+            }
+          })
+          .catch(() => {});
       }
     };
     reader.readAsDataURL(file);
