@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Image, Trash2, Check, RotateCcw, RotateCw, Upload } from 'lucide-react';
+import { uploadPicture } from '../lib/uploadPicture.js';
 
 const FONTS = [
   'Inter',
@@ -124,30 +125,15 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
   const handleUploadFile = (e, fieldKey, folderName) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const rawDataUrl = event.target?.result;
-      if (typeof rawDataUrl === 'string') {
-        commitChange({ [fieldKey]: rawDataUrl });
-
-        // Background CDN upload to Supabase Storage
-        fetch('/api/admin/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ file: rawDataUrl, filename: file.name, folder: folderName }),
-        })
-          .then((r) => r.json())
-          .then((data) => {
-            if (data?.url) {
-              commitChange({ [fieldKey]: data.url });
-            }
-          })
-          .catch(() => {});
-      }
-    };
-    reader.readAsDataURL(file);
+    // The picture goes to the storage first, made smaller. Only the address
+    // of it goes into the tree.
+    uploadPicture(file, { folder: folderName, maxWidth: 1600, maxHeight: 1600 })
+      .then((url) => {
+        if (url) commitChange({ [fieldKey]: url });
+      })
+      .catch(() => {});
   };
 
   // The icon of the page. It is shown in the browser tab, in a bookmark and

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { CardRenderer } from '../cards/CardRenderer.jsx';
 import { PRESET_THEMES } from '../constants/themes.js';
 import { Copy, Check, ArrowLeft, Users } from 'lucide-react';
@@ -81,10 +81,23 @@ export function PublicTreePage({ slug }) {
       setLoading(true);
     }
 
-    fetch(`/api/public/trees/${encodeURIComponent(slug)}`)
-      .then(async (res) => {
-        if (res.status === 403) {
-          const data = await res.json().catch(() => ({}));
+    // The request may already be on its way: the page starts it before the
+    // program is even loaded, so the cards are here sooner.
+    const started = typeof window !== 'undefined' ? window.__indiatapsTree : null;
+    const request =
+      started && started.slug === slug && started.promise
+        ? started.promise
+        : fetch(`/api/public/trees/${encodeURIComponent(slug)}`).then((res) =>
+            res
+              .json()
+              .catch(() => null)
+              .then((body) => ({ status: res.status, body }))
+          );
+
+    request
+      .then(({ status, body }) => {
+        if (status === 403) {
+          const data = body || {};
           if (!isMounted) return null;
           setIsBlocked(true);
           setBlockedMessage(
@@ -95,10 +108,10 @@ export function PublicTreePage({ slug }) {
           setLoading(false);
           return null;
         }
-        if (!res.ok) {
+        if (status !== 200 || !body) {
           throw new Error('Tree not found or unpublished');
         }
-        return res.json();
+        return body;
       })
       .then((data) => {
         if (!isMounted || !data) return;
@@ -213,6 +226,23 @@ export function PublicTreePage({ slug }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // The look of the page. It keeps the same shape until something in it
+  // changes, so the cards are not drawn again for nothing.
+  const themeSource = treeData?.tree || {};
+  const basePreset = useMemo(
+    () =>
+      PRESET_THEMES.find((p) => p.id === themeSource.themeId)?.theme ||
+      PRESET_THEMES[0].theme,
+    [themeSource.themeId]
+  );
+  const activeTheme = useMemo(
+    () => ({
+      ...basePreset,
+      ...(themeSource.customTheme || {}),
+    }),
+    [basePreset, themeSource.customTheme]
+  );
+
   if (isBlocked) {
     return (
       <div className="min-h-screen bg-[#111318] text-white flex flex-col justify-between p-6 sm:p-10 relative overflow-hidden font-sans selection:bg-[#00E575] selection:text-black">
@@ -310,13 +340,6 @@ export function PublicTreePage({ slug }) {
   }
 
   const { tree, cards } = treeData;
-  const basePreset =
-    PRESET_THEMES.find((p) => p.id === tree.themeId)?.theme ||
-    PRESET_THEMES[0].theme;
-  const activeTheme = {
-    ...basePreset,
-    ...(tree.customTheme || {}),
-  };
 
   return (
     <div className={`min-h-screen w-full flex flex-col items-center justify-start sm:justify-center bg-[#181A1E] sm:py-6 sm:px-4 font-sans selection:bg-white/20 selection:text-white transition-colors relative ${isDesktop ? 'sm:h-screen sm:overflow-hidden' : ''}`}>
@@ -656,11 +679,13 @@ export function PublicTreePage({ slug }) {
               cards
                 .filter((c) => c.visible !== false)
                 .map((card) => (
-                  <CardRenderer
+                  // A card that is not on the screen is not painted at all.
+                  <div
                     key={card.id}
-                    card={card}
-                    theme={activeTheme}
-                  />
+                    className="[content-visibility:auto] [contain-intrinsic-size:auto_64px]"
+                  >
+                    <CardRenderer card={card} theme={activeTheme} />
+                  </div>
                 ))
             ) : (
               <div className="text-xs opacity-50 py-12">No links available</div>

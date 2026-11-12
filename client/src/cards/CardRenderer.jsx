@@ -48,7 +48,7 @@ import { safeHref } from '../constants/urls.js';
 import { reviewsLine, cardNeedsALink } from '../constants/cardText.js';
 import { trackingHeaders } from '../services/visitor.js';
 
-export function CardRenderer({ card, theme, isPreview = false }) {
+function CardRendererView({ card, theme, isPreview = false }) {
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
   const [emailSubmitted, setEmailSubmitted] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
@@ -1384,3 +1384,7 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     return modalContent;
   }
 }
+
+// A card is drawn again only when the card or the look of the page changes.
+// A page with many cards does not have to draw all of them for nothing.
+export const CardRenderer = React.memo(CardRendererView);

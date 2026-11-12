@@ -32,6 +32,7 @@ import { ButtonEditor } from './ButtonEditor.jsx';
 import { TextEditor } from './TextEditor.jsx';
 import { ColorsEditor } from './ColorsEditor.jsx';
 import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
+import { uploadPicture } from '../lib/uploadPicture.js';
 
 export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, onOpenHeader, initialSubview = null }) {
   const [activeSubview, setActiveSubview] = useState(initialSubview); // null | 'theme' | 'header' | 'wallpaper' | 'buttons' | 'text' | 'colors' | 'stickers' | 'footer'
@@ -250,33 +251,17 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
   const handleAvatarUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const rawDataUrl = event.target?.result;
-      if (typeof rawDataUrl === 'string') {
-        commitChange({ avatarUrl: rawDataUrl });
-        onUpdateTree({ avatarUrl: rawDataUrl });
-
-        // Background CDN upload to Supabase Storage
-        fetch('/api/admin/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ file: rawDataUrl, filename: file.name, folder: 'avatars' }),
-        })
-          .then((r) => r.json())
-          .then((data) => {
-            if (data?.url) {
-              commitChange({ avatarUrl: data.url });
-              onUpdateTree({ avatarUrl: data.url });
-            }
-          })
-          .catch(() => {});
-      }
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+
+    // The picture goes to the storage first, made smaller. Only the address
+    // of it goes into the tree.
+    uploadPicture(file, { folder: 'avatars', maxWidth: 800, maxHeight: 800 })
+      .then((url) => {
+        if (!url) return;
+        commitChange({ avatarUrl: url });
+        onUpdateTree({ avatarUrl: url });
+      })
+      .catch(() => {});
   };
 
   const applyPresetTheme = (themeObj) => {
@@ -313,33 +298,17 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
   const handleWallpaperUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const rawDataUrl = event.target?.result;
-      if (typeof rawDataUrl === 'string') {
-        const bgVal = `url("${rawDataUrl}") center / cover no-repeat`;
-        commitChange({ backgroundType: 'image', backgroundValue: bgVal });
-
-        // Background CDN upload to Supabase Storage
-        fetch('/api/admin/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ file: rawDataUrl, filename: file.name, folder: 'wallpapers' }),
-        })
-          .then((r) => r.json())
-          .then((data) => {
-            if (data?.url) {
-              const cdnBg = `url("${data.url}") center / cover no-repeat`;
-              commitChange({ backgroundType: 'image', backgroundValue: cdnBg });
-            }
-          })
-          .catch(() => {});
-      }
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+
+    // The picture goes to the storage first, made smaller. Only the address
+    // of it goes into the tree.
+    uploadPicture(file, { folder: 'wallpapers', maxWidth: 1920, maxHeight: 1920 })
+      .then((url) => {
+        if (!url) return;
+        const cdnBg = `url("${url}") center / cover no-repeat`;
+        commitChange({ backgroundType: 'image', backgroundValue: cdnBg });
+      })
+      .catch(() => {});
   };
 
   // Find active theme display name

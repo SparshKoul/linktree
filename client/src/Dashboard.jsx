@@ -76,6 +76,7 @@ import { navigate } from './router.js';
 import { LandingPage } from './components/LandingPage.jsx';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard.jsx';
 import { getCanonicalTreeUrl, copyToClipboard } from './constants/urls.js';
+import { uploadPicture } from './lib/uploadPicture.js';
 
 export function Dashboard() {
   const initialUser = storage.getUser();
@@ -557,32 +558,16 @@ export function Dashboard() {
   const handleAvatarUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file || !currentTree) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const rawDataUrl = event.target?.result;
-      if (typeof rawDataUrl === 'string') {
-        handleUpdateTree({ avatarUrl: rawDataUrl });
-
-        fetch('/api/admin/upload', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ file: rawDataUrl, filename: file.name, folder: 'avatars' }),
-        })
-          .then((res) => res.json())
-          .then((res) => {
-            if (res?.url) {
-              handleUpdateTree({ avatarUrl: res.url });
-            }
-          })
-          .catch(() => {});
-      }
-    };
-    reader.readAsDataURL(file);
     e.target.value = '';
+
+    // The picture goes to the storage first, made smaller. Only the address
+    // of it goes into the tree: a picture of a few megabytes would be sent
+    // to the database and to every visitor.
+    uploadPicture(file, { folder: 'avatars', maxWidth: 800, maxHeight: 800 })
+      .then((url) => {
+        if (url) handleUpdateTree({ avatarUrl: url });
+      })
+      .catch(() => {});
   };
 
   const handleAddCard = async (type, title, defaultSettings = {}) => {

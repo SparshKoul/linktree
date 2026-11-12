@@ -27,6 +27,7 @@ import {
 import { FaviconIcon } from './FaviconIcon.jsx';
 import { PdfViewer } from './PdfViewer.jsx';
 import { reviewsLine, galleryLine } from '../constants/cardText.js';
+import { uploadPicture } from '../lib/uploadPicture.js';
 
 export const formatFileSize = (bytes) => {
   if (!bytes || isNaN(bytes)) return '';
@@ -417,24 +418,16 @@ export function CardDetailEditor({
         if (!dataUrl) continue;
 
         let finalUrl = dataUrl;
-        // Upload to backend Supabase storage CDN
+        // The picture goes to the storage. It is made smaller first, so
+        // every visitor does not download the whole picture.
         try {
-          const res = await fetch('/api/admin/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({
-              file: dataUrl,
-              filename: file.name,
-              folder: 'gallery',
-            }),
+          const url = await uploadPicture(file, {
+            folder: 'gallery',
+            maxWidth: 1600,
+            maxHeight: 1600,
+            dataUrl,
           });
-          if (res.ok) {
-            const data = await res.json();
-            if (data?.url) {
-              finalUrl = data.url;
-            }
-          }
+          if (url) finalUrl = url;
         } catch (uploadErr) {
           console.warn('Upload fallback to dataUrl', uploadErr);
         }

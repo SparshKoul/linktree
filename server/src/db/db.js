@@ -337,6 +337,22 @@ export const db = {
         );
       }
 
+      // The picture of the theme. It is not in a column of its own, so it
+      // would stay inside the tree and make every page of it slow.
+      let themeAvatar = updates.customTheme?.avatarUrl;
+      if (typeof themeAvatar === 'string' && themeAvatar.startsWith('data:image')) {
+        uploadPromises.push(
+          this.uploadAsset({
+            base64Data: themeAvatar,
+            filename: 'avatar.jpg',
+            folder: 'avatars',
+            treeId: id,
+          }).then((cdn) => {
+            if (cdn) themeAvatar = cdn;
+          })
+        );
+      }
+
       let banner = updates.bannerUrl ?? updates.customTheme?.bannerUrl;
       if (typeof banner === 'string' && banner.startsWith('data:image')) {
         uploadPromises.push(
@@ -410,6 +426,31 @@ export const db = {
         );
       }
 
+      // The background may hold the picture inside a url("data:..."). It is
+      // taken out and put on the storage, so that the tree does not carry
+      // megabytes of picture.
+      const baseTheme = updates.customTheme || updates.custom_theme || {};
+      let backgroundValue = baseTheme.backgroundValue;
+      const dataInside =
+        typeof backgroundValue === 'string'
+          ? backgroundValue.match(/url\(["']?(data:image\/[^)"']+)["']?\)/)
+          : null;
+      if (dataInside) {
+        const picture = dataInside[1];
+        uploadPromises.push(
+          this.uploadAsset({
+            base64Data: picture,
+            filename: 'wallpaper.jpg',
+            folder: 'wallpapers',
+            treeId: id,
+          }).then((cdn) => {
+            if (cdn) {
+              backgroundValue = backgroundValue.replace(dataInside[0], `url("${cdn}")`);
+            }
+          })
+        );
+      }
+
       if (uploadPromises.length > 0) {
         await Promise.all(uploadPromises);
       }
@@ -459,10 +500,10 @@ export const db = {
         if (curr?.custom_theme) existingTheme = curr.custom_theme;
       } catch {}
 
-      const baseTheme = updates.customTheme || updates.custom_theme || {};
       payload.custom_theme = {
         ...existingTheme,
         ...baseTheme,
+        ...(backgroundValue !== undefined ? { backgroundValue } : {}),
         ...(headerLayoutVal !== undefined ? { headerLayout: headerLayoutVal } : {}),
         ...(banner !== undefined ? { bannerUrl: banner } : {}),
         ...(hero !== undefined ? { heroUrl: hero } : {}),
@@ -470,6 +511,7 @@ export const db = {
         ...(logo !== undefined ? { logoUrl: logo } : {}),
         ...(bgImg !== undefined ? { backgroundImageUrl: bgImg } : {}),
         ...(wallpaperVideo !== undefined ? { wallpaperVideoUrl: wallpaperVideo } : {}),
+        ...(themeAvatar !== undefined ? { avatarUrl: themeAvatar } : {}),
         ...(altFontVal !== undefined ? { altFontEnabled: altFontVal } : {}),
         ...(titleFontVal !== undefined ? { titleFont: titleFontVal } : {}),
         ...(titleColorVal !== undefined ? { titleColor: titleColorVal } : {}),

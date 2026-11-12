@@ -14,6 +14,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { getPatternSvg, getContrastingPatternColor, isColorLight, loadOrganicPattern } from '../constants/patternSvg.js';
+import { uploadPicture } from '../lib/uploadPicture.js';
 
 export const WALLPAPER_IMAGE_PRESETS = [
   {
@@ -154,79 +155,40 @@ export function WallpaperEditor({ current, commitChange }) {
   const handleCustomImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
+    setShowImagePicker(false);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result;
-      if (typeof dataUrl === 'string') {
+    // The picture goes to the storage first, made smaller. Only the address
+    // of it goes into the tree: a picture of a few megabytes inside the tree
+    // makes every page of it slow to open.
+    uploadPicture(file, { folder: 'wallpapers', maxWidth: 1920, maxHeight: 1920 })
+      .then((url) => {
+        if (!url) return;
         syncBackgroundValue({
-          backgroundImageUrl: dataUrl,
+          backgroundImageUrl: url,
           wallpaperStyle: activeStyle === 'fill' ? 'image' : activeStyle,
         });
-        setShowImagePicker(false);
-
-        // Upload to backend CDN storage so huge base64 strings don't bloat DB
-        fetch('/api/admin/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ file: dataUrl, filename: file.name, folder: 'wallpapers' }),
-        })
-          .then((r) => (r.ok ? r.json() : null))
-          .then((res) => {
-            if (res?.url && !res.fallback) {
-              syncBackgroundValue({
-                backgroundImageUrl: res.url,
-                wallpaperStyle: activeStyle === 'fill' ? 'image' : activeStyle,
-              });
-            }
-          })
-          .catch(() => {});
-      }
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+      })
+      .catch(() => {});
   };
 
   const handleCustomVideoUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result;
-      if (typeof dataUrl === 'string') {
+    // The picture goes to the storage first, made smaller.
+    uploadPicture(file, { folder: 'wallpapers', maxWidth: 1920, maxHeight: 1920 })
+      .then((url) => {
+        if (!url) return;
         syncBackgroundValue({
           wallpaperStyle: 'video',
           backgroundType: 'video',
-          wallpaperVideoUrl: dataUrl,
-          backgroundImageUrl: dataUrl,
+          wallpaperVideoUrl: url,
+          backgroundImageUrl: url,
         });
-
-        // The picture goes to the storage. A picture of a few megabytes
-        // inside the tree makes every page of it slow to open.
-        fetch('/api/admin/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ file: dataUrl, filename: file.name, folder: 'wallpapers' }),
-        })
-          .then((r) => (r.ok ? r.json() : null))
-          .then((res) => {
-            if (res?.url && !res.fallback) {
-              syncBackgroundValue({
-                wallpaperStyle: 'video',
-                backgroundType: 'video',
-                wallpaperVideoUrl: res.url,
-                backgroundImageUrl: res.url,
-              });
-            }
-          })
-          .catch(() => {});
-      }
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+      })
+      .catch(() => {});
   };
 
   return (

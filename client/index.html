@@ -20,7 +20,35 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- One stylesheet for the fonts. It used to be here three times, which meant the browser asked for it three times. -->
     <!-- Only the fonts the themes use. The rest are fetched when a tree picks one. -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@400;700&family=Space+Grotesk:wght@400;700&display=swap">
+    <!-- The page is not held up by the fonts: they come when they are ready. -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@400;700&family=Space+Grotesk:wght@400;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@400;700&family=Space+Grotesk:wght@400;700&display=swap">
+    </noscript>
+    <script>
+      // The request for the tree starts here, before the program is even
+      // loaded. The cards are then there much sooner, because the browser
+      // does not have to wait for the whole program to arrive first.
+      (function () {
+        try {
+          var known = { home: 1, dashboard: 1, admin: 1, app: 1, contact: 1, pricing: 1, features: 1, solutions: 1 };
+          var slug = decodeURIComponent(location.pathname.replace(/^\/(t\/)?/, '').replace(/^@/, '').split('/')[0]);
+          if (!slug || known[slug]) return;
+          window.__indiatapsTree = {
+            slug: slug,
+            promise: fetch('/api/public/trees/' + encodeURIComponent(slug))
+              .then(function (res) {
+                return res.json().catch(function () { return null; }).then(function (body) {
+                  return { status: res.status, body: body };
+                });
+              })
+              .catch(function () { return { status: 0, body: null }; }),
+          };
+        } catch (error) {
+          // The page works without it.
+        }
+      })();
+    </script>
   </head>
   <body class="bg-[#F6F6F7] text-[#111111] antialiased">
     <div id="root"></div>
