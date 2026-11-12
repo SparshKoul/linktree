@@ -3083,33 +3083,15 @@ export function Dashboard() {
               <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
                 <div
                   className="w-full h-full absolute inset-0"
-                  style={{
-                    background:
-                      activeTheme?.wallpaperStyle === 'video'
-                        ? 'transparent'
-                        : activeTheme?.backgroundType === 'solid' || activeTheme?.wallpaperStyle === 'fill'
-                        ? (activeTheme?.backgroundValue?.startsWith('#') ? activeTheme.backgroundValue : (activeTheme?.backgroundColor || '#F3F3F1'))
-                        : activeTheme?.backgroundImageUrl
-                        ? `url("${activeTheme.backgroundImageUrl}") center / cover no-repeat`
-                        : activeTheme?.backgroundValue || activeTheme?.backgroundColor || '#111111',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    filter:
-                      activeTheme?.wallpaperStyle === 'blur'
-                        ? `blur(${activeTheme?.blurAmount ?? 20}px)`
-                        : activeTheme?.effect === 'mono'
-                        ? 'grayscale(100%)'
-                        : activeTheme?.effect === 'blur'
-                        ? `blur(${activeTheme?.blurAmount ?? 10}px)`
-                        : activeTheme?.effect === 'halftone'
-                        ? 'contrast(200%) grayscale(100%)'
-                        : 'none',
-                    transform:
-                      activeTheme?.wallpaperStyle === 'blur' || activeTheme?.effect === 'blur'
-                        ? 'scale(1.12)'
-                        : 'none',
-                  }}
+                  style={
+                    activeTheme?.wallpaperStyle === 'video'
+                      ? { backgroundColor: 'transparent', filter: 'none', transform: 'none' }
+                      : activeTheme?.backgroundType === 'solid' || activeTheme?.wallpaperStyle === 'fill'
+                      ? { backgroundColor: (activeTheme?.backgroundValue?.startsWith('#') ? activeTheme.backgroundValue : (activeTheme?.backgroundColor || '#F3F3F1')), filter: 'none', transform: 'none' }
+                      : activeTheme?.backgroundImageUrl
+                      ? { backgroundImage: `url("${activeTheme.backgroundImageUrl}") center / cover no-repeat`, filter: 'none', transform: 'none' }
+                      : { backgroundColor: activeTheme?.backgroundValue || activeTheme?.backgroundColor || '#111111', filter: 'none', transform: 'none' }
+                  }
                 />
 
                 {activeTheme?.wallpaperStyle === 'video' &&
