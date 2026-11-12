@@ -69,6 +69,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// The response body is the answer the page asked for. A 304 with an empty
+// JSON body is how "fresh" data stops reaching the dashboard: the client
+// sees a 304 (not ok for fetch) and silently keeps a stale local copy.
+// Dynamic API payloads disable ETag entirely so they are always full-200.
+app.set('etag', false);
+
+// No layer between the browser and this API may reuse a response for a
+// different caller. The public tree route overrides its own header below.
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
 // Identity comes from the signed session cookie only.
 // The x-user-id header and the legacy userId/token cookies are ignored on
 // purpose: they are caller-supplied and were used to impersonate any account.

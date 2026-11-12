@@ -199,7 +199,7 @@ export function Dashboard() {
 
     // Sync user, trees, and cards with Supabase backend.
     // The session cookie is the only credential; there is no user id header.
-    fetch('/api/auth/me', { credentials: 'include' })
+    fetch('/api/auth/me', { credentials: 'include', cache: 'no-store' })
       .then(async (res) => {
         if (res.status === 401) {
           // Session expired or was never established: drop the stale local user.
@@ -219,7 +219,7 @@ export function Dashboard() {
       })
       .catch(() => {});
 
-    fetch('/api/admin/trees', { credentials: 'include' })
+    fetch('/api/admin/trees', { credentials: 'include', cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : null))
       .then((serverTrees) => {
         if (serverTrees && serverTrees.length > 0) {
@@ -228,7 +228,7 @@ export function Dashboard() {
           const activeTreeId = Number(storage.getActiveTreeId());
           const target = serverTrees.find((t) => t.id === activeTreeId) || serverTrees[0];
           if (target) {
-            fetch(`/api/admin/trees/${target.id}`, { credentials: 'include' })
+            fetch(`/api/admin/trees/${target.id}`, { credentials: 'include', cache: 'no-store' })
               .then((r) => (r.ok ? r.json() : null))
               .then((fullTree) => {
                 if (fullTree) {
@@ -314,6 +314,7 @@ export function Dashboard() {
     // Always fetch latest from Supabase so multi-device updates reflect immediately
     fetch(`/api/admin/trees/${numId}`, {
       credentials: 'include',
+      cache: 'no-store',
     })
       .then((r) => (r.ok ? r.json() : null))
       .then((fullTree) => {
