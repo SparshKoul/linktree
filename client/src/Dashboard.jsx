@@ -1549,6 +1549,60 @@ export function Dashboard() {
                   </span>
                 </div>
 
+                {/* Card switcher — every IndiaTaps under this account */}
+                {trees.length > 0 && (
+                  <div className="rounded-2xl bg-[#F6F6F7] border border-gray-100 p-1.5">
+                    <div className="flex items-center gap-1.5 px-2 pt-1 pb-1.5 text-[10px] font-black uppercase tracking-wide text-gray-400">
+                      <Layers className="w-3 h-3" />
+                      <span>Your IndiaTaps ({trees.length})</span>
+                    </div>
+                    <div className="space-y-0.5 max-h-52 overflow-y-auto">
+                      {trees.map((tree) => {
+                        const isActive = currentTree && tree.id === currentTree.id;
+                        return (
+                          <button
+                            key={tree.id}
+                            onClick={() => {
+                              loadTreeDetails(tree.id);
+                              if (currentView !== 'workspace' && currentView !== 'dashboard') {
+                                setCurrentView('workspace');
+                              }
+                              if (window.innerWidth < 1024) setIsSidebarOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-left transition-colors cursor-pointer ${
+                              isActive
+                                ? 'bg-white shadow-2xs font-bold text-black'
+                                : 'text-gray-600 hover:bg-white/70 hover:text-black'
+                            }`}
+                          >
+                            <div
+                              className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                                isActive
+                                  ? 'bg-purple-100 text-purple-700'
+                                  : 'bg-white text-gray-400 border border-gray-200'
+                              }`}
+                            >
+                              <Layers className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="text-xs truncate">@{tree.slug}</span>
+                            {typeof tree.cardCount === 'number' && (
+                              <span
+                                className={`ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                                  isActive
+                                    ? 'bg-purple-100 text-purple-700'
+                                    : 'bg-white border border-gray-200 text-gray-400'
+                                }`}
+                              >
+                                {tree.cardCount} {tree.cardCount === 1 ? 'card' : 'cards'}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Account Actions */}
                 <div className="space-y-0.5 text-xs font-semibold text-gray-700">
                   <button
@@ -1881,6 +1935,47 @@ export function Dashboard() {
                               <span>Save tree to database</span>
                             </button>
 
+                            {/* Switch between your IndiaTaps (mobile) */}
+                            {trees.length > 1 && (
+                              <>
+                                <div className="my-1 border-t border-gray-100" />
+                                <div className="px-3 pt-1 pb-1 text-[10px] font-black uppercase tracking-wide text-gray-400">
+                                  Your IndiaTaps
+                                </div>
+                                {trees.map((tree) => {
+                                  const isActive = currentTree && tree.id === currentTree.id;
+                                  return (
+                                    <button
+                                      key={tree.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setIsMobileMoreMenuOpen(false);
+                                        loadTreeDetails(tree.id);
+                                        if (currentView !== 'workspace' && currentView !== 'dashboard') {
+                                          setCurrentView('workspace');
+                                        }
+                                      }}
+                                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-colors cursor-pointer ${
+                                        isActive
+                                          ? 'bg-[#F6F6F7] font-bold text-black'
+                                          : 'text-gray-700 hover:text-black hover:bg-[#F6F6F7]'
+                                      }`}
+                                    >
+                                      <Layers
+                                        className={`w-4 h-4 shrink-0 ${isActive ? 'text-purple-600' : 'text-gray-400'}`}
+                                      />
+                                      <span className="truncate">@{tree.slug}</span>
+                                      {typeof tree.cardCount === 'number' && (
+                                        <span className="ml-auto text-[9px] font-bold text-gray-400 shrink-0">
+                                          {tree.cardCount} {tree.cardCount === 1 ? 'card' : 'cards'}
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </>
+                            )}
+
                             <div className="my-1 border-t border-gray-100" />
 
                             <button
@@ -2100,6 +2195,42 @@ export function Dashboard() {
                     </button>
                   </div>
                 </div>
+
+                {/* Mobile tree switcher — chips under the account header */}
+                {trees.length > 1 && (
+                  <div className="lg:hidden pb-1 -mt-1">
+                    <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                      {trees.map((tree) => {
+                        const isActive = currentTree && tree.id === currentTree.id;
+                        return (
+                          <button
+                            key={tree.id}
+                            type="button"
+                            onClick={() => {
+                              loadTreeDetails(tree.id);
+                              if (currentView !== 'workspace' && currentView !== 'dashboard') {
+                                setCurrentView('workspace');
+                              }
+                            }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold shrink-0 border transition-colors cursor-pointer ${
+                              isActive
+                                ? 'bg-[#111111] text-white border-[#111111]'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:text-black'
+                            }`}
+                          >
+                            <Layers className={`w-3 h-3 shrink-0 ${isActive ? 'text-white/80' : 'text-gray-400'}`} />
+                            <span>@{tree.slug}</span>
+                            {typeof tree.cardCount === 'number' && (
+                              <span className={isActive ? 'text-white/60 font-semibold' : 'text-gray-400 font-semibold'}>
+                                {tree.cardCount}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Desktop Header Title & Top Right Icons matching Image 1 */}
                 <div className="hidden lg:flex items-center justify-between">
