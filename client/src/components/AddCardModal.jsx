@@ -264,7 +264,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
         id: 'messaging',
         title: 'Messaging',
         desc: 'Let visitors message you directly from your IndiaTaps',
-        type: 'contact',
+        type: 'contact_form',
         renderIcon: () => (
           <div className="w-9 h-9 rounded-full bg-black text-white flex items-center justify-center shrink-0">
             <Send className="w-4 h-4 ml-0.5" />
@@ -335,7 +335,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
         id: 'store',
         title: 'Store',
         desc: 'Display products directly on your profile',
-        type: 'store',
+        type: 'product',
         renderIcon: () => (
           <div className="w-9 h-9 rounded-full bg-[#10B981] text-white flex items-center justify-center shrink-0">
             <ShoppingBag className="w-4 h-4" />
@@ -689,7 +689,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
 
                   <button
                     onClick={() => {
-                      onAddCard('product', 'Special Product', { price: '$49.00' });
+                      onAddCard('product', 'My Product', { url: '', isSettingUp: true });
                       onClose();
                     }}
                     className="bg-[#F4F4F5] hover:bg-[#E8E8EA] p-2.5 lg:p-3 rounded-2xl flex flex-col justify-between h-[72px] lg:h-[88px] text-left transition-colors cursor-pointer"

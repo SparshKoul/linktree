@@ -430,7 +430,11 @@ function CardRendererView({ card, theme, isPreview = false }) {
         <div className="p-3.5 flex items-center justify-between">
           <div>
             <div className="font-bold text-xs">{card.title}</div>
-            <div className="text-[11px] font-semibold opacity-75">{card.settings?.price || '$49.00'}</div>
+            {/* The price is only shown when the owner wrote one down. Nothing
+                is invented here. */}
+            {card.settings?.price ? (
+              <div className="text-[11px] font-semibold opacity-75">{card.settings.price}</div>
+            ) : null}
           </div>
           <span className="px-3 py-1.5 rounded-full bg-black text-white text-[10px] font-bold">
             Buy
