@@ -850,14 +850,15 @@ function CardRendererView({ card, theme, isPreview = false }) {
         } text-xs font-semibold transition-all hover:scale-[1.01] active:scale-[0.99] shadow-2xs flex items-center justify-between relative group ${animClass}`}
         style={buttonStyleObj}
       >
-        {/* Left Side: Circular White Badge Thumbnail / Icon + Title & Subtitle */}
+        {/* Left Side: Circular White Badge Thumbnail; the title & subtitle stay
+            centred in the pill, the same as plain links without a badge. */}
         {showThumbnail ? (
-          <div className="flex items-center gap-3 min-w-0 pr-2 flex-1">
+          <>
             <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 shadow-xs overflow-hidden p-1.5">
               <FaviconIcon card={card} className="w-5 h-5 text-[#111111]" containerClassName="w-full h-full flex items-center justify-center rounded-full" />
             </div>
 
-            <div className="min-w-0 text-left py-0.5 flex-1">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center min-w-0 max-w-[calc(100%-7.5rem)] px-1">
               <div className="font-bold text-xs truncate leading-snug">{card.title}</div>
               {subtitle && (
                 <div
@@ -868,7 +869,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
                 </div>
               )}
             </div>
-          </div>
+          </>
         ) : (
           <div className="flex-1 text-center py-0.5 px-6">
             <div className="font-bold text-sm sm:text-base truncate leading-snug">{card.title}</div>
