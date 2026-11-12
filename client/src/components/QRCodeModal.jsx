@@ -8,7 +8,7 @@ export function QRCodeModal({ isOpen, onClose, treeSlug = 'riyast' }) {
 
   if (!isOpen) return null;
 
-  const url = `https://indiataps.com/${treeSlug}`;
+  const url = `https://indiataps.vercel.app/${treeSlug}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(url);
@@ -126,7 +126,7 @@ export function QRCodeModal({ isOpen, onClose, treeSlug = 'riyast' }) {
           </div>
 
           <div className="font-mono text-xs font-semibold text-gray-500">
-            indiataps.com/{treeSlug}
+            indiataps.vercel.app/{treeSlug}
           </div>
         </div>
 

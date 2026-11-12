@@ -19,16 +19,13 @@ if (typeof window !== 'undefined') {
 }
 import {
   ExternalLink,
-  ShoppingBag,
   Heart,
   Calendar,
-  Mail,
   MapPin,
   ChevronDown,
   ChevronUp,
   Share2,
   Check,
-  Send,
   Download,
   Phone,
   MessageCircle,
@@ -425,40 +422,6 @@ function CardRendererView({ card, theme, isPreview = false }) {
     );
   }
 
-  // 5. Product / Shop Card
-  if (card.type === 'product') {
-    return (
-      <a
-        href={cardHref || '#'}
-        target="_blank"
-        rel="noreferrer"
-        className="w-full rounded-2xl overflow-hidden text-left shadow-2xs block hover:scale-[1.01] transition-transform"
-        style={{ ...buttonStyleObj, borderRadius: '20px' }}
-      >
-        {thumbnailUrl ? (
-          <img src={thumbnailUrl} alt={card.title} className="w-full h-32 object-cover" />
-        ) : (
-          <div className="w-full h-24 bg-black/5 flex items-center justify-center">
-            <ShoppingBag className="w-8 h-8 opacity-30" />
-          </div>
-        )}
-        <div className="p-3.5 flex items-center justify-between">
-          <div>
-            <div className="font-bold text-xs">{card.title}</div>
-            {/* The price is only shown when the owner wrote one down. Nothing
-                is invented here. */}
-            {card.settings?.price ? (
-              <div className="text-[11px] font-semibold opacity-75">{card.settings.price}</div>
-            ) : null}
-          </div>
-          <span className="px-3 py-1.5 rounded-full bg-black text-white text-[10px] font-bold">
-            Buy
-          </span>
-        </div>
-      </a>
-    );
-  }
-
   // 6. Tip Jar Card
   if (card.type === 'tip_jar') {
     return (
@@ -502,76 +465,6 @@ function CardRendererView({ card, theme, isPreview = false }) {
             Tickets
           </a>
         </div>
-      </div>
-    );
-  }
-
-  // 8. Email Signup Card
-  if (card.type === 'email_signup') {
-    return (
-      <div className="w-full p-4 rounded-2xl space-y-2.5 text-center shadow-2xs" style={buttonStyleObj}>
-        <div className="font-bold text-xs">{card.title}</div>
-        <form
-          onSubmit={(e) => {
-            // Nothing can be sent yet, so no outcome is ever claimed here.
-            e.preventDefault();
-          }}
-          className="flex gap-2"
-        >
-          <input
-            type="email"
-            required
-            value={emailInput}
-            onChange={(e) => setEmailInput(e.target.value)}
-            placeholder="Your email address"
-            className="flex-1 px-3 py-2 rounded-xl bg-black/5 text-xs placeholder:text-gray-400 focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 rounded-xl bg-black text-white text-xs font-bold hover:bg-gray-800 transition-colors"
-          >
-            Join
-          </button>
-        </form>
-      </div>
-    );
-  }
-
-  // 9. Contact Form Card
-  if (card.type === 'contact_form') {
-    return (
-      <div className="w-full p-4 rounded-2xl space-y-3 text-left shadow-2xs" style={buttonStyleObj}>
-        <div className="font-bold text-xs text-center">{card.title}</div>
-        <form
-          onSubmit={(e) => {
-            // Nothing can be sent yet, so no outcome is ever claimed here.
-            e.preventDefault();
-          }}
-          className="space-y-2"
-        >
-          <input
-            type="text"
-            required
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            placeholder="Your name"
-            className="w-full px-3 py-2 rounded-xl bg-black/5 text-xs placeholder:text-gray-400 focus:outline-none"
-          />
-          <textarea
-            rows={2}
-            required
-            value={msgInput}
-            onChange={(e) => setMsgInput(e.target.value)}
-            placeholder="Your message..."
-            className="w-full px-3 py-2 rounded-xl bg-black/5 text-xs placeholder:text-gray-400 focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="w-full py-2 rounded-xl bg-black text-white text-xs font-bold hover:bg-gray-800 transition-colors"
-          >
-            Send Message
-          </button>
-        </form>
       </div>
     );
   }

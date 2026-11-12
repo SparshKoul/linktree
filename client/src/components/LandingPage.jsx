@@ -570,11 +570,11 @@ export function LandingPage({ onNavigate, onOpenAuth, currentUser, onLogout }) {
 
                   <div className="my-2 sm:my-2.5 space-y-1 sm:space-y-1.5 text-xs font-mono">
                     <div className="bg-black/30 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl flex items-center justify-between">
-                      <span className="truncate">indiataps.com/riyast</span>
+                      <span className="truncate">indiataps.vercel.app/riyast</span>
                       <span className="text-[9px] sm:text-[10px] text-pink-200">Cafe</span>
                     </div>
                     <div className="bg-black/30 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl flex items-center justify-between">
-                      <span className="truncate">indiataps.com/bistro</span>
+                      <span className="truncate">indiataps.vercel.app/bistro</span>
                       <span className="text-[9px] sm:text-[10px] text-pink-200">Cocktails</span>
                     </div>
                   </div>
@@ -710,7 +710,7 @@ export function LandingPage({ onNavigate, onOpenAuth, currentUser, onLogout }) {
                 </div>
                 <h4 className="font-black text-xs sm:text-sm text-white">Permanent URL & Vector QR</h4>
                 <p className="text-[11px] sm:text-xs text-pink-100/75 leading-relaxed">
-                  Every card receives a permanent clean link (`indiataps.com/slug`) and dynamic QR code ready for table tents and flyers.
+                  Every card receives a permanent clean link (`indiataps.vercel.app/slug`) and dynamic QR code ready for table tents and flyers.
                 </p>
               </div>
             </div>

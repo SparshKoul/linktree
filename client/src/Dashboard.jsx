@@ -549,7 +549,7 @@ export function Dashboard() {
       markChangeStatus('saved');
       setTopToast({
         title: 'Tree Saved to Database!',
-        subtitle: `All cards and state are live across devices on indiataps.com/${currentSlug}`,
+        subtitle: `All cards and state are live across devices on indiataps.vercel.app/${currentSlug}`,
       });
       setTimeout(() => {
         setTreeSavedRecently(false);
@@ -1611,7 +1611,7 @@ export function Dashboard() {
                     </div>
                     <div className="truncate">
                       <div className="font-bold text-xs text-[#111111] leading-tight truncate">{currentSlug}</div>
-                      <div className="text-[10px] text-gray-400 font-mono leading-tight truncate">indiataps.com/{currentSlug}</div>
+                      <div className="text-[10px] text-gray-400 font-mono leading-tight truncate">indiataps.vercel.app/{currentSlug}</div>
                     </div>
                   </div>
                   <span className="text-[10px] font-semibold text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full bg-white shrink-0">
@@ -2411,7 +2411,7 @@ export function Dashboard() {
                   <div className="hidden lg:flex relative bg-white border border-gray-200/90 rounded-2xl p-3 items-center justify-between shadow-2xs hover:border-gray-300 transition-colors">
                     <div className="space-y-0.5">
                       <div className="font-extrabold text-xs text-[#111111]">Add to your bios</div>
-                      <div className="text-[10px] text-gray-400 font-mono">indiataps.com/{currentSlug}</div>
+                      <div className="text-[10px] text-gray-400 font-mono">indiataps.vercel.app/{currentSlug}</div>
                     </div>
                     <div className="flex items-center gap-2 pr-4">
                       {/* Social bio badge */}

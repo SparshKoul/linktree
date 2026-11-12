@@ -87,7 +87,7 @@ export function ContactPage({ onNavigate, onOpenAuth, currentUser }) {
     },
     {
       q: 'Can I use custom URLs and QR codes?',
-      a: 'Yes! Every card receives its own globally unique permanent URL (e.g. indiataps.com/yourbrand) and an instant QR code you can share on Instagram, print on table standees, or add to business collateral.',
+      a: 'Yes! Every card receives its own globally unique permanent URL (e.g. indiataps.vercel.app/yourbrand) and an instant QR code you can share on Instagram, print on table standees, or add to business collateral.',
     },
   ];
 
@@ -324,7 +324,7 @@ export function ContactPage({ onNavigate, onOpenAuth, currentUser }) {
                       Your Business Brand
                     </h3>
                     <div className="text-[10px] text-gray-500 font-medium mb-3">
-                      indiataps.com/yourname
+                      indiataps.vercel.app/yourname
                     </div>
 
                     {/* Card 1: Form / Contact Card */}

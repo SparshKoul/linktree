@@ -187,7 +187,7 @@ export function CreateTreeModal({
                 </label>
                 <div className="flex items-center rounded-2xl border border-gray-200 bg-[#F6F6F7] focus-within:bg-white focus-within:ring-2 focus-within:ring-[#7033FF] overflow-hidden transition-all">
                   <span className="px-4 py-3 text-gray-400 text-sm font-semibold select-none border-r border-gray-200">
-                    indiataps.com/
+                    indiataps.vercel.app/
                   </span>
                   <input
                     type="text"
