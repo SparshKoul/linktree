@@ -91,6 +91,22 @@ export const getUrlMetadata = (rawQuery) => {
   };
 };
 
+/**
+ * Does this search text mean the owner is looking for a place (Maps or
+ * Reviews)? Only whole words count: "marketplace" and "workplace" are not
+ * searches for a place. And anything that already looks like a web address
+ * is a link, never a place — the owner pasting a URL wants that URL.
+ * @param {string} query the text typed in the Add search bar
+ * @returns {boolean}
+ */
+export function isMapsSearch(query) {
+  const typed = (query || '').trim();
+  if (!typed) return false;
+  // A web address (with a dot and no spaces) is always added as a link.
+  if (/^(https?:\/\/)?[^\s]+\.[^\s]{2,}$/i.test(typed)) return false;
+  return /\b(maps|location|place|goo\.gl)\b/i.test(typed);
+}
+
 export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard }) {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -110,31 +126,30 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
     const mapsUrl = isAddress ? typed : '';
     const placeTitle = typed && !isAddress ? typed : '';
 
-    setTimeout(async () => {
-      if (type === 'maps') {
-        await onAddCard('maps', placeTitle, {
-          placeName: placeTitle,
-          address: '',
-          subtitle: '',
-          url: mapsUrl,
-          layout: 'classic',
-          hasMapThumbnail: true,
-          isSettingUp: true,
-        });
-      } else {
-        // Reviews
-        await onAddCard('reviews', placeTitle ? `Reviews · ${placeTitle}` : 'Google Reviews', {
-          placeName: placeTitle,
-          subtitle: '',
-          url: mapsUrl,
-          layout: 'classic',
-          isSettingUp: true,
-        });
-      }
+    // The card is added right away — no pretend loading.
+    if (type === 'maps') {
+      await onAddCard('maps', placeTitle, {
+        placeName: placeTitle,
+        address: '',
+        subtitle: '',
+        url: mapsUrl,
+        layout: 'classic',
+        hasMapThumbnail: true,
+        isSettingUp: true,
+      });
+    } else {
+      // Reviews
+      await onAddCard('reviews', placeTitle ? `Reviews · ${placeTitle}` : 'Google Reviews', {
+        placeName: placeTitle,
+        subtitle: '',
+        url: mapsUrl,
+        layout: 'classic',
+        isSettingUp: true,
+      });
+    }
 
-      setLoadingResultId(null);
-      onClose();
-    }, 450);
+    setLoadingResultId(null);
+    onClose();
   };
 
   const handleSelectUrl = async (urlStr) => {
@@ -172,11 +187,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
     }
   };
 
-  const isMapsQuery =
-    query.toLowerCase().includes('maps') ||
-    query.toLowerCase().includes('goo.gl') ||
-    query.toLowerCase().includes('location') ||
-    query.toLowerCase().includes('place');
+  const isMapsQuery = isMapsSearch(query);
 
   const isSearchActive = isFocused || query.length > 0;
   const displayTitle = query.trim() || 'Location Pin';

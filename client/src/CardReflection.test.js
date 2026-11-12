@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getUrlMetadata } from './components/AddCardModal.jsx';
+import { getUrlMetadata, isMapsSearch } from './components/AddCardModal.jsx';
 
 describe('Card Reflection Logic', () => {
   it('detects unconfigured card state for empty urls in phone preview', () => {
@@ -52,6 +52,22 @@ describe('Card Reflection Logic', () => {
     // Without a protocol the https:// is added, the path still kept.
     expect(getUrlMetadata('instagram.com/myprofile').url).toBe('https://instagram.com/myprofile');
     expect(getUrlMetadata('twitter.com/user/status/123').url).toBe('https://twitter.com/user/status/123');
+  });
+
+  it('only treats a real place search as Maps, never ordinary words or URLs', () => {
+    // A search about a place shows the Maps / Reviews results.
+    expect(isMapsSearch('best place to eat delhi')).toBe(true);
+    expect(isMapsSearch('maps location')).toBe(true);
+
+    // Ordinary words that merely contain "place" or "maps" are not hijacked.
+    expect(isMapsSearch('marketplace')).toBe(false);
+    expect(isMapsSearch('workplace culture')).toBe(false);
+    expect(isMapsSearch('coffee shop')).toBe(false);
+
+    // Anything that looks like a web address is a link, even a maps one.
+    expect(isMapsSearch('https://maps.google.com/maps?q=delhi')).toBe(false);
+    expect(isMapsSearch('goo.gl/maps/xyz')).toBe(false);
+    expect(isMapsSearch('marketplace.com')).toBe(false);
   });
 
   it('correctly formats Maps link card with place title and address', () => {
