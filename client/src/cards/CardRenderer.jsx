@@ -36,7 +36,6 @@ import {
   Music,
   Lock,
   Loader2,
-  MoreVertical,
   X,
   Navigation,
   ImageIcon,
@@ -260,21 +259,6 @@ function CardRendererView({ card, theme, isPreview = false }) {
     }
     lastModalCloseTime = Date.now();
     setIsPageOpen(false);
-  };
-
-  const handleOpenPage = (e) => {
-    if (Date.now() - lastModalCloseTime < 750) {
-      if (e) {
-        if (typeof e.preventDefault === 'function') e.preventDefault();
-        if (typeof e.stopPropagation === 'function') e.stopPropagation();
-      }
-      return;
-    }
-    if (e) {
-      if (typeof e.preventDefault === 'function') e.preventDefault();
-      if (typeof e.stopPropagation === 'function') e.stopPropagation();
-    }
-    setIsPageOpen(true);
   };
 
   const handleUnlockAge = () => {
@@ -845,16 +829,6 @@ function CardRendererView({ card, theme, isPreview = false }) {
               )}
             </div>
           </div>
-
-          {/* Three dots menu */}
-          <button
-            type="button"
-            onClick={handleOpenPage}
-            className="absolute right-4 bottom-4 p-1 rounded-full opacity-60 hover:opacity-100 hover:bg-black/10 transition-all cursor-pointer"
-            title="Open details"
-          >
-            <MoreVertical className="w-4 h-4" />
-          </button>
         </div>
 
         {/* Standalone Card Page Modal */}
@@ -913,26 +887,19 @@ function CardRendererView({ card, theme, isPreview = false }) {
           </div>
         )}
 
-        {/* Right Side: Three Dots Action Menu that opens the Standalone Card Page */}
-        <div className={`${showThumbnail ? 'shrink-0 pr-1' : 'absolute right-4 top-1/2 -translate-y-1/2'} flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity`}>
-          {isPdf && (
-            <span className="text-[9px] font-black px-1.5 py-0.5 rounded-[3px] bg-red-100 text-red-600 uppercase tracking-tight">
-              PDF
-            </span>
-          )}
-          {isLocked ? (
-            <Lock className="w-3.5 h-3.5 text-amber-500" />
-          ) : (
-            <button
-              type="button"
-              onClick={handleOpenPage}
-              className="p-1 rounded-full hover:bg-black/10 transition-colors cursor-pointer"
-              title="Open card page"
-            >
-              <MoreVertical className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+        {/* Right Side: PDF badge / lock indicator */}
+        {(isPdf || isLocked) && (
+          <div className={`${showThumbnail ? 'shrink-0 pr-1' : 'absolute right-4 top-1/2 -translate-y-1/2'} flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity`}>
+            {isPdf && (
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-[3px] bg-red-100 text-red-600 uppercase tracking-tight">
+                PDF
+              </span>
+            )}
+            {isLocked && (
+              <Lock className="w-3.5 h-3.5 text-amber-500" />
+            )}
+          </div>
+        )}
       </a>
 
       {/* Standalone Card Page Modal */}
