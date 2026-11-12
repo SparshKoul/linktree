@@ -731,7 +731,24 @@ export function Dashboard() {
    * The sequence number makes sure that a slow answer never overwrites a
    * newer one.
    */
-  const sendCardUpdate = async (cardId, updates) => {
+  const sendCardUpdate = async (cardId, updates, retryCount = 0) => {
+    // The save never arrived. Give it a couple of quiet retries before
+    // asking the user to worry. Re-queuing keeps the changes merged with
+    // anything newer the user typed in the meantime.
+    const requeue = () => {
+      const key = String(cardId);
+      pendingCardUpdatesRef.current[key] = {
+        ...(pendingCardUpdatesRef.current[key] || {}),
+        ...updates,
+      };
+      clearTimeout(cardUpdateTimersRef.current[key]);
+      cardUpdateTimersRef.current[key] = setTimeout(() => {
+        const pending = pendingCardUpdatesRef.current[key];
+        delete pendingCardUpdatesRef.current[key];
+        if (pending) sendCardUpdate(cardId, pending, retryCount + 1);
+      }, 1500 * (retryCount + 1));
+    };
+
     const key = String(cardId);
     const sequence = (cardUpdateSequenceRef.current[key] || 0) + 1;
     cardUpdateSequenceRef.current[key] = sequence;
@@ -748,6 +765,10 @@ export function Dashboard() {
       });
 
       if (!res.ok) {
+        if (retryCount < 3) {
+          requeue();
+          return;
+        }
         const error = await res.json().catch(() => ({}));
         markChangeStatus('failed');
         setTopToast({
@@ -799,8 +820,18 @@ export function Dashboard() {
         );
       }
     } catch {
-      // The server could not be reached. The change stays in this browser and
-      // goes out with the next save.
+      // The server could not be reached. Quietly retry first; the changes
+      // stay in this browser and merge with anything newer.
+      if (retryCount < 3) {
+        requeue();
+        return;
+      }
+      markChangeStatus('failed');
+      setTopToast({
+        title: 'Change not saved',
+        subtitle: 'The server could not be reached. It is saved in this browser only.',
+      });
+      setTimeout(() => setTopToast(null), 6000);
     }
   };
 

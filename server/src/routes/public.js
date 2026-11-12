@@ -42,7 +42,7 @@ export function registerPublicRoutes(app) {
     const wantsFresh = req.query.owner !== undefined;
     const cacheControl = wantsFresh
       ? 'private, no-cache'
-      : 'public, max-age=0, s-maxage=15, stale-while-revalidate=300';
+      : 'public, max-age=0, s-maxage=15, stale-while-revalidate=15';
     res.setHeader('Cache-Control', cacheControl);
 
     const suspendedResponse = () =>
