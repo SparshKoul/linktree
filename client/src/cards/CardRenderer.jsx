@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 // Module-level timestamp to prevent ghost tap-through on mobile
@@ -52,6 +52,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
   const [emailInput, setEmailInput] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [msgInput, setMsgInput] = useState('');
+  const audioRef = useRef(null);
 
   // Lock gate state
   const [isLocked, setIsLocked] = useState(card.lockType && card.lockType !== 'none');
@@ -401,7 +402,16 @@ function CardRendererView({ card, theme, isPreview = false }) {
             <div className="text-[10px] opacity-70">Audio Stream</div>
           </div>
         </div>
-        <button className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center shrink-0 hover:scale-105 transition-transform">
+        <button
+          onClick={() => {
+            // The play button plays the audio of the card, when there is one.
+            const audio = new Audio(card.url);
+            audioRef.current = audio;
+            audio.play().catch(() => {});
+          }}
+          className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center shrink-0 hover:scale-105 transition-transform"
+          aria-label="Play audio"
+        >
           <Play className="w-3.5 h-3.5 ml-0.5 opacity-80" />
         </button>
       </div>
