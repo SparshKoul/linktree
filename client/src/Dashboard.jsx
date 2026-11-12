@@ -12,7 +12,6 @@ import {
   Sparkles,
   Link2,
   Menu,
-  Bell,
   Users,
   Wrench,
   Search,
@@ -1456,7 +1455,7 @@ export function Dashboard() {
           /* EXPANDED SIDEBAR matching Image 0 & Image 1 */
           <aside className="fixed inset-y-0 left-0 z-50 w-72 lg:static lg:z-20 lg:w-64 bg-white border-r border-gray-200 flex flex-col justify-between p-4 shrink-0 overflow-y-auto shadow-2xl lg:shadow-2xs">
             <div className="space-y-4">
-              {/* Top row: User pill button + Bell notification */}
+              {/* Top row: User pill */}
               <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                 <div
                   className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-left"
@@ -1472,13 +1471,6 @@ export function Dashboard() {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <button
-                    className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-                    title="Notifications"
-                    aria-label="Notifications"
-                  >
-                    <Bell className="w-4 h-4" />
-                  </button>
                   <button
                     onClick={() => setIsSidebarOpen(false)}
                     className="lg:hidden text-gray-400 hover:text-black p-1.5 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer text-sm font-bold"
@@ -3012,12 +3004,9 @@ export function Dashboard() {
                   {isFooterEnabled && (
                     <div className="mt-auto pt-4 pb-4 space-y-2.5 w-full shrink-0">
                       {activeTheme?.footerButton && (
-                        <button
-                          type="button"
-                          className="w-full max-w-[210px] py-2 px-4 rounded-full bg-white text-black text-xs font-bold shadow-md hover:scale-[1.02] transition-transform mx-auto block cursor-pointer border border-gray-100"
-                        >
+                        <div className="w-full max-w-[210px] py-2 px-4 rounded-full bg-white text-black text-xs font-bold shadow-md mx-auto block border border-gray-100 text-center">
                           {activeTheme?.footerText || 'Get your own IndiaTaps'}
-                        </button>
+                        </div>
                       )}
                       <div className="text-[10px] text-gray-400 leading-tight">
                         Cookie Preferences · Report · Privacy

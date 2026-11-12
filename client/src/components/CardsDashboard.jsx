@@ -17,8 +17,6 @@ import {
   ShoppingBag,
   Palette,
   BarChart3,
-  Bell,
-  Send,
 } from 'lucide-react';
 import { storage } from '../services/storage.js';
 import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
@@ -101,9 +99,6 @@ export function CardsDashboard({
                 <User className="w-4 h-4 text-gray-500" />
               )}
             </div>
-            <button className="px-3 py-1 rounded-full border border-gray-300 text-xs font-semibold text-gray-800 bg-white shadow-2xs hover:bg-gray-50 transition-colors">
-              Try Pro free
-            </button>
           </div>
 
           <div className="flex items-center gap-3 text-gray-700">
@@ -113,15 +108,6 @@ export function CardsDashboard({
               title="Share"
             >
               <Share2 className="w-5 h-5 stroke-[1.8]" />
-            </button>
-            <button className="p-1 hover:text-black cursor-pointer transition-colors relative" title="Notifications">
-              <Bell className="w-5 h-5 stroke-[1.8]" />
-            </button>
-            <button className="p-1 hover:text-black cursor-pointer transition-colors relative" title="Messages">
-              <Send className="w-5 h-5 stroke-[1.8]" />
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#7033FF] text-white text-[8px] font-bold flex items-center justify-center shadow-xs">
-                1
-              </span>
             </button>
           </div>
         </div>
