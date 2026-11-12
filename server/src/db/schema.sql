@@ -176,9 +176,14 @@ CREATE TABLE IF NOT EXISTS public.analytics_events (
   user_agent TEXT,
   device_type TEXT,
   ip_hash TEXT,
+  visitor_hash TEXT,
   country TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- For a database that was made before the visitor column was added.
+ALTER TABLE public.analytics_events
+  ADD COLUMN IF NOT EXISTS visitor_hash TEXT;
 
 -- ------------------------------------------------------------------------------
 -- 5. Assets Table (Storage Media Ledger & CDN Tracking)
@@ -205,6 +210,7 @@ CREATE INDEX IF NOT EXISTS idx_cards_tree_pos ON public.cards (tree_id, position
 CREATE INDEX IF NOT EXISTS idx_cards_tree_visible_pos ON public.cards (tree_id, visible, position);
 CREATE INDEX IF NOT EXISTS idx_analytics_tree_created ON public.analytics_events (tree_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_analytics_card_created ON public.analytics_events (card_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_analytics_tree_type_created ON public.analytics_events (tree_id, event_type, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_assets_tree ON public.assets (tree_id);
 CREATE INDEX IF NOT EXISTS idx_assets_file_path ON public.assets (file_path);
 

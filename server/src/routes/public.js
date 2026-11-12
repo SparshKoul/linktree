@@ -4,7 +4,7 @@
 import { db } from '../db/db.js';
 import { supabase } from '../db/supabase.js';
 import { store } from '../lib/store.js';
-import { authRateLimiter, trackRateLimiter } from '../lib/rate-limit.js';
+import { authRateLimiter, trackRateLimiter, trackIpLimiter } from '../lib/rate-limit.js';
 import { safeEqual, dbErrorHint } from '../lib/errors.js';
 import {
   resolveTree,
@@ -118,7 +118,7 @@ export function registerPublicRoutes(app) {
   });
 
   // Public Click Tracker
-  app.post('/api/public/cards/:id/click', trackRateLimiter, async (req, res) => {
+  app.post('/api/public/cards/:id/click', trackRateLimiter, trackIpLimiter, async (req, res) => {
     const cardId = parseInt(req.params.id, 10);
     await db.incrementCardClicks(cardId);
 
@@ -138,6 +138,7 @@ export function registerPublicRoutes(app) {
       referrer: req.headers['referer'] || req.headers['referrer'],
       userAgent: req.headers['user-agent'],
       ip: req.ip || req.socket?.remoteAddress,
+      visitorId: req.headers['x-visitor-id'] || null,
     });
 
     res.json({ success: true, id: cardId });
@@ -170,7 +171,7 @@ export function registerPublicRoutes(app) {
   });
 
   // Public View Tracker (handles navigator.sendBeacon from public cards)
-  app.post('/api/track', trackRateLimiter, async (req, res) => {
+  app.post('/api/track', trackRateLimiter, trackIpLimiter, async (req, res) => {
     try {
       let body = req.body;
       if (typeof body === 'string') {
@@ -192,6 +193,7 @@ export function registerPublicRoutes(app) {
           referrer: req.headers['referer'] || req.headers['referrer'],
           userAgent: req.headers['user-agent'],
           ip: req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress,
+          visitorId: req.headers['x-visitor-id'] || body.visitorId || null,
         });
       }
       res.json({ success: true });

@@ -188,6 +188,37 @@ describe('Passcode gate', () => {
   });
 });
 
+describe('The numbers of a tree', () => {
+  it('asks a visitor to sign in', async () => {
+    const res = await fetch(`${baseUrl}/api/admin/trees/1/analytics`);
+    expect(res.status).toBe(401);
+  });
+
+  it('refuses the numbers of a tree of somebody else', async () => {
+    const res = await fetch(`${baseUrl}/api/admin/trees/1/analytics`, {
+      headers: { Cookie: `${SESSION_COOKIE}=${signSession(2)}` },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it.skipIf(!hasDatabase)('gives the owner the numbers of their own tree', async () => {
+    const res = await fetch(`${baseUrl}/api/admin/trees/2/analytics?days=30`, {
+      headers: { Cookie: `${SESSION_COOKIE}=${signSession(2)}` },
+    });
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.days).toBe(30);
+    expect(Array.isArray(body.daily)).toBe(true);
+    expect(body.daily.length).toBe(30);
+    expect(body.totals).toHaveProperty('views');
+    expect(body.totals).toHaveProperty('clicks');
+    expect(body.totals).toHaveProperty('visitors');
+    expect(Array.isArray(body.topCards)).toBe(true);
+    expect(Array.isArray(body.topReferrers)).toBe(true);
+  });
+});
+
 describe('Undo delete', () => {
   it.skipIf(!hasDatabase)('refuses to restore a tree that does not exist', async () => {
     const res = await fetch(`${baseUrl}/api/admin/trees/999999999/restore`, {

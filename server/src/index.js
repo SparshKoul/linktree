@@ -51,7 +51,7 @@ app.use(
     callback(null, {
       origin: allowed ? origin : false,
       credentials: true,
-      allowedHeaders: ['Content-Type', 'X-User-Id'],
+      allowedHeaders: ['Content-Type', 'X-User-Id', 'X-Visitor-Id'],
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     });
   })

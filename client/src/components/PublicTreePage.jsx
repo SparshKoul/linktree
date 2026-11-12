@@ -4,6 +4,7 @@ import { PRESET_THEMES } from '../constants/themes.js';
 import { Copy, Check, ArrowLeft, Users } from 'lucide-react';
 import { getPatternSvg, getContrastingPatternColor, loadOrganicPattern } from '../constants/patternSvg.js';
 import { loadFont } from '../constants/fonts.js';
+import { trackingHeaders } from '../services/visitor.js';
 import { TreeSkeleton } from './TreeSkeleton.jsx';
 import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
 
@@ -116,20 +117,18 @@ export function PublicTreePage({ slug }) {
         }
         setLoading(false);
 
-        // Record first-party cookieless view.
-        // sendBeacon sends text/plain by default, which Express does not parse
-        // as JSON, so the payload is sent as a JSON blob instead.
+        // Record the view. The visitor number is sent along, so that people
+        // behind the same address are not counted as one person.
         try {
-          if (navigator.sendBeacon) {
-            const payload = JSON.stringify({
+          fetch('/api/track', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...trackingHeaders() },
+            body: JSON.stringify({
               treeId: data?.tree?.id || 1,
               eventType: 'page_view',
-            });
-            navigator.sendBeacon(
-              '/api/track',
-              new Blob([payload], { type: 'application/json' })
-            );
-          }
+            }),
+            keepalive: true,
+          }).catch(() => {});
         } catch {
           // ignore tracking failure
         }

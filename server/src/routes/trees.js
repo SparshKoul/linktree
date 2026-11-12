@@ -123,6 +123,30 @@ export function registerTreeRoutes(app) {
   });
 
   // Get Tree Details with Cards (requires ownership)
+  // The numbers of a tree: views, clicks, where the visitors came from.
+  app.get('/api/admin/trees/:id/analytics', async (req, res) => {
+    const currentId = req.userId;
+    if (!currentId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const treeId = parseInt(req.params.id, 10);
+    const ownerId = await resolveTreeOwner(treeId);
+    if (ownerId === null) {
+      return res.status(404).json({ error: 'Tree not found' });
+    }
+    if (ownerId !== currentId) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to see this tree' });
+    }
+
+    const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 7), 365);
+    const analytics = await db.getTreeAnalytics(treeId, days);
+    if (!analytics) {
+      return res.status(503).json({ error: 'The numbers could not be read from the database.' });
+    }
+    res.json(analytics);
+  });
+
   app.get('/api/admin/trees/:id', async (req, res) => {
     const currentId = req.userId;
     if (!currentId) {

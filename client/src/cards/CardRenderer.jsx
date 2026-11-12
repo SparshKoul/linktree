@@ -45,6 +45,7 @@ import {
 import { FaviconIcon } from '../components/FaviconIcon.jsx';
 import { PdfViewer } from '../components/PdfViewer.jsx';
 import { safeHref } from '../constants/urls.js';
+import { trackingHeaders } from '../services/visitor.js';
 
 export function CardRenderer({ card, theme, isPreview = false }) {
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
@@ -236,7 +237,10 @@ export function CardRenderer({ card, theme, isPreview = false }) {
     }
     // Record click analytics in Supabase
     if (card?.id) {
-      fetch(`/api/public/cards/${card.id}/click`, { method: 'POST' }).catch(() => {});
+      fetch(`/api/public/cards/${card.id}/click`, {
+        method: 'POST',
+        headers: trackingHeaders(),
+      }).catch(() => {});
     }
   };
 

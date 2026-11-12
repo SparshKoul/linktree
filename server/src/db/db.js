@@ -1,4 +1,42 @@
+import crypto from 'crypto';
 import { supabase } from './supabase.js';
+
+/**
+ * The column visitor_hash came with migration 003. A database that has not
+ * run that migration yet must still work: the column is left out of the
+ * question when it is not there. The answer is remembered, so the check is
+ * paid only once.
+ * null = not known yet, true = there, false = not there
+ */
+let visitorHashSupported = null;
+
+/**
+ * Whether an error is only about the column visitor_hash.
+ * @param {object|null} error
+ * @returns {boolean}
+ */
+function isMissingVisitorHash(error) {
+  if (!error) return false;
+  const message = String(error.message || '');
+  if (!/visitor_hash/i.test(message)) return false;
+  return /(does not exist|not exist|unknown column|schema cache|invalid column)/i.test(message);
+}
+
+/**
+ * A name for a visitor of an event that was written before the visitor
+ * column existed: the address and the browser together.
+ * @param {string|null} ipHash
+ * @param {string|null} userAgent
+ * @returns {string|null}
+ */
+function visitorKeyFromOldEvent(ipHash, userAgent) {
+  if (!ipHash && !userAgent) return null;
+  return crypto
+    .createHash('sha256')
+    .update(`${ipHash || ''}|${userAgent || ''}`)
+    .digest('hex')
+    .substring(0, 16);
+}
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { sanitizeCardUrl, sanitizeCardSettings } from '../utils/url.js';
 
@@ -1460,6 +1498,143 @@ export const db = {
     }
   },
 
+  /**
+   * The numbers of a tree for the dashboard.
+   * Everything is worked out from the events of the last few weeks, so the
+   * screen always matches what the table holds.
+   * @param {number} treeId
+   * @param {number} [days] how many days to look at
+   */
+  async getTreeAnalytics(treeId, days = 30) {
+    try {
+      const numId = Number(treeId);
+      if (!numId || isNaN(numId)) return null;
+
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+      // The visitor column is only asked for when the database has it.
+      const readEvents = async (withVisitor) => {
+        const columns = withVisitor
+          ? 'event_type, card_id, referrer, device_type, visitor_hash, ip_hash, user_agent, created_at'
+          : 'event_type, card_id, referrer, device_type, ip_hash, user_agent, created_at';
+        return supabase
+          .from('analytics_events')
+          .select(columns)
+          .eq('tree_id', numId)
+          .gte('created_at', since)
+          .limit(20000);
+      };
+
+      let { data, error } = await readEvents(visitorHashSupported !== false);
+      if (error && visitorHashSupported !== false && isMissingVisitorHash(error)) {
+        visitorHashSupported = false;
+        ({ data, error } = await readEvents(false));
+      } else if (!error) {
+        visitorHashSupported = true;
+      }
+      if (error) throw error;
+
+      const events = data || [];
+      const tree = await this.getTreeById(numId);
+      const cards = tree?.cards || [];
+
+      const daily = {};
+      const dayKey = (value) => String(value).slice(0, 10);
+      for (let i = days - 1; i >= 0; i--) {
+        const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+        daily[dayKey(date.toISOString())] = { views: 0, clicks: 0 };
+      }
+
+      const referrers = {};
+      const devices = { mobile: 0, desktop: 0 };
+      const perCard = {};
+      const visitors = new Set();
+      let views = 0;
+      let clicks = 0;
+
+      for (const event of events) {
+        const key = dayKey(event.created_at);
+        if (!daily[key]) daily[key] = { views: 0, clicks: 0 };
+
+        if (event.event_type === 'card_click') {
+          clicks += 1;
+          daily[key].clicks += 1;
+          const cardId = event.card_id ? Number(event.card_id) : null;
+          if (cardId) perCard[cardId] = (perCard[cardId] || 0) + 1;
+        } else {
+          views += 1;
+          daily[key].views += 1;
+        }
+
+        if (event.visitor_hash) {
+          visitors.add(event.visitor_hash);
+        } else {
+          // An event from before the visitor column was there: the address
+          // and the browser together still say who it was.
+          const older = visitorKeyFromOldEvent(event.ip_hash, event.user_agent);
+          if (older) visitors.add(older);
+        }
+
+        const device = event.device_type === 'mobile' ? 'mobile' : 'desktop';
+        devices[device] += 1;
+
+        let source = 'Direct';
+        if (event.referrer) {
+          try {
+            const host = new URL(event.referrer).hostname.replace(/^www\./, '');
+            source = host || 'Direct';
+          } catch {
+            source = 'Direct';
+          }
+        }
+        referrers[source] = (referrers[source] || 0) + 1;
+      }
+
+      const topCards = Object.entries(perCard)
+        .map(([cardId, count]) => {
+          const card = cards.find((c) => c.id === Number(cardId));
+          return {
+            id: Number(cardId),
+            title: card?.title || 'A card that was removed',
+            type: card?.type || 'link',
+            clicks: count,
+          };
+        })
+        .sort((a, b) => b.clicks - a.clicks)
+        .slice(0, 8);
+
+      const topReferrers = Object.entries(referrers)
+        .map(([source, count]) => ({ source, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8);
+
+      const today = dayKey(new Date().toISOString());
+      const yesterday = dayKey(new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+      return {
+        days,
+        totals: {
+          views,
+          clicks,
+          visitors: visitors.size,
+          viewsToday: daily[today]?.views || 0,
+          clicksToday: daily[today]?.clicks || 0,
+          viewsYesterday: daily[yesterday]?.views || 0,
+          clicksYesterday: daily[yesterday]?.clicks || 0,
+          allTimeViews: Number(tree?.viewsCount || 0),
+          allTimeClicks: Number(tree?.clicksCount || 0),
+        },
+        daily: Object.entries(daily).map(([date, counts]) => ({ date, ...counts })),
+        devices,
+        topCards,
+        topReferrers,
+      };
+    } catch (err) {
+      console.warn('[DB getTreeAnalytics fallback]', err.message);
+      return null;
+    }
+  },
+
   async getAssets({ treeId, adminId, folder }) {
     try {
       let query = supabase.from('assets').select('*');
@@ -1475,26 +1650,44 @@ export const db = {
     }
   },
 
-  async recordAnalyticsEvent({ treeId, cardId, eventType, referrer, userAgent, ip }) {
+  async recordAnalyticsEvent({ treeId, cardId, eventType, referrer, userAgent, ip, visitorId }) {
     try {
       if (!treeId) return false;
       const deviceType = /mobile|iphone|android|ipad/i.test(userAgent || '') ? 'mobile' : 'desktop';
       const ipHash = ip ? Buffer.from(ip).toString('base64').substring(0, 16) : null;
+      // A hash of the visitor number, so that people can be counted apart
+      // from views without keeping anything that identifies them.
+      const visitorHash = visitorId
+        ? crypto.createHash('sha256').update(String(visitorId)).digest('hex').substring(0, 16)
+        : null;
 
       // 1. Log time-series event into analytics_events table
-      supabase
-        .from('analytics_events')
-        .insert({
-          tree_id: Number(treeId),
-          card_id: cardId ? Number(cardId) : null,
-          event_type: eventType || (cardId ? 'card_click' : 'page_view'),
-          referrer: referrer ? String(referrer).substring(0, 500) : null,
-          user_agent: userAgent ? String(userAgent).substring(0, 500) : null,
-          device_type: deviceType,
-          ip_hash: ipHash,
-        })
-        .then(() => {})
-        .catch(() => {});
+      const row = {
+        tree_id: Number(treeId),
+        card_id: cardId ? Number(cardId) : null,
+        event_type: eventType || (cardId ? 'card_click' : 'page_view'),
+        referrer: referrer ? String(referrer).substring(0, 500) : null,
+        user_agent: userAgent ? String(userAgent).substring(0, 500) : null,
+        device_type: deviceType,
+        ip_hash: ipHash,
+      };
+      if (visitorHash && visitorHashSupported !== false) {
+        row.visitor_hash = visitorHash;
+      }
+
+      let { error } = await supabase.from('analytics_events').insert(row);
+      if (error && row.visitor_hash && isMissingVisitorHash(error)) {
+        // The database has not run migration 003 yet. The event is written
+        // without the visitor column rather than not written at all.
+        visitorHashSupported = false;
+        delete row.visitor_hash;
+        ({ error } = await supabase.from('analytics_events').insert(row));
+      } else if (!error && row.visitor_hash) {
+        visitorHashSupported = true;
+      }
+      if (error) {
+        console.warn('[DB recordAnalyticsEvent insert]', error.message);
+      }
 
       // 2. Increment aggregate counter on tree (atomic, no lost updates)
       if (eventType === 'page_view') {
