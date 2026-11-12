@@ -596,12 +596,12 @@ export function LandingPage({ onNavigate, onOpenAuth, currentUser, onLogout }) {
                     </div>
                     <div className="flex items-center gap-1 text-amber-300 text-[11px] sm:text-xs font-black">
                       <Star className="w-3.5 h-3.5 fill-amber-300" />
-                      <span>4.9 (530+ Reviews)</span>
+                      <span>Your own rating</span>
                     </div>
                   </div>
 
                   <div className="mt-2.5 sm:mt-3 flex items-center justify-between text-[11px] sm:text-xs font-semibold text-blue-100 bg-black/20 p-2 sm:p-2.5 rounded-lg sm:rounded-xl">
-                    <span className="truncate pr-2">124 MG Road, Indiranagar • Open now</span>
+                    <span className="truncate pr-2">Your store address • Open now</span>
                     <span className="text-white font-bold underline cursor-pointer shrink-0">Open Maps →</span>
                   </div>
                 </div>
