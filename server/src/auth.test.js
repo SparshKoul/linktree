@@ -4,6 +4,13 @@ import { toPublicCard } from './lib/public-payload.js';
 import { isSafeCardUrl, sanitizeCardUrl } from './utils/url.js';
 import { SESSION_COOKIE, signSession, verifySession } from './utils/session.js';
 
+// Some checks talk to the database. They are skipped when the environment
+// has no database, so a fresh copy of the project still runs its tests.
+const hasDatabase = Boolean(
+  process.env.SUPABASE_URL &&
+    (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)
+);
+
 let server;
 let baseUrl;
 
@@ -75,7 +82,7 @@ describe('API identity', () => {
     expect(res.status).toBe(401);
   });
 
-  it('accepts a signed session cookie', async () => {
+  it.skipIf(!hasDatabase)('accepts a signed session cookie', async () => {
     const res = await fetch(`${baseUrl}/api/admin/trees`, {
       headers: { Cookie: `${SESSION_COOKIE}=${signSession(2)}` },
     });
@@ -141,7 +148,7 @@ describe('Card links', () => {
 });
 
 describe('View tracking', () => {
-  it('accepts a tracked page view instead of crashing', async () => {
+  it.skipIf(!hasDatabase)('accepts a tracked page view instead of crashing', async () => {
     const res = await fetch(`${baseUrl}/api/track`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -171,7 +178,7 @@ describe('Passcode gate', () => {
     expect(res.status).toBe(400);
   });
 
-  it('does not hand out a link for a card that does not exist', async () => {
+  it.skipIf(!hasDatabase)('does not hand out a link for a card that does not exist', async () => {
     const res = await fetch(`${baseUrl}/api/public/cards/999999999/unlock`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -182,7 +189,7 @@ describe('Passcode gate', () => {
 });
 
 describe('Undo delete', () => {
-  it('refuses to restore a tree that does not exist', async () => {
+  it.skipIf(!hasDatabase)('refuses to restore a tree that does not exist', async () => {
     const res = await fetch(`${baseUrl}/api/admin/trees/999999999/restore`, {
       method: 'POST',
       headers: { Cookie: `${SESSION_COOKIE}=${signSession(2)}` },
@@ -190,7 +197,7 @@ describe('Undo delete', () => {
     expect(res.status).toBe(404);
   });
 
-  it('refuses to restore a tree of somebody else', async () => {
+  it.skipIf(!hasDatabase)('refuses to restore a tree of somebody else', async () => {
     const res = await fetch(`${baseUrl}/api/admin/trees/1/restore`, {
       method: 'POST',
       headers: { Cookie: `${SESSION_COOKIE}=${signSession(2)}` },
