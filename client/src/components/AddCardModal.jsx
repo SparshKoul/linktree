@@ -472,15 +472,15 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
       }}
     >
       <div
-        className="bg-white rounded-t-[28px] sm:rounded-t-[32px] lg:rounded-[32px] w-full lg:max-w-[760px] p-4 sm:p-6 lg:p-7 space-y-3.5 lg:space-y-4 text-[#111111] shadow-2xl relative border-t border-gray-100 lg:border max-h-[92vh] lg:max-h-[600px] lg:min-h-[500px] flex flex-col justify-start animate-in slide-in-from-bottom duration-200 lg:slide-in-from-bottom-0"
+        className="bg-white rounded-t-[28px] sm:rounded-t-[32px] lg:rounded-[32px] w-full lg:max-w-[760px] p-4 sm:p-6 lg:p-7 space-y-3.5 lg:space-y-4 text-[#111111] shadow-2xl relative border-t border-gray-100 lg:border max-h-[94vh] lg:max-h-[600px] lg:min-h-[500px] flex flex-col justify-start animate-in slide-in-from-bottom duration-200 lg:slide-in-from-bottom-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mobile Top Drag Handle Bar */}
-        <div className="lg:hidden w-11 h-1 bg-[#D1D5DB] rounded-full mx-auto -mt-1 mb-1 shrink-0" />
+        <div className="lg:hidden w-11 h-1 bg-[#D1D5DB] rounded-full mx-auto mt-0.5 mb-2 shrink-0" />
 
         {/* Header — visible on all sizes */}
         <div className="flex items-center justify-between shrink-0">
-          <div className="w-6" />
+          <div className="w-7" />
           <h2 className="font-extrabold text-sm sm:text-base text-[#111111]">
             Add
           </h2>
@@ -493,7 +493,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
         </div>
 
         {/* Top Input Bar: "Paste a link or search..." */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <div className="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 sm:px-4 rounded-2xl lg:rounded-full bg-[#EAEAEA] lg:bg-[#F3F3F1] text-xs">
             <Search className="w-4 h-4 text-gray-500 shrink-0" />
             <input
@@ -624,9 +624,11 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
           /* Default Explorer View */
           <>
             {/* Explorer View — shared layout for mobile + desktop */}
-            <div className="flex gap-4 lg:gap-6 pt-1 flex-1 overflow-hidden">
-              {/* Left Column: Categories List */}
-              <div className="w-28 sm:w-32 lg:w-40 space-y-0.5 shrink-0 overflow-y-auto no-scrollbar">
+            <div className="flex flex-col lg:flex-row gap-3 lg:gap-6 pt-1 flex-1 overflow-hidden min-h-0">
+              {/* Left Column: Categories List.
+                  On a phone they are a row of chips that scrolls sideways, so
+                  the list below keeps the full width. */}
+              <div className="flex gap-2 lg:block lg:w-40 lg:space-y-0.5 shrink-0 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto no-scrollbar -mx-4 px-4 lg:mx-0 lg:px-0 pb-0.5">
                 {categories.map((cat) => {
                   const IconComponent = cat.icon;
                   const isSelected = activeCategory === cat.id;
@@ -635,21 +637,21 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
                     <button
                       key={cat.id}
                       onClick={() => setActiveCategory(cat.id)}
-                      className={`w-full flex items-center gap-2 lg:gap-2.5 px-2 lg:px-3 py-2 lg:py-2.5 rounded-xl text-left text-xs font-semibold transition-colors cursor-pointer ${
+                      className={`flex shrink-0 items-center gap-2 lg:w-full lg:gap-2.5 px-3 lg:px-3 py-2 lg:py-2.5 rounded-xl text-left text-xs font-semibold transition-colors cursor-pointer ${
                         isSelected
                           ? 'bg-[#EFEFEF] text-black font-bold'
                           : 'text-gray-500 hover:bg-gray-100 hover:text-black'
                       }`}
                     >
                       <IconComponent className={`w-3.5 h-3.5 lg:w-4 lg:h-4 shrink-0 ${isSelected ? 'text-black' : 'text-gray-400'}`} />
-                      <span className="truncate">{cat.label}</span>
+                      <span className="whitespace-nowrap lg:truncate">{cat.label}</span>
                     </button>
                   );
                 })}
               </div>
 
               {/* Right Column: 4 Quick Tiles + Scrollable Integrations */}
-              <div className="flex-1 overflow-y-auto space-y-3 max-h-[55vh] lg:max-h-[360px] card-scrollbar">
+              <div className="flex-1 overflow-y-auto space-y-3 max-h-[58vh] lg:max-h-[360px] card-scrollbar min-h-0">
                 {/* 4 Quick Tiles */}
                 <div className="grid grid-cols-4 gap-2">
                   <button

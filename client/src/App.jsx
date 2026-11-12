@@ -1442,23 +1442,25 @@ export function App() {
 
       {/* Floating Toast Notification */}
       {topToast && (
-        <div className="fixed top-18 left-1/2 -translate-x-1/2 z-50 bg-white border border-gray-200 rounded-full pl-3.5 pr-2 py-1.5 shadow-xl flex items-center gap-3 text-xs animate-in fade-in slide-in-from-top-3">
+        <div className="fixed top-3 sm:top-22 left-3 right-3 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-[min(92vw,520px)] z-[60] bg-white border border-gray-200 rounded-2xl sm:rounded-full pl-3.5 pr-3 sm:pr-2 py-2.5 sm:py-1.5 shadow-xl flex items-center gap-3 text-xs animate-in fade-in slide-in-from-top-3">
           <div className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center shrink-0">
             <Check className="w-3 h-3 stroke-[3]" />
           </div>
-          <div className="flex flex-col text-left">
-            <span className="font-extrabold text-[#111111] text-[11px] leading-tight">
+          <div className="flex flex-col text-left min-w-0 flex-1">
+            <span className="font-extrabold text-[#111111] text-[11px] leading-tight truncate">
               {topToast.title}
             </span>
-            <span className="text-[10px] text-gray-400 leading-tight">
+            <span className="text-[10px] text-gray-400 leading-tight line-clamp-2 break-words">
               {topToast.subtitle}
             </span>
           </div>
           <button
             onClick={handleCopyLiveUrl}
-            className="ml-2 px-3.5 py-1 rounded-full bg-black hover:bg-gray-800 text-white font-bold text-[11px] transition-colors shrink-0 shadow-xs cursor-pointer"
+            className="ml-1 px-3 sm:px-3.5 py-1.5 sm:py-1 rounded-full bg-black hover:bg-gray-800 text-white font-bold text-[11px] transition-colors shrink-0 shadow-xs cursor-pointer"
+            title="Copy the link to this page"
           >
-            Share link
+            <span className="hidden sm:inline">Share link</span>
+            <Share2 className="w-3.5 h-3.5 sm:hidden" />
           </button>
         </div>
       )}
@@ -1988,7 +1990,7 @@ export function App() {
                       type="button"
                       onClick={handleSaveTree}
                       disabled={isSavingTree}
-                      className={`h-9 px-3 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+                      className={`h-9 w-9 sm:w-auto sm:px-3 rounded-full text-xs font-bold flex items-center justify-center sm:justify-start gap-1.5 transition-all cursor-pointer shadow-2xs ${
                         treeSavedRecently
                           ? 'bg-emerald-600 text-white'
                           : 'bg-[#111111] hover:bg-neutral-800 text-white'
@@ -2002,7 +2004,11 @@ export function App() {
                       ) : (
                         <CloudUpload className="w-3.5 h-3.5" />
                       )}
-                      <span>{isSavingTree ? 'Saving...' : treeSavedRecently ? 'Saved' : 'Save tree'}</span>
+                      {/* On a phone the icon alone is enough, the button is in
+                          the bar below as well. */}
+                      <span className="hidden sm:inline">
+                        {isSavingTree ? 'Saving...' : treeSavedRecently ? 'Saved' : 'Save tree'}
+                      </span>
                     </button>
 
                     <button
@@ -3091,11 +3097,11 @@ export function App() {
 
       {/* Undo Toast with live 15s timer */}
       {undoToast && lastDeletedCards && lastDeletedCards.length > 0 && (
-        <div className="fixed bottom-6 left-24 z-50 bg-[#111111] text-white pl-4 pr-2.5 py-2.5 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 text-xs animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-20 left-3 right-3 sm:bottom-6 sm:left-24 sm:right-auto z-50 bg-[#111111] text-white pl-4 pr-2.5 py-2.5 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 text-xs animate-in slide-in-from-bottom-5">
           <div className="w-5 h-5 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
             <Trash2 className="w-3 h-3" />
           </div>
-          <span className="truncate max-w-[200px] text-gray-200 font-medium">
+          <span className="truncate max-w-[40vw] sm:max-w-[200px] text-gray-200 font-medium">
             {lastDeletedCards.length === 1
               ? `"${lastDeletedCards[0].title}" deleted`
               : `${lastDeletedCards.length} links deleted`}
@@ -3153,11 +3159,11 @@ export function App() {
 
       {/* Tree Undo Toast with live 15s timer */}
       {treeUndoToast && lastDeletedTreeData && (
-        <div className="fixed bottom-6 left-24 z-50 bg-[#111111] text-white pl-4 pr-2.5 py-2.5 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 text-xs animate-in slide-in-from-bottom-5">
+        <div className="fixed bottom-20 left-3 right-3 sm:bottom-6 sm:left-24 sm:right-auto z-50 bg-[#111111] text-white pl-4 pr-2.5 py-2.5 rounded-full shadow-2xl border border-white/10 flex items-center gap-3 text-xs animate-in slide-in-from-bottom-5">
           <div className="w-5 h-5 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center shrink-0">
             <Trash2 className="w-3 h-3" />
           </div>
-          <span className="truncate max-w-[200px] text-gray-200 font-medium">
+          <span className="truncate max-w-[40vw] sm:max-w-[200px] text-gray-200 font-medium">
             "@{lastDeletedTreeData.tree.slug}" deleted
           </span>
           <button
