@@ -3,6 +3,7 @@ import { CardRenderer } from '../cards/CardRenderer.jsx';
 import { PRESET_THEMES } from '../constants/themes.js';
 import { Copy, Check, ArrowLeft, Users } from 'lucide-react';
 import { getPatternSvg, getContrastingPatternColor, loadOrganicPattern } from '../constants/patternSvg.js';
+import { loadFont } from '../constants/fonts.js';
 import { TreeSkeleton } from './TreeSkeleton.jsx';
 import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
 
@@ -37,6 +38,14 @@ export function PublicTreePage({ slug }) {
       mounted = false;
     };
   }, [wallpaperStyle, patternType]);
+
+  // The fonts of this tree are fetched only when they are really used.
+  const bodyFont = treeData?.tree?.customTheme?.fontFamily;
+  const headingFont = treeData?.tree?.customTheme?.titleFont;
+  useEffect(() => {
+    loadFont(bodyFont);
+    loadFont(headingFont);
+  }, [bodyFont, headingFont]);
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 640);

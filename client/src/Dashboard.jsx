@@ -70,6 +70,7 @@ import { AuthModal } from './components/AuthModal.jsx';
 import { HeaderEditor } from './components/HeaderEditor.jsx';
 import { DesignEditor } from './components/DesignEditor.jsx';
 import { getPatternSvg, getContrastingPatternColor } from './constants/patternSvg.js';
+import { loadFont } from './constants/fonts.js';
 import { PRESET_THEMES } from './constants/themes.js';
 import { storage } from './services/storage.js';
 import { navigate } from './router.js';
@@ -756,6 +757,12 @@ export function Dashboard() {
    * once, but only the last change of a burst is sent, so the server never
    * receives two writes that can arrive in the wrong order.
    */
+  // The fonts of the tree are fetched only when they are really used.
+  useEffect(() => {
+    loadFont(currentTree?.fontFamily || currentTree?.customTheme?.fontFamily);
+    loadFont(currentTree?.titleFont || currentTree?.customTheme?.titleFont);
+  }, [currentTree?.fontFamily, currentTree?.customTheme?.fontFamily, currentTree?.titleFont, currentTree?.customTheme?.titleFont]);
+
   const handleUpdateCard = async (cardId, updates) => {
     if (!currentTree || !currentTree.cards) return;
 

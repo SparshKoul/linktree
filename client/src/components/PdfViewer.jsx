@@ -1,35 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2 } from 'lucide-react';
 import { safeHref } from '../constants/urls.js';
-
-function loadPdfJs() {
-  if (typeof window !== 'undefined' && window.pdfjsLib) {
-    return Promise.resolve(window.pdfjsLib);
-  }
-  return new Promise((resolve, reject) => {
-    const existing = document.getElementById('pdfjs-cdn-script');
-    if (existing) {
-      if (window.pdfjsLib) return resolve(window.pdfjsLib);
-      existing.addEventListener('load', () => resolve(window.pdfjsLib));
-      existing.addEventListener('error', reject);
-      return;
-    }
-    const script = document.createElement('script');
-    script.id = 'pdfjs-cdn-script';
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    script.onload = () => {
-      if (window.pdfjsLib) {
-        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-        resolve(window.pdfjsLib);
-      } else {
-        reject(new Error('pdfjsLib not defined'));
-      }
-    };
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
+// The pdf reader comes with the app. It used to be fetched from a CDN, which
+// meant a document did not open when that CDN was slow or blocked.
+// The library behind it is only fetched when a document is really opened.
+async function loadPdfJs() {
+  const { loadPdfJs: load } = await import('../lib/pdfLoader.js');
+  return load();
 }
+
+
 
 export function PdfViewer({ url, title = 'Document', className = '', isThumbnail = false }) {
   const [pages, setPages] = useState([]);
