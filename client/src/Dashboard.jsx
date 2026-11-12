@@ -715,12 +715,14 @@ export function Dashboard() {
   };
 
   const handleAddSocialQuick = (platform) => {
+    // A card that still has no real address is not put in front of visitors
+    // yet, so the quick add starts unconfigured instead of with a placeholder.
     if (platform === 'instagram') {
-      handleAddCard('instagram', 'Instagram', { url: 'https://instagram.com/' });
+      handleAddCard('instagram', 'Instagram', { url: '', isSettingUp: true });
     } else if (platform === 'whatsapp') {
-      handleAddCard('phone', 'WhatsApp', { url: 'https://wa.me/' });
+      handleAddCard('phone', 'WhatsApp', { url: '', isSettingUp: true });
     } else if (platform === 'mail') {
-      handleAddCard('email', 'Email', { url: 'mailto:' });
+      handleAddCard('email', 'Email', { url: '', isSettingUp: true });
     } else {
       setIsAddCardOpen(true);
     }
