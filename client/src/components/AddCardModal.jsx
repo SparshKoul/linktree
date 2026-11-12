@@ -30,28 +30,34 @@ import {
 } from 'lucide-react';
 
 export const getUrlMetadata = (rawQuery) => {
-  const clean = (rawQuery || '').trim().replace(/^https?:\/\//i, '').replace(/\/$/, '');
+  const typed = (rawQuery || '').trim();
+  const clean = typed.replace(/^https?:\/\//i, '').replace(/\/$/, '');
   const lower = clean.toLowerCase();
+
+  // The whole address the owner typed is kept — the path is never cut off.
+  // A pasted profile or video links to that profile or video, not to the
+  // site's home page.
+  const fullUrl = /^https?:\/\//i.test(typed) ? typed : `https://${clean}`;
 
   if (lower.includes('github.com')) {
     return {
       title: 'GitHub · Change is constant. GitHub keeps you ahead. · GitHub · GitHub',
       subtitle: 'github.com',
-      url: 'https://github.com',
+      url: fullUrl,
     };
   }
   if (lower.includes('instagram.com')) {
     return {
       title: 'Instagram · Capture and Share the World\'s Moments',
       subtitle: 'instagram.com',
-      url: 'https://instagram.com',
+      url: fullUrl,
     };
   }
   if (lower.includes('youtube.com') || lower.includes('youtu.be')) {
     return {
       title: 'YouTube · Enjoy the videos and music you love',
       subtitle: 'youtube.com',
-      url: 'https://youtube.com',
+      url: fullUrl,
     };
   }
   if (lower.includes('twitter.com') || lower.includes('x.com')) {
@@ -65,14 +71,14 @@ export const getUrlMetadata = (rawQuery) => {
     return {
       title: 'LinkedIn: Log In or Sign Up',
       subtitle: 'linkedin.com',
-      url: 'https://linkedin.com',
+      url: fullUrl,
     };
   }
   if (lower.includes('spotify.com')) {
     return {
       title: 'Spotify · Web Player: Music for everyone',
       subtitle: 'spotify.com',
-      url: 'https://spotify.com',
+      url: fullUrl,
     };
   }
 
@@ -81,7 +87,7 @@ export const getUrlMetadata = (rawQuery) => {
   return {
     title: `${capitalized} · Official Link`,
     subtitle: domain,
-    url: /^https?:\/\//i.test((rawQuery || '').trim()) ? (rawQuery || '').trim() : `https://${clean}`,
+    url: fullUrl,
   };
 };
 

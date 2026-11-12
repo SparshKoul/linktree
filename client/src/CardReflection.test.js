@@ -42,6 +42,18 @@ describe('Card Reflection Logic', () => {
     expect(igMeta.url).toBe('https://instagram.com');
   });
 
+  it('never throws away the path the owner pasted', () => {
+    // A pasted profile, repo or video must link there — not to the home page.
+    expect(getUrlMetadata('https://github.com/SparshKoul/linktree').url).toBe('https://github.com/SparshKoul/linktree');
+    expect(getUrlMetadata('https://instagram.com/myprofile/').url).toBe('https://instagram.com/myprofile/');
+    expect(getUrlMetadata('https://youtube.com/watch?v=abc123').url).toBe('https://youtube.com/watch?v=abc123');
+    expect(getUrlMetadata('https://www.linkedin.com/in/sparsh-koul').url).toBe('https://www.linkedin.com/in/sparsh-koul');
+    expect(getUrlMetadata('https://spotify.com/playlist/xyz').url).toBe('https://spotify.com/playlist/xyz');
+    // Without a protocol the https:// is added, the path still kept.
+    expect(getUrlMetadata('instagram.com/myprofile').url).toBe('https://instagram.com/myprofile');
+    expect(getUrlMetadata('twitter.com/user/status/123').url).toBe('https://twitter.com/user/status/123');
+  });
+
   it('correctly formats Maps link card with place title and address', () => {
     const mapCard = {
       id: 1,
