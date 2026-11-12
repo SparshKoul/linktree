@@ -105,7 +105,7 @@ export function isMapsSearch(query) {
   return /\b(maps|location|place|goo\.gl)\b/i.test(typed);
 }
 
-export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard }) {
+export function AddCardModal({ isOpen, onClose, onAddCard }) {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [activeCategory, setActiveCategory] = useState('suggested');
@@ -188,7 +188,7 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
   const isMapsQuery = isMapsSearch(query);
 
   const isSearchActive = isFocused || query.length > 0;
-  const displayTitle = query.trim() || 'Location Pin';
+  const displayTitle = query.trim();
 
   const categories = [
     { id: 'suggested', label: 'Suggested', icon: Lightbulb },
@@ -431,7 +431,11 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
     activeCategory === 'view_all'
       ? [
           ...categoryItems.suggested,
+          ...categoryItems.commerce,
+          ...categoryItems.social,
+          ...categoryItems.media,
           ...categoryItems.contact,
+          ...categoryItems.text,
         ]
       : categoryItems[activeCategory] || categoryItems.suggested;
 
