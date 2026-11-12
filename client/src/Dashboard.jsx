@@ -293,6 +293,16 @@ export function Dashboard() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!cardMenuId) return undefined;
+    // Escape closes the open card menu.
+    const onKey = (e) => {
+      if (e.key === 'Escape') setCardMenuId(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [cardMenuId]);
+
   const loadTreeDetails = (id) => {
     const numId = Number(id);
     storage.setActiveTreeId(numId);
@@ -570,6 +580,62 @@ export function Dashboard() {
         if (url) handleUpdateTree({ avatarUrl: url });
       })
       .catch(() => {});
+  };
+
+  // Copy a card into the same tree: same content, fresh card, zero clicks.
+  const handleDuplicateCard = async (card) => {
+    if (!currentTree || !card) return;
+
+    const copyData = {
+      id: Date.now(),
+      treeId: currentTree.id,
+      type: card.type,
+      title: card.title ? `${card.title} (copy)` : 'Copy',
+      subtitle: card.subtitle || '',
+      url: card.url || '',
+      thumbnailUrl: card.thumbnailUrl || null,
+      clicks: 0,
+      visible: card.visible !== false,
+      animation: card.animation || 'none',
+      settings: { ...(card.settings || {}) },
+    };
+
+    const savedCard = storage.addCard(copyData);
+    const updatedCards = [...(currentTree.cards || []), savedCard];
+    setCurrentTree({ ...currentTree, cards: updatedCards });
+
+    fetch(`/api/admin/trees/${currentTree.id}/cards`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(copyData),
+    })
+      .then(async (res) => {
+        if (res.ok) return res.json();
+        const error = await res.json().catch(() => ({}));
+        setTopToast({
+          title: 'Card not saved',
+          subtitle: error.error || 'The database refused this card. It is saved in this browser only.',
+        });
+        setTimeout(() => setTopToast(null), 6000);
+        return null;
+      })
+      .then((dbCard) => {
+        if (dbCard && dbCard.id) {
+          const remapped = updatedCards.map((c) =>
+            c.id === savedCard.id ? { ...c, ...dbCard, id: dbCard.id } : c
+          );
+          setCurrentTree((prev) => (prev ? { ...prev, cards: remapped } : prev));
+          storage.updateCard(savedCard.id, { ...dbCard, id: dbCard.id });
+        }
+      })
+      .catch(() => {});
+
+    setTopToast({
+      title: 'Card duplicated',
+      subtitle: copyData.title,
+    });
+    setTimeout(() => setTopToast(null), 4000);
   };
 
   const handleAddCard = async (type, title, defaultSettings = {}) => {
@@ -2553,8 +2619,12 @@ export function Dashboard() {
                             }}
                             onFocus={(e) => {
                               if (isReordering) return;
-                              e.currentTarget.style.outline = '2px solid #7033FF';
-                              e.currentTarget.style.outlineOffset = '2px';
+                              // Only draw the ring for keyboard use; a tap or
+                              // click must not light the whole row up.
+                              if (e.currentTarget.matches(':focus-visible')) {
+                                e.currentTarget.style.outline = '2px solid #7033FF';
+                                e.currentTarget.style.outlineOffset = '2px';
+                              }
                             }}
                             onBlur={(e) => {
                               e.currentTarget.style.outline = 'none';
@@ -2704,7 +2774,7 @@ export function Dashboard() {
                                     setCardMenuOpenUp(limit - rect.bottom < 240);
                                     setCardMenuId(cardMenuId === card.id ? null : card.id);
                                   }}
-                                  className="p-1.5 rounded-xl text-gray-400 hover:text-black hover:bg-gray-100 transition-colors cursor-pointer"
+                                  className="p-2.5 -m-1 rounded-full text-gray-400 hover:text-black hover:bg-gray-100 transition-colors cursor-pointer"
                                   title="More options"
                                 >
                                   <MoreVertical className="w-4 h-4" />
@@ -2727,6 +2797,17 @@ export function Dashboard() {
                                       >
                                         <Pencil className="w-3.5 h-3.5 text-gray-500" />
                                         <span>Edit</span>
+                                      </button>
+
+                                      <button
+                                        onClick={() => {
+                                          setCardMenuId(null);
+                                          handleDuplicateCard(card);
+                                        }}
+                                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-gray-700 hover:text-black hover:bg-[#F6F6F7] text-left transition-colors cursor-pointer"
+                                      >
+                                        <Copy className="w-3.5 h-3.5 text-gray-500" />
+                                        <span>Duplicate</span>
                                       </button>
 
                                       <button
