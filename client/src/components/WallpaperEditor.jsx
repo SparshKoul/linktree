@@ -13,7 +13,7 @@ import {
   Layers,
   ChevronDown,
 } from 'lucide-react';
-import { GRID_PATTERN_PATH, ORGANIC_PATTERN_PATH } from '../constants/patternPaths.js';
+import { getPatternSvg, getContrastingPatternColor, isColorLight, loadOrganicPattern } from '../constants/patternSvg.js';
 
 export const WALLPAPER_IMAGE_PRESETS = [
   {
@@ -42,45 +42,6 @@ export const WALLPAPER_IMAGE_PRESETS = [
   },
 ];
 
-export const isColorLight = (hexColor = '#FFFFFF') => {
-  if (!hexColor || typeof hexColor !== 'string' || !hexColor.startsWith('#')) return true;
-  const hex = hexColor.replace('#', '');
-  const r = parseInt(hex.length === 3 ? hex[0] + hex[0] : hex.substring(0, 2), 16) || 0;
-  const g = parseInt(hex.length === 3 ? hex[1] + hex[1] : hex.substring(2, 4), 16) || 0;
-  const b = parseInt(hex.length === 3 ? hex[2] + hex[2] : hex.substring(4, 6), 16) || 0;
-  const luma = 0.299 * r + 0.587 * g + 0.114 * b;
-  return luma > 165;
-};
-
-export const getContrastingPatternColor = (bgColor = '#FFFFFF') => {
-  return isColorLight(bgColor) ? '#000000' : '#FFFFFF';
-};
-
-export const getPatternSvg = (patternId = 'organic', color = '#050F15', opacity) => {
-  const isLight = isColorLight(color);
-  const finalOpacity = typeof opacity === 'number' ? opacity : (isLight ? 0.35 : 0.28);
-  const encColor = encodeURIComponent(color);
-
-  if (patternId === 'grid') {
-    return `data:image/svg+xml;utf8,${encodeURIComponent(
-      `<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><path fill="${color}" fill-opacity="${finalOpacity}" d="${GRID_PATTERN_PATH}"/></svg>`
-    )}`;
-  }
-  if (patternId === 'camo') {
-    return `data:image/svg+xml;utf8,${encodeURIComponent(
-      `<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><path d="M10 20C20 15 25 30 40 25C48 22 55 35 55 45 42 50 30 48C18 46 8 55 0 45V30C5 30 8 22 10 20Z" fill="${color}" fill-opacity="${finalOpacity}"/><circle cx="45" cy="12" r="8" fill="${color}" fill-opacity="${finalOpacity}"/></svg>`
-    )}`;
-  }
-  if (patternId === 'checker') {
-    return `data:image/svg+xml;utf8,${encodeURIComponent(
-      `<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><rect width="16" height="16" fill="${color}" fill-opacity="${finalOpacity}"/><rect x="16" y="16" width="16" height="16" fill="${color}" fill-opacity="${finalOpacity}"/></svg>`
-    )}`;
-  }
-  // Default: 'organic' - user exact fluid topo wave SVG path
-  return `data:image/svg+xml;utf8,${encodeURIComponent(
-    `<svg width="360" height="488" viewBox="0 0 360 488" xmlns="http://www.w3.org/2000/svg"><path fill="${color}" fill-opacity="${finalOpacity}" d="${ORGANIC_PATTERN_PATH}"/></svg>`
-  )}`;
-};
 
 export const PATTERN_PRESETS = [
   { id: 'organic', name: 'Organic Waves' },

@@ -3,10 +3,12 @@ import {
   WALLPAPER_IMAGE_PRESETS,
   PATTERN_PRESETS,
   SOLID_PALETTE,
+} from './components/WallpaperEditor.jsx';
+import {
   isColorLight,
   getContrastingPatternColor,
   getPatternSvg,
-} from './components/WallpaperEditor.jsx';
+} from './constants/patternSvg.js';
 
 describe('Wallpaper Editor & Linktree Fidelity Logic', () => {
   it('correctly calculates contrasting pattern colors for light and dark backgrounds', () => {

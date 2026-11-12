@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { CardRenderer } from '../cards/CardRenderer.jsx';
 import { PRESET_THEMES } from '../constants/themes.js';
 import { Copy, Check, ArrowLeft, Users } from 'lucide-react';
-import { getPatternSvg, getContrastingPatternColor } from './WallpaperEditor.jsx';
+import { getPatternSvg, getContrastingPatternColor, loadOrganicPattern } from '../constants/patternSvg.js';
 import { TreeSkeleton } from './TreeSkeleton.jsx';
 import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
 
@@ -20,6 +20,23 @@ export function PublicTreePage({ slug }) {
   const [isDesktop, setIsDesktop] = useState(
     () => typeof window !== 'undefined' && window.innerWidth >= 640
   );
+
+  // The organic pattern is 156 kilobytes. It is only fetched when a theme
+  // actually draws it.
+  const [patternReady, setPatternReady] = useState(false);
+  const wallpaperStyle = treeData?.tree?.customTheme?.wallpaperStyle;
+  const patternType = treeData?.tree?.customTheme?.patternType;
+
+  useEffect(() => {
+    if (wallpaperStyle !== 'pattern' || patternType !== 'organic') return;
+    let mounted = true;
+    loadOrganicPattern().then(() => {
+      if (mounted) setPatternReady(true);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [wallpaperStyle, patternType]);
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 640);
@@ -348,25 +365,27 @@ export function PublicTreePage({ slug }) {
           )}
 
           {/* 3. Pattern Overlay (if pattern style) */}
-          {activeTheme?.wallpaperStyle === 'pattern' && (
-            <div
-              className="absolute inset-0 w-full h-full pointer-events-none"
-              style={{
-                backgroundColor: activeTheme?.backgroundImageUrl
-                  ? 'transparent'
-                  : activeTheme?.backgroundColor || '#050F15',
-                backgroundImage: `url("${getPatternSvg(
-                  activeTheme?.patternType || 'organic',
-                  activeTheme?.backgroundImageUrl
-                    ? (activeTheme?.backgroundColor || '#050F15')
-                    : getContrastingPatternColor(activeTheme?.backgroundColor || '#050F15'),
-                  activeTheme?.backgroundImageUrl ? 0.45 : 0.3
-                )}")`,
-                backgroundRepeat: 'repeat',
-                mixBlendMode: activeTheme?.backgroundImageUrl ? 'multiply' : 'normal',
-              }}
-            />
-          )}
+          {activeTheme?.wallpaperStyle === 'pattern' &&
+            // The organic pattern is drawn once it has been fetched.
+            (activeTheme?.patternType !== 'organic' || patternReady) && (
+              <div
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{
+                  backgroundColor: activeTheme?.backgroundImageUrl
+                    ? 'transparent'
+                    : activeTheme?.backgroundColor || '#050F15',
+                  backgroundImage: `url("${getPatternSvg(
+                    activeTheme?.patternType || 'organic',
+                    activeTheme?.backgroundImageUrl
+                      ? (activeTheme?.backgroundColor || '#050F15')
+                      : getContrastingPatternColor(activeTheme?.backgroundColor || '#050F15'),
+                    activeTheme?.backgroundImageUrl ? 0.45 : 0.3
+                  )}")`,
+                  backgroundRepeat: 'repeat',
+                  mixBlendMode: activeTheme?.backgroundImageUrl ? 'multiply' : 'normal',
+                }}
+              />
+            )}
 
           {/* 4. Tint Overlay */}
           {typeof activeTheme?.tint === 'number' && activeTheme.tint !== 0 && (
