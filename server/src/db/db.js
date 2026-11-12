@@ -233,16 +233,21 @@ export const db = {
 
   async getTreeById(id) {
     try {
+      // The cards come along in the same question, so one round trip is
+      // enough.
       const { data, error } = await supabase
         .from('trees')
-        .select('*')
+        .select('*, cards(*)')
         .eq('id', id)
         .is('deleted_at', null)
         .single();
       if (error) throw error;
       if (!data) return null;
 
-      const cards = await this.getCards(id);
+      const rawCards = Array.isArray(data.cards) ? data.cards : await this.getCards(id);
+      const cards = (rawCards || []).map((c) =>
+        formatCardRecord({ ...c, tree_id: c.tree_id ?? id })
+      );
       return formatTreeRecord(data, cards);
     } catch (err) {
       console.warn('[DB getTreeById fallback]', err.message);

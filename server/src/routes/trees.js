@@ -154,17 +154,23 @@ export function registerTreeRoutes(app) {
     }
 
     const treeId = parseInt(req.params.id, 10);
+    // The tree is asked for first: who owns it is written in it, so the
+    // ownership is known without a second question to the database.
+    const dbTree = await db.getTreeById(treeId);
+    if (dbTree) {
+      const ownerId = dbTree.adminId ?? dbTree.admin_id;
+      if (ownerId !== currentId) {
+        return res.status(403).json({ error: 'Forbidden: You do not have permission to view or edit this tree' });
+      }
+      return res.json(dbTree);
+    }
+
     const ownerId = await resolveTreeOwner(treeId);
     if (ownerId === null) {
       return res.status(404).json({ error: 'Tree not found' });
     }
     if (ownerId !== currentId) {
       return res.status(403).json({ error: 'Forbidden: You do not have permission to view or edit this tree' });
-    }
-
-    const dbTree = await db.getTreeById(treeId);
-    if (dbTree) {
-      return res.json(dbTree);
     }
 
     const tree = store.trees.find((t) => t.id === treeId && !t.deletedAt);
