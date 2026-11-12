@@ -452,7 +452,7 @@ export function CardDetailEditor({
         const combined = [...existing, ...newItems];
         const totalSize = combined.reduce((acc, it) => acc + (it.size || 0), 0);
         const sizeTag = totalSize > 0 ? ` · ${formatFileSize(totalSize)}` : '';
-        const newSubtitle = `Gallery · ${combined.length} items${sizeTag}`;
+        const newSubtitle = galleryLine(combined.length, sizeTag.trim());
 
         setSubtitle(newSubtitle);
         onUpdateCard(card.id, {
@@ -480,7 +480,6 @@ export function CardDetailEditor({
     const totalSize = updated.reduce((acc, it) => acc + (it.size || 0), 0);
     const sizeTag = totalSize > 0 ? ` · ${formatFileSize(totalSize)}` : '';
     const newSubtitle = galleryLine(updated.length, sizeTag.trim());
-
     setSubtitle(newSubtitle);
     onUpdateCard(card.id, {
       subtitle: newSubtitle,
