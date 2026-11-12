@@ -44,7 +44,7 @@ import {
 import { FaviconIcon } from '../components/FaviconIcon.jsx';
 import { PdfViewer } from '../components/PdfViewer.jsx';
 import { safeHref } from '../constants/urls.js';
-import { reviewsLine, cardNeedsALink } from '../constants/cardText.js';
+import { cardNeedsALink } from '../constants/cardText.js';
 import { trackingHeaders } from '../services/visitor.js';
 
 function CardRendererView({ card, theme, isPreview = false }) {
@@ -630,15 +630,12 @@ function CardRendererView({ card, theme, isPreview = false }) {
   const isReviewsCard =
     card.type === 'reviews' ||
     Boolean(cardSettings.rating || cardSettings.reviewCount || cardSettings.reviewsCount);
-  const reviewsCountVal = cardSettings.reviewCount ?? cardSettings.reviewsCount;
-  // The line under the title of a reviews card is what the owner wrote.
-  // Nothing is put there when they wrote nothing.
-  const reviewsSubtitleFallback = reviewsLine(cardSettings.rating, reviewsCountVal);
-
+  // The line under the title of a reviews card is only what the owner typed
+  // into the visible subtitle field. Left-over star ratings and review
+  // counts from settings are never shown on their own.
   const subtitle =
     card.subtitle ||
     card.settings?.address ||
-    (isReviewsCard ? reviewsSubtitleFallback : '') ||
     card.settings?.subtitle ||
     '';
 
