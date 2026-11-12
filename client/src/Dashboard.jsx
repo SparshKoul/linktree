@@ -2177,23 +2177,7 @@ export function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Show Total Followers Pill */}
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTopToast({
-                          title: 'Followers',
-                          subtitle: 'Total follower count display enabled',
-                        });
-                        setTimeout(() => setTopToast(null), 3000);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#F3F4F6] hover:bg-gray-200 text-[11px] font-medium text-gray-600 transition-colors cursor-pointer"
-                    >
-                      <Users className="w-3.5 h-3.5 text-gray-500" />
-                      <span>Show total followers</span>
-                    </button>
-                  </div>
+                  {/* Show Total Followers Pill removed */}
                 </div>
 
                 {/* Mobile tree switcher — chips under the account header */}
