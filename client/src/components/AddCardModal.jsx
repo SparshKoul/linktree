@@ -18,7 +18,6 @@ import {
   Music,
   DownloadCloud,
   MapPin,
-  CalendarClock,
   Star,
   Utensils,
   FileText,
@@ -197,7 +196,6 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
     { id: 'social', label: 'Social', icon: Heart },
     { id: 'media', label: 'Media', icon: Play },
     { id: 'contact', label: 'Contact', icon: Contact },
-    { id: 'events', label: 'Events', icon: CalendarClock },
     { id: 'text', label: 'Text', icon: Type },
     { id: 'view_all', label: 'View all', icon: MoreHorizontal },
   ];
@@ -316,19 +314,6 @@ export function AddCardModal({ isOpen, onClose, onAddCard, onSelectCustomCard })
             <span className="absolute -bottom-1 -right-1 bg-red-600 text-white font-black text-[7px] px-1 py-0.5 rounded-[3px] leading-none uppercase">
               PDF
             </span>
-          </div>
-        ),
-      },
-    ],
-    events: [
-      {
-        id: 'events',
-        title: 'Events',
-        desc: 'Show upcoming dates and sell tickets',
-        type: 'events',
-        renderIcon: () => (
-          <div className="w-9 h-9 rounded-full bg-[#F59E0B] text-white flex items-center justify-center shrink-0">
-            <CalendarClock className="w-4 h-4" />
           </div>
         ),
       },
