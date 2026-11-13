@@ -1176,6 +1176,14 @@ export function Dashboard() {
   if (!activeTheme.backgroundValue) {
     activeTheme.backgroundValue = basePreset.backgroundValue;
   }
+  // The wallpaper can be stored as a full CSS value such as
+  // url("...image.webp") center / cover no-repeat. The address inside it is
+  // what the preview needs.
+  const wallpaperUrlFromValue =
+    typeof activeTheme.backgroundValue === 'string' &&
+    activeTheme.backgroundValue.includes('url(')
+      ? (activeTheme.backgroundValue.match(/url\((['"]?)(.*?)\1\)/)?.[2] || '')
+      : '';
 
   const isFooterEnabled =
     currentTree?.footerEnabled !== undefined
@@ -3093,10 +3101,20 @@ export function Dashboard() {
                       ? { backgroundColor: 'transparent', filter: 'none', transform: 'none' }
                       : activeTheme?.backgroundType === 'solid' || activeTheme?.wallpaperStyle === 'fill'
                       ? { backgroundColor: (activeTheme?.backgroundValue?.startsWith('#') ? activeTheme.backgroundValue : (activeTheme?.backgroundColor || '#F3F3F1')), filter: 'none', transform: 'none' }
-                      : activeTheme?.backgroundImageUrl
-                      ? { backgroundImage: `url("${activeTheme.backgroundImageUrl}") center / cover no-repeat`, filter: 'none', transform: 'none' }
-                      : (typeof activeTheme?.backgroundValue === 'string' && activeTheme.backgroundValue.startsWith('url('))
-                      ? { backgroundImage: activeTheme.backgroundValue, filter: 'none', transform: 'none' }
+                      : (activeTheme?.backgroundImageUrl || wallpaperUrlFromValue)
+                      ? {
+                          // The background-image property takes the image only.
+                          // The position, size and repeat are separate
+                          // properties: writing them into background-image
+                          // makes the whole declaration invalid, and the
+                          // browser then shows nothing at all.
+                          backgroundImage: `url("${activeTheme?.backgroundImageUrl || wallpaperUrlFromValue}")`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                          backgroundRepeat: 'no-repeat',
+                          filter: 'none',
+                          transform: 'none',
+                        }
                       : { backgroundColor: activeTheme?.backgroundValue || activeTheme?.backgroundColor || '#111111', filter: 'none', transform: 'none' }
                   }
                 />
