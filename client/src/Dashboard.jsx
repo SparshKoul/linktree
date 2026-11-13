@@ -3096,11 +3096,11 @@ export function Dashboard() {
               <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
                 <div
                   className="w-full h-full absolute inset-0"
-                  style={
-                    activeTheme?.wallpaperStyle === 'video'
-                      ? { backgroundColor: 'transparent', filter: 'none', transform: 'none' }
+                  style={{
+                    ...(activeTheme?.wallpaperStyle === 'video'
+                      ? { backgroundColor: 'transparent' }
                       : activeTheme?.backgroundType === 'solid' || activeTheme?.wallpaperStyle === 'fill'
-                      ? { backgroundColor: (activeTheme?.backgroundValue?.startsWith('#') ? activeTheme.backgroundValue : (activeTheme?.backgroundColor || '#F3F3F1')), filter: 'none', transform: 'none' }
+                      ? { backgroundColor: (activeTheme?.backgroundValue?.startsWith('#') ? activeTheme.backgroundValue : (activeTheme?.backgroundColor || '#F3F3F1')) }
                       : (activeTheme?.backgroundImageUrl || wallpaperUrlFromValue)
                       ? {
                           // The background-image property takes the image only.
@@ -3112,11 +3112,26 @@ export function Dashboard() {
                           backgroundSize: 'cover',
                           backgroundPosition: 'center',
                           backgroundRepeat: 'no-repeat',
-                          filter: 'none',
-                          transform: 'none',
                         }
-                      : { backgroundColor: activeTheme?.backgroundValue || activeTheme?.backgroundColor || '#111111', filter: 'none', transform: 'none' }
-                  }
+                      : { backgroundColor: activeTheme?.backgroundValue || activeTheme?.backgroundColor || '#111111' }),
+                    // The blur and the other effects belong to the wallpaper
+                    // itself, the same as on the public page and in the
+                    // mobile preview.
+                    filter:
+                      activeTheme?.wallpaperStyle === 'blur'
+                        ? `blur(${activeTheme?.blurAmount ?? 20}px)`
+                        : activeTheme?.effect === 'mono'
+                        ? 'grayscale(100%)'
+                        : activeTheme?.effect === 'blur'
+                        ? `blur(${activeTheme?.blurAmount ?? 10}px)`
+                        : activeTheme?.effect === 'halftone'
+                        ? 'contrast(200%) grayscale(100%)'
+                        : 'none',
+                    transform:
+                      activeTheme?.wallpaperStyle === 'blur' || activeTheme?.effect === 'blur'
+                        ? 'scale(1.12)'
+                        : 'none',
+                  }}
                 />
 
                 {activeTheme?.wallpaperStyle === 'video' &&
