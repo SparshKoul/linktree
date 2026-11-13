@@ -385,7 +385,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
               <Play className="w-5 h-5 ml-0.5 fill-white text-white" />
             </div>
           </div>
-          <div className="font-semibold text-xs truncate px-1.5 pt-1.5 pb-0.5 opacity-80">
+          <div className="font-semibold text-xs break-words px-1.5 pt-1.5 pb-0.5 opacity-80">
             {card.title}
           </div>
         </div>
@@ -401,15 +401,15 @@ function CardRendererView({ card, theme, isPreview = false }) {
         className="w-full rounded-2xl p-3 flex items-center justify-between gap-3 shadow-2xs"
         style={{ ...buttonStyleObj, borderRadius: '16px' }}
       >
-        <div className="flex items-center gap-3 truncate">
+        <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-black/10 flex items-center justify-center shrink-0">
             <Music className="w-5 h-5 opacity-80" />
           </div>
-          <div className="truncate text-left">
-            <div className="font-bold text-xs truncate">{card.title}</div>
+          <div className="text-left min-w-0">
+            <div className="font-bold text-xs break-words">{card.title}</div>
             {/* The words under the title come only from what the owner wrote */}
             {card.subtitle ? (
-              <div className="text-[10px] opacity-70">{card.subtitle}</div>
+              <div className="text-[10px] opacity-70 break-words">{card.subtitle}</div>
             ) : null}
           </div>
         </div>
@@ -634,13 +634,15 @@ function CardRendererView({ card, theme, isPreview = false }) {
 
           {/* Details below media */}
           <div className="pt-3.5 pb-1 px-1 flex flex-col items-center justify-center">
-            <div className="font-bold text-sm sm:text-base text-center leading-snug">
+            <div className="font-bold text-sm sm:text-base text-center leading-snug break-words">
               {card.title}
             </div>
             {subtitle && (
-              <div className="text-xs text-center flex items-center justify-center gap-1.5 mt-1 opacity-80 font-normal max-w-[90%]">
-                {isMap && <span className="text-red-500">📍</span>}
-                <span className="truncate">{subtitle}</span>
+              <div className="text-xs text-center flex items-start justify-center gap-1.5 mt-1 opacity-80 font-normal max-w-[90%]">
+                {isMap && <span className="text-red-500 leading-normal">📍</span>}
+                {/* The address of a place goes onto the next line instead of
+                    being cut off. */}
+                <span className="break-words">{subtitle}</span>
               </div>
             )}
 
@@ -734,31 +736,40 @@ function CardRendererView({ card, theme, isPreview = false }) {
             centred in the pill, the same as plain links without a badge. */}
         {showThumbnail ? (
           <>
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 shadow-xs overflow-hidden p-1.5">
-              <FaviconIcon card={card} className="w-5 h-5 text-[#111111]" containerClassName="w-full h-full flex items-center justify-center rounded-full" />
+            {/* The badge sits over the left edge of the pill. The text keeps
+                the room it needs, so a long name can take two lines and the
+                pill grows with it. */}
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-xs overflow-hidden p-0.5">
+              <FaviconIcon card={card} className="w-6 h-6 text-[#111111]" containerClassName="w-full h-full flex items-center justify-center rounded-full" />
             </div>
 
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-center min-w-0 max-w-[calc(100%-7.5rem)] px-1">
-              <div className="font-bold text-xs truncate leading-snug">{card.title}</div>
-              {subtitle && (
-                <div
-                  className="text-[10px] truncate mt-0.5 font-normal opacity-70 leading-tight"
-                  style={{ color: 'currentColor' }}
-                >
-                  <span className="truncate">{subtitle}</span>
-                </div>
-              )}
+            <div className="w-full min-h-[2.5rem] flex items-center justify-center text-center px-14">
+              {/* A long name goes onto the next line. Nothing is cut off
+                  with an ellipsis, so the visitor reads the whole name. */}
+              <div className="min-w-0">
+                <div className="font-bold text-xs leading-snug break-words">{card.title}</div>
+                {subtitle && (
+                  <div
+                    className="text-[10px] mt-0.5 font-normal opacity-70 leading-tight break-words"
+                    style={{ color: 'currentColor' }}
+                  >
+                    <span>{subtitle}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </>
         ) : (
           <div className="flex-1 text-center py-0.5 px-6">
-            <div className="font-bold text-sm sm:text-base truncate leading-snug">{card.title}</div>
+            {/* A long name goes onto the next line. Nothing is cut off with
+                an ellipsis, so the visitor reads the whole name. */}
+            <div className="font-bold text-sm sm:text-base leading-snug break-words">{card.title}</div>
             {/* Whatever the owner wrote as the subtitle is shown here too —
                 for instagram, whatsapp, email, local media and every other
                 card without a thumbnail. A plain link keeps its clean pill. */}
             {subtitle && subtitle !== card.title && (
               <div
-                className="text-[10px] sm:text-[11px] font-normal opacity-70 mt-0.5 leading-tight truncate"
+                className="text-[10px] sm:text-[11px] font-normal opacity-70 mt-0.5 leading-tight break-words"
                 style={{ color: 'currentColor' }}
               >
                 {subtitle}
@@ -769,7 +780,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
 
         {/* Right Side: PDF badge / lock indicator */}
         {(isPdf || isLocked) && (
-          <div className={`${showThumbnail ? 'shrink-0 pr-1' : 'absolute right-4 top-1/2 -translate-y-1/2'} flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity`}>
+          <div className={`${showThumbnail ? 'absolute right-3.5 top-1/2 -translate-y-1/2' : 'absolute right-4 top-1/2 -translate-y-1/2'} flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity`}>
             {isPdf && (
               <span className="text-[9px] font-black px-1.5 py-0.5 rounded-[3px] bg-red-100 text-red-600 uppercase tracking-tight">
                 PDF

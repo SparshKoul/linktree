@@ -2748,8 +2748,8 @@ export function Dashboard() {
                               </div>
 
                               <div className="min-w-0 space-y-1">
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  <span className={`font-bold text-[13px] sm:text-sm truncate leading-snug ${
+                                <div className="flex items-start gap-1.5 min-w-0">
+                                  <span className={`font-bold text-[13px] sm:text-sm leading-snug break-words ${
                                     !card.title
                                       ? 'text-gray-400 italic'
                                       : isHidden
@@ -2765,16 +2765,16 @@ export function Dashboard() {
                                     </span>
                                   )}
                                 </div>
-                                <div className={`text-[11px] truncate flex items-center gap-1.5 ${isHidden ? 'text-gray-400' : 'text-gray-400'}`}>
+                                <div className={`text-[11px] flex items-start gap-1.5 ${isHidden ? 'text-gray-400' : 'text-gray-400'}`}>
                                   {card.type === 'collapsible' ? (
-                                    <span className="truncate">{displaySubtitle}</span>
+                                    <span className="break-words">{displaySubtitle}</span>
                                   ) : (
                                     <>
-                                      <span>{card.clicks || 0} clicks</span>
+                                      <span className="shrink-0">{card.clicks || 0} clicks</span>
                                       {displaySubtitle && (
                                         <>
-                                          <span>·</span>
-                                          <span className="truncate">{displaySubtitle}</span>
+                                          <span className="shrink-0">·</span>
+                                          <span className="break-words min-w-0">{displaySubtitle}</span>
                                         </>
                                       )}
                                     </>
