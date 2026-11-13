@@ -385,7 +385,12 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
               title="Upload profile image"
             >
               {current.avatarUrl ? (
-                <img src={current.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                <img
+                  src={current.avatarUrl}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
               ) : (
                 <svg className="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
@@ -443,7 +448,12 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
               </button>
               {current.bannerUrl && (
                 <div className="w-full h-20 rounded-xl overflow-hidden border border-gray-200 relative">
-                  <img src={current.bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                  <img
+                    src={current.bannerUrl}
+                    alt="Banner"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
                   <button
                     type="button"
                     onClick={() => commitChange({ bannerUrl: null })}
@@ -480,7 +490,12 @@ export function HeaderEditor({ currentTree, onUpdateTree }) {
               </button>
               {current.heroUrl && (
                 <div className="w-full h-24 rounded-xl overflow-hidden border border-gray-200 relative">
-                  <img src={current.heroUrl} alt="Hero" className="w-full h-full object-cover" />
+                  <img
+                    src={current.heroUrl}
+                    alt="Hero"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
                   <button
                     type="button"
                     onClick={() => commitChange({ heroUrl: null })}

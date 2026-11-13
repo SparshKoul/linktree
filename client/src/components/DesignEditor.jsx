@@ -42,6 +42,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
   const [copiedLiveLink, setCopiedLiveLink] = useState(false);
   const wallpaperInputRef = useRef(null);
   const avatarInputRef = useRef(null);
+  const bannerInputRef = useRef(null);
 
   const handleCopyCardUrl = async () => {
     const slug = currentTree?.slug || 'riyast';
@@ -260,6 +261,22 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
         if (!url) return;
         commitChange({ avatarUrl: url });
         onUpdateTree({ avatarUrl: url });
+      })
+      .catch(() => {});
+  };
+
+  const handleBannerUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    // The picture goes to the storage first, made smaller. Only the address
+    // of it goes into the tree.
+    uploadPicture(file, { folder: 'banners', maxWidth: 1600, maxHeight: 1600 })
+      .then((url) => {
+        if (!url) return;
+        commitChange({ bannerUrl: url });
+        onUpdateTree({ bannerUrl: url });
       })
       .catch(() => {});
   };
@@ -1422,6 +1439,51 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
                       </div>
                     </div>
                   </div>
+
+                  {/* Banner cover - only when the banner layout is chosen.
+                      The desktop editor has this too, so the owner can set a
+                      banner from a phone as well. */}
+                  {currentHeaderLayout === 'banner' && (
+                    <div className="space-y-2 pt-3 border-t border-gray-100">
+                      <label className="text-xs font-bold text-gray-900 block">Banner cover</label>
+                      <input
+                        type="file"
+                        ref={bannerInputRef}
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleBannerUpload}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => bannerInputRef.current?.click()}
+                        className="w-full py-2.5 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-xs font-bold text-gray-800 transition-all cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        {current.bannerUrl ? 'Change banner image' : 'Upload banner image'}
+                      </button>
+                      {current.bannerUrl && (
+                        <div className="w-full h-24 rounded-xl overflow-hidden border border-gray-200 relative">
+                          <img
+                            src={current.bannerUrl}
+                            alt="Banner"
+                            className="w-full h-full object-cover"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              commitChange({ bannerUrl: null });
+                              onUpdateTree({ bannerUrl: null });
+                            }}
+                            className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/70 text-white flex items-center justify-center cursor-pointer"
+                            aria-label="Remove banner image"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* 2. Profile Image Section matching Image 3 */}
                   <div className="flex items-center justify-between pt-2 pb-1 border-t border-gray-100">

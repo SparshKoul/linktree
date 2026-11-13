@@ -496,7 +496,6 @@ function CardRendererView({ card, theme, isPreview = false }) {
   }
 
   // Generic Card Properties
-  const layout = card.settings?.layout || 'classic';
   const isMap =
     card.type === 'maps' ||
     card.settings?.platform === 'maps' ||
@@ -534,7 +533,13 @@ function CardRendererView({ card, theme, isPreview = false }) {
   );
 
   // 10. Featured Layout Card (Hero Media Layout) OR Maps Card (matching Image 0)
-  if (isMap || layout === 'featured') {
+  //
+  // A map card shows the big map card until the owner picks the classic
+  // layout in the card editor. The choice is respected from then on.
+  const layoutSetting = card.settings?.layout || '';
+  const wantsFeatured =
+    layoutSetting === 'featured' || (isMap && layoutSetting !== 'classic');
+  if (wantsFeatured) {
     const isVideo = card.type === 'video' || (card.url && /youtube\.com|youtu\.be|vimeo\.com/i.test(card.url));
     return (
       <>
@@ -1195,22 +1200,8 @@ function CardRendererView({ card, theme, isPreview = false }) {
             )}
           </div>
 
-          {/* Floating Action Buttons in Bottom Right matching Image 5 */}
+          {/* Floating Close Button in Bottom Right matching Image 5 */}
           <div className="absolute right-4 bottom-4 z-20 flex items-center gap-2">
-            {/* Share Button */}
-            <button
-              type="button"
-              onClick={handleCopyLink}
-              onTouchEnd={(e) => {
-                e.stopPropagation();
-                handleCopyLink(e);
-              }}
-              className="w-11 h-11 rounded-full bg-white shadow-xl border border-gray-100 flex items-center justify-center text-gray-800 hover:scale-105 active:scale-95 transition-all cursor-pointer"
-              title="Share"
-            >
-              {isCopied ? <Check className="w-5 h-5 text-green-600 pointer-events-none" /> : <Share2 className="w-5 h-5 pointer-events-none" />}
-            </button>
-
             {/* Close Button */}
             <button
               type="button"

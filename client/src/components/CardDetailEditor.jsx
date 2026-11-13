@@ -118,7 +118,9 @@ export function CardDetailEditor({
   const [subtitle, setSubtitle] = useState(card?.subtitle ?? cardSettings.address ?? '');
   const [url, setUrl] = useState(card?.url ?? '');
   const [thumbnailUrl, setThumbnailUrl] = useState(card?.thumbnailUrl ?? '');
-  const [layout, setLayout] = useState(cardSettings.layout || 'classic');
+  const [layout, setLayout] = useState(
+    cardSettings.layout || (isMaps ? 'featured' : 'classic')
+  );
   const [content, setContent] = useState(cardSettings.content ?? '');
   const [showMenu, setShowMenu] = useState(false);
   const fileInputRef = useRef(null);
@@ -135,7 +137,7 @@ export function CardDetailEditor({
       setSubtitle(card.subtitle ?? card.settings?.address ?? '');
       setUrl(card.url ?? '');
       setThumbnailUrl(card.thumbnailUrl ?? '');
-      setLayout(card.settings?.layout || 'classic');
+      setLayout(card.settings?.layout || (isMaps ? 'featured' : 'classic'));
       setContent(cardSettings.content ?? '');
     }
   }, [card?.id]);
