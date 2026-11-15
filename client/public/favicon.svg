@@ -14,10 +14,14 @@
 
   <g clip-path="url(#it-favicon-squircle)">
     <rect width="1024" height="1024" fill="#141414" />
-    <g transform="rotate(-45 512 512)">
-      <rect x="236" y="458" width="552" height="108" rx="54" fill="url(#it-favicon-capsule)" />
+
+    <!-- The mark fills more of the tile here, so it still reads at 16 px. -->
+    <g transform="translate(512 512) scale(1.3) translate(-512 -512)">
+      <g transform="rotate(-45 512 512)">
+        <rect x="236" y="458" width="552" height="108" rx="54" fill="url(#it-favicon-capsule)" />
+      </g>
+      <circle cx="512" cy="512" r="98" fill="#141414" />
+      <circle cx="512" cy="512" r="41" fill="#FFFFFF" />
     </g>
-    <circle cx="512" cy="512" r="98" fill="#141414" />
-    <circle cx="512" cy="512" r="41" fill="#FFFFFF" />
   </g>
 </svg>
