@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="IndiaTaps">
+  <defs>
+    <clipPath id="it-squircle">
+      <rect width="1024" height="1024" rx="224" />
+    </clipPath>
+    <linearGradient id="it-capsule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#D6A03C" />
+      <stop offset="0.42" stop-color="#D8A441" />
+      <stop offset="0.5" stop-color="#E9C473" />
+      <stop offset="0.58" stop-color="#F5DDA0" />
+      <stop offset="1" stop-color="#F8E1A4" />
+    </linearGradient>
+  </defs>
+
+  <g clip-path="url(#it-squircle)">
+    <rect width="1024" height="1024" fill="#141414" />
+
+    <!-- One capsule running from the lower left to the upper right: deeper
+         gold at the lower left, cream at the upper right. -->
+    <g transform="rotate(-45 512 512)">
+      <rect x="236" y="458" width="552" height="108" rx="54" fill="url(#it-capsule)" />
+    </g>
+
+    <!-- The lens in the middle. -->
+    <circle cx="512" cy="512" r="98" fill="#141414" />
+    <circle cx="512" cy="512" r="41" fill="#FFFFFF" />
+  </g>
+</svg>

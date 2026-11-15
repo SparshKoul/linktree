@@ -72,10 +72,10 @@ export function LandingPage({ onNavigate, onOpenAuth, currentUser, onLogout }) {
           <div className="flex items-center gap-6 lg:gap-8">
             <button
               onClick={() => onNavigate('/')}
-              className="font-black text-lg sm:text-2xl tracking-tighter text-[#111111] flex items-center gap-0.5 cursor-pointer"
+              className="font-black text-lg sm:text-2xl tracking-tighter text-[#111111] flex items-center gap-2 cursor-pointer"
             >
+              <img src="/logo.svg" alt="IndiaTaps" className="w-7 h-7 sm:w-9 sm:h-9 rounded-lg object-cover" />
               <span>IndiaTaps</span>
-              <span className="text-xl leading-none font-black -mt-1 text-[#111111]">*</span>
             </button>
 
             <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-gray-700">
@@ -530,7 +530,7 @@ export function LandingPage({ onNavigate, onOpenAuth, currentUser, onLogout }) {
                 <div className="bg-[#12161F] rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-white shadow-xl flex flex-col justify-between group hover:scale-[1.02] transition-transform border border-gray-800">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-black text-sm text-[#00E575]">✱</span>
+                      <img src="/logo.svg" alt="" className="w-4 h-4 rounded-[5px] object-cover" />
                       <span className="font-bold text-xs text-gray-300">/averyclothing</span>
                     </div>
                     <span className="text-[9px] sm:text-[10px] font-mono text-gray-400">03:42 / 18:20</span>
@@ -722,9 +722,9 @@ export function LandingPage({ onNavigate, onOpenAuth, currentUser, onLogout }) {
       <footer className="w-full bg-[#111111] text-white py-8 sm:py-12 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-5 sm:gap-6 border-b border-gray-800 pb-6 sm:pb-8 text-center sm:text-left">
           <div>
-            <div className="font-black text-xl tracking-tighter flex items-center justify-center sm:justify-start gap-0.5">
+            <div className="font-black text-xl tracking-tighter flex items-center justify-center sm:justify-start gap-2">
+              <img src="/logo.svg" alt="IndiaTaps" className="w-7 h-7 rounded-lg object-cover" />
               <span>IndiaTaps</span>
-              <span className="text-xl -mt-1 leading-none">*</span>
             </div>
             <p className="text-xs text-gray-400 mt-1 max-w-xs sm:max-w-none">
               The all-in-one link in bio for creators, restaurants, and businesses.

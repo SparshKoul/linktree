@@ -257,8 +257,8 @@ export function PublicTreePage({ slug }) {
         {/* Top Navbar Header */}
         <header className="relative z-10 max-w-5xl w-full mx-auto flex items-center justify-between">
           <a href="https://indiataps.vercel.app" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-xl bg-white text-black flex items-center justify-center font-black text-lg shadow-sm">
-              <span className="text-[#00E575] leading-none">✱</span>
+            <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm shrink-0">
+              <img src="/logo.svg" alt="IndiaTaps" className="w-full h-full object-cover" />
             </div>
             <span className="font-black text-lg tracking-tight text-white group-hover:text-[#00E575] transition-colors">
               IndiaTaps
@@ -491,7 +491,7 @@ export function PublicTreePage({ slug }) {
             style={{ color: activeTheme?.textColor || '#FFFFFF' }}
             title="IndiaTaps"
           >
-            ✱
+            <img src="/logo.svg" alt="IndiaTaps" className="w-5 h-5 rounded-[6px] object-cover" />
           </a>
 
           <button

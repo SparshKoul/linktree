@@ -149,8 +149,8 @@ export function AuthModal({
 
         {/* IndiaTaps Asterisk Header */}
         <div className="text-center space-y-1.5 pt-2">
-          <div className="w-10 h-10 rounded-2xl bg-black text-white flex items-center justify-center mx-auto shadow-md relative">
-            <span className="text-xl font-black text-[#00E575] leading-none">✱</span>
+          <div className="w-10 h-10 rounded-2xl overflow-hidden flex items-center justify-center mx-auto shadow-md relative">
+            <img src="/logo.svg" alt="IndiaTaps" className="w-full h-full object-cover" />
             {currentUser && (
               <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-[#00E575] border-2 border-white ring-2 ring-[#00E575]/20" />
             )}

@@ -1366,7 +1366,7 @@ export function Dashboard() {
           className="flex items-center gap-2 text-white font-extrabold text-xs hover:text-[#26D07C] transition-colors cursor-pointer"
           title="Back to IndiaTaps Main Site"
         >
-          <span className="text-[#26D07C] font-black text-xl leading-none select-none tracking-tight">✱</span>
+          <img src="/logo.svg" alt="IndiaTaps" className="w-6 h-6 rounded-lg object-cover select-none" />
           <span>IndiaTaps</span>
         </button>
         <div className="flex items-center gap-3 text-xs font-semibold text-gray-400">
@@ -2954,10 +2954,10 @@ export function Dashboard() {
                         </div>
                       </div>
 
-                      {/* Brand Wordmark & Asterisk matching Image 0 & 2 */}
-                      <div className="font-extrabold text-xs flex items-center gap-0.5 text-[#111111] mt-1">
+                      {/* Brand Wordmark matching Image 0 & 2 */}
+                      <div className="font-extrabold text-xs flex items-center gap-1 text-[#111111] mt-1">
                         <span>IndiaTaps</span>
-                        <span className="text-[#10B981] font-black text-xs">✱</span>
+                        <img src="/logo.svg" alt="" className="w-3.5 h-3.5 rounded-[4px] object-cover" />
                       </div>
                     </div>
                   </div>
@@ -3203,7 +3203,7 @@ export function Dashboard() {
                 <div className="flex flex-col justify-between flex-1 min-h-full w-full max-w-[440px] mx-auto">
                   {/* Top iOS Icons */}
                   <div className="w-full flex items-center justify-between text-xs mb-4 z-10 px-1 pt-1" style={{ color: activeTheme?.textColor || '#FFFFFF' }}>
-                    <span className="font-black text-base text-white select-none">✱</span>
+                    <img src="/logo.svg" alt="IndiaTaps" className="w-5 h-5 rounded-[6px] object-cover select-none" />
                     <button
                       type="button"
                       onClick={handleCopyLiveUrl}

@@ -19,8 +19,8 @@ export function TreeSkeleton() {
 
       {/* Top Header Bar */}
       <header className="w-full max-w-xl flex items-center justify-between mb-6 z-10">
-        <div className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center animate-pulse">
-          <span className="text-black/25 text-base font-black leading-none">✱</span>
+        <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center animate-pulse">
+          <img src="/logo.svg" alt="" className="w-full h-full object-cover opacity-25" />
         </div>
         <div className="w-9 h-9 rounded-full bg-black/10 flex items-center justify-center animate-pulse shadow-sm">
           <div className="w-3.5 h-3.5 rounded-full bg-black/20" />

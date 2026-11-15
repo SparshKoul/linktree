@@ -135,8 +135,8 @@ export function FaviconIcon({ card, className = 'w-5 h-5', containerClassName = 
 
   // Fixed project icon for standard cards and links (no dynamic external company icons)
   return (
-    <div className={`${containerClassName} ${radius} bg-[#111111] text-[#00E575] flex items-center justify-center shrink-0 shadow-2xs select-none`}>
-      <span className="font-black text-sm sm:text-base leading-none">✱</span>
+    <div className={`${containerClassName} ${radius} overflow-hidden shrink-0 shadow-2xs select-none`}>
+      <img src="/logo.svg" alt="" className="w-full h-full object-cover" />
     </div>
   );
 }

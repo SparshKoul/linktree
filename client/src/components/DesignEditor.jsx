@@ -614,8 +614,8 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
                 className="border border-gray-200/90 rounded-[20px] p-3.5 sm:p-4 flex items-center justify-between hover:border-gray-300 transition-all cursor-pointer bg-white group shadow-2xs"
               >
                 <div className="flex items-center gap-3.5">
-                  <div className="w-9 h-9 rounded-xl bg-gray-50 border border-gray-200/90 flex items-center justify-center shadow-2xs text-gray-800 font-extrabold text-sm">
-                    ✱
+                  <div className="w-9 h-9 rounded-xl overflow-hidden border border-gray-200/90 flex items-center justify-center shadow-2xs">
+                    <img src="/logo.svg" alt="" className="w-full h-full object-cover" />
                   </div>
                   <span className="text-[13px] font-semibold text-gray-900">Footer</span>
                 </div>
@@ -954,7 +954,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
             />
             {/* Top iOS Frame Bar */}
             <div className="px-5 pt-4 pb-1 flex items-center justify-between text-xs shrink-0 relative z-20" style={{ color: current.textColor || '#FFFFFF' }}>
-              <span className="font-black text-base text-white select-none">✱</span>
+              <img src="/logo.svg" alt="IndiaTaps" className="w-5 h-5 rounded-[6px] object-cover select-none" />
               <button
                 type="button"
                 onClick={handleCopyCardUrl}

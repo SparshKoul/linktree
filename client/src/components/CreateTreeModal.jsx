@@ -271,7 +271,7 @@ export function CreateTreeModal({
                     {createdTree?.slug || cleanSlug}
                   </div>
                   <div className="flex items-center gap-1.5 text-xs text-gray-500 font-medium mt-0.5">
-                    <span className="text-xs">✱</span>
+                    <img src="/logo.svg" alt="" className="w-3.5 h-3.5 rounded-[4px] object-cover" />
                     <span>indiataps.vercel.app/{createdTree?.slug || cleanSlug}</span>
                   </div>
                 </div>
