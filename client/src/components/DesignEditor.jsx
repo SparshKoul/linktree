@@ -1037,7 +1037,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
                   </div>
                 ) : (
                   /* Classic Avatar matching Image */
-                  <div className="w-28 h-28 sm:w-32 sm:h-32 aspect-square rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden mt-6 sm:mt-8 mb-3 shadow-md ring-4 ring-white/10 shrink-0 relative z-10">
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 aspect-square rounded-full bg-[#E5E7EB] flex items-center justify-center overflow-hidden mt-6 sm:mt-8 mb-5 shadow-md ring-4 ring-white/10 shrink-0 relative z-10">
                     <User className="w-14 h-14 text-gray-500 absolute" />
                     {effectiveAvatar && (
                       <img
@@ -1076,7 +1076,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
                 ) : null}
 
                 {/* Links List - using CardRenderer */}
-                <div className="w-full space-y-3.5 my-3 flex-1 px-1">
+                <div className="w-full space-y-3.5 mt-2 mb-3 flex-1 px-1">
                   {visibleCards.map((card) => (
                     <CardRenderer key={card.id} card={card} theme={previewTheme} isPreview />
                   ))}

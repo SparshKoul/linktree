@@ -1312,8 +1312,8 @@ export function Dashboard() {
 
     // Default: 'classic'
     return (
-      <div className="flex flex-col items-center text-center mt-10 sm:mt-12 mb-3 shrink-0">
-        <div className="w-32 h-32 sm:w-36 sm:h-36 aspect-square rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-4 shadow-lg ring-1 ring-white/15 shrink-0">
+      <div className="flex flex-col items-center text-center mt-10 sm:mt-12 mb-0 shrink-0">
+        <div className="w-32 h-32 sm:w-36 sm:h-36 aspect-square rounded-full bg-[#B5B9BE] flex items-center justify-center overflow-hidden mb-5 shadow-lg ring-1 ring-white/15 shrink-0">
           {currentTree?.avatarUrl ? (
             <img src={currentTree.avatarUrl} alt="Avatar" className="w-full h-full object-cover object-center" />
           ) : defaultAvatarSvg}
@@ -3226,7 +3226,7 @@ export function Dashboard() {
                   {renderPhoneHeader()}
 
                   {/* Cards Stack using CardRenderer */}
-                  <div className="w-full space-y-3.5 flex-1 mt-4 mb-8">
+                  <div className="w-full space-y-3.5 flex-1 mt-5 mb-8">
                     {currentTree?.cards &&
                       currentTree.cards
                         .filter((c) => c.visible !== false)

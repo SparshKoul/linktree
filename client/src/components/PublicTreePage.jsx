@@ -564,7 +564,7 @@ export function PublicTreePage({ slug }) {
               // somebody else.
               const heroImage = heroUrl || avatarUrl || '';
               return (
-                <div className="w-full flex flex-col items-center text-center -mt-4 mb-3">
+                <div className="w-full flex flex-col items-center text-center -mt-4 mb-0">
                   <div className="w-full h-52 sm:h-64 relative overflow-hidden rounded-3xl shadow-md bg-rose-600">
                     {heroImage ? (
                       <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
@@ -585,7 +585,7 @@ export function PublicTreePage({ slug }) {
 
             if (layout === 'banner') {
               return (
-                <div className="w-full flex flex-col items-center text-center -mt-4 mb-3">
+                <div className="w-full flex flex-col items-center text-center -mt-4 mb-0">
                   <div className="w-full h-32 sm:h-40 relative overflow-hidden rounded-3xl bg-gradient-to-r from-pink-300 via-rose-300 to-rose-400 shadow-md">
                     {bannerImage ? (
                       <img src={bannerImage} alt="Banner" className="w-full h-full object-cover" />
@@ -619,7 +619,7 @@ export function PublicTreePage({ slug }) {
 
             if (layout === 'cutout') {
               return (
-                <div className="flex flex-col items-center text-center mb-3">
+                <div className="flex flex-col items-center text-center mb-0">
                   <div className="w-32 h-36 relative flex items-end justify-center mb-1 overflow-hidden [mask-image:linear-gradient(to_bottom,black_75%,transparent_100%)]">
                     {avatarUrl ? (
                       <img src={avatarUrl} alt="Cutout" className="w-full h-full object-cover filter drop-shadow-xl" />
@@ -636,7 +636,7 @@ export function PublicTreePage({ slug }) {
 
             if (layout === 'shape') {
               return (
-                <div className="flex flex-col items-center text-center mb-3">
+                <div className="flex flex-col items-center text-center mb-0">
                   <div
                     className="w-28 h-24 relative flex items-center justify-center mb-2 shadow-md"
                     style={{ clipPath: 'url(#linktree-organic-shape)' }}
@@ -657,7 +657,7 @@ export function PublicTreePage({ slug }) {
 
             // Default: Classic
             return (
-              <div className="flex flex-col items-center text-center space-y-3 mt-4 mb-2">
+              <div className="flex flex-col items-center text-center space-y-5 mt-4 mb-0">
                 <div className="w-28 h-28 sm:w-32 sm:h-32 aspect-square rounded-full bg-[#E5E7EB] text-white flex items-center justify-center shadow-md overflow-hidden ring-4 ring-white/10 shrink-0 relative">
                   {avatarUrl ? (
                     <img
@@ -679,7 +679,7 @@ export function PublicTreePage({ slug }) {
           })()}
 
           {/* Cards Stack */}
-          <div className="w-full space-y-3.5 pt-4 mb-8 sm:mb-10">
+          <div className="w-full space-y-3.5 pt-1 mb-8 sm:mb-10">
             {cards && cards.length > 0 ? (
               cards
                 .filter((c) => c.visible !== false)
