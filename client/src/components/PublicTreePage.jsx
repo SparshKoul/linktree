@@ -7,6 +7,7 @@ import { loadFont } from '../constants/fonts.js';
 import { trackingHeaders } from '../services/visitor.js';
 import { storage } from '../services/storage.js';
 import { TreeSkeleton } from './TreeSkeleton.jsx';
+import { SkeletonImage } from './SkeletonImage.jsx';
 import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
 
 // How long a saved copy of a public page may be shown before it is fetched
@@ -565,12 +566,14 @@ export function PublicTreePage({ slug }) {
               const heroImage = heroUrl || avatarUrl || '';
               return (
                 <div className="w-full flex flex-col items-center text-center -mt-4 mb-0">
-                  <div className="w-full h-52 sm:h-64 relative overflow-hidden rounded-3xl shadow-md bg-rose-600">
-                    {heroImage ? (
-                      <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-pink-300 via-rose-300 to-rose-400" />
-                    )}
+                  <div className="w-full h-52 sm:h-64 relative overflow-hidden rounded-3xl shadow-md bg-black/5">
+                    <SkeletonImage
+                      src={heroImage}
+                      alt="Hero"
+                      fallback={
+                        <div className="w-full h-full bg-gradient-to-r from-pink-300 via-rose-300 to-rose-400" />
+                      }
+                    />
                     <div
                       className="absolute inset-x-0 bottom-0 h-20"
                       style={{
@@ -586,12 +589,14 @@ export function PublicTreePage({ slug }) {
             if (layout === 'banner') {
               return (
                 <div className="w-full flex flex-col items-center text-center -mt-4 mb-0">
-                  <div className="w-full h-32 sm:h-40 relative overflow-hidden rounded-3xl bg-gradient-to-r from-pink-300 via-rose-300 to-rose-400 shadow-md">
-                    {bannerImage ? (
-                      <img src={bannerImage} alt="Banner" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full opacity-60 bg-[radial-gradient(#ec4899_1.5px,transparent_1.5px)] [background-size:8px_8px]" />
-                    )}
+                  <div className="w-full h-32 sm:h-40 relative overflow-hidden rounded-3xl bg-black/5 shadow-md">
+                    <SkeletonImage
+                      src={bannerImage}
+                      alt="Banner"
+                      fallback={
+                        <div className="w-full h-full opacity-60 bg-[radial-gradient(#ec4899_1.5px,transparent_1.5px)] [background-size:8px_8px]" />
+                      }
+                    />
                   </div>
                   <div className="-mt-12 mb-2 relative z-10">
                     <div className="w-24 h-24 aspect-square shrink-0 rounded-full bg-white p-1.5 shadow-lg flex items-center justify-center">

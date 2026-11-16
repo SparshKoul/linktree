@@ -75,6 +75,7 @@ import { navigate } from './router.js';
 import { LandingPage } from './components/LandingPage.jsx';
 import { SuperAdminDashboard } from './components/SuperAdminDashboard.jsx';
 import { getCanonicalTreeUrl, copyToClipboard } from './constants/urls.js';
+import { SkeletonImage } from './components/SkeletonImage.jsx';
 import { uploadPicture } from './lib/uploadPicture.js';
 
 export function Dashboard() {
@@ -1247,8 +1248,8 @@ export function Dashboard() {
         'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80';
       return (
         <div className="w-full flex flex-col items-center text-center mb-3">
-          <div className="w-full h-52 sm:h-56 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600">
-            <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
+          <div className="w-full h-52 sm:h-56 rounded-2xl overflow-hidden relative shadow-xs bg-black/5">
+            <SkeletonImage src={heroImage} alt="Hero" />
             {/* Soft gradient fade into card background matching Hero thumbnail */}
             <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[#EEF1F6] via-[#EEF1F6]/50 to-transparent" />
           </div>
@@ -1262,12 +1263,14 @@ export function Dashboard() {
       return (
         <div className="w-full flex flex-col items-center text-center mb-3">
           {/* Top wide banner cover with equal left, right, and top padding */}
-          <div className="w-full h-32 sm:h-34 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA] shrink-0">
-            {bannerImage ? (
-              <img src={bannerImage} alt="Banner" className="w-full h-full object-cover object-center" />
-            ) : (
-              <div className="w-full h-full opacity-90 bg-gradient-to-r from-[#FF007A] via-[#A855F7] to-[#7928CA]" />
-            )}
+          <div className="w-full h-32 sm:h-34 rounded-2xl overflow-hidden relative shadow-xs bg-black/5 shrink-0">
+            <SkeletonImage
+              src={bannerImage}
+              alt="Banner"
+              fallback={
+                <div className="w-full h-full opacity-90 bg-gradient-to-r from-[#FF007A] via-[#A855F7] to-[#7928CA]" />
+              }
+            />
           </div>
           {/* Circular avatar overlapping bottom of banner with crisp white border */}
           <div className="-mt-10 mb-2 relative ring-4 ring-white rounded-full shadow-md w-20 h-20 aspect-square shrink-0 overflow-hidden bg-white flex items-center justify-center z-10">

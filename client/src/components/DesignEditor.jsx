@@ -33,6 +33,7 @@ import { TextEditor } from './TextEditor.jsx';
 import { ColorsEditor } from './ColorsEditor.jsx';
 import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
 import { uploadPicture } from '../lib/uploadPicture.js';
+import { SkeletonImage } from './SkeletonImage.jsx';
 
 export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, onOpenHeader, initialSubview = null }) {
   const [activeSubview, setActiveSubview] = useState(initialSubview); // null | 'theme' | 'header' | 'wallpaper' | 'buttons' | 'text' | 'colors' | 'stickers' | 'footer'
@@ -982,28 +983,23 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
               <div className="w-full max-w-[440px] flex flex-col items-center flex-1 pt-2 sm:pt-3 relative z-10">
                 {/* Header Layout Rendering */}
                 {currentHeaderLayout === 'hero' ? (
-                  <div className="w-full h-44 sm:h-48 rounded-2xl overflow-hidden relative shadow-xs bg-rose-600 mb-2 shrink-0 z-10">
-                    <img
+                  <div className="w-full h-44 sm:h-48 rounded-2xl overflow-hidden relative shadow-xs bg-black/5 mb-2 shrink-0 z-10">
+                    <SkeletonImage
                       src={current.heroUrl || currentTree?.heroUrl || effectiveAvatar || demoGirlImg}
                       alt="Hero"
-                      className="w-full h-full object-cover"
-                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   </div>
                 ) : currentHeaderLayout === 'banner' ? (
                   <div className="w-full flex flex-col items-center mb-2 shrink-0 z-10">
-                    <div className="w-full h-28 sm:h-32 rounded-2xl overflow-hidden relative shadow-xs bg-gradient-to-r from-[#FF007A] via-[#C026D3] to-[#7928CA] shrink-0">
-                      {current.bannerUrl || currentTree?.bannerUrl ? (
-                        <img
-                          src={current.bannerUrl || currentTree.bannerUrl}
-                          alt="Banner"
-                          className="w-full h-full object-cover object-center"
-                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                        />
-                      ) : (
-                        <div className="w-full h-full opacity-90 bg-gradient-to-r from-[#FF007A] via-[#A855F7] to-[#7928CA]" />
-                      )}
+                    <div className="w-full h-28 sm:h-32 rounded-2xl overflow-hidden relative shadow-xs bg-black/5 shrink-0">
+                      <SkeletonImage
+                        src={current.bannerUrl || currentTree?.bannerUrl}
+                        alt="Banner"
+                        fallback={
+                          <div className="w-full h-full opacity-90 bg-gradient-to-r from-[#FF007A] via-[#A855F7] to-[#7928CA]" />
+                        }
+                      />
                     </div>
                     <div className="-mt-10 mb-2 relative ring-4 ring-white rounded-full shadow-md w-20 h-20 aspect-square shrink-0 overflow-hidden bg-white flex items-center justify-center z-10">
                       <User className="w-10 h-10 text-gray-400 absolute" />
