@@ -30,7 +30,7 @@ export function FaviconIcon({ card, className = 'w-5 h-5', containerClassName = 
   // 1. Direct custom thumbnail URL
   if (card?.thumbnailUrl && !imgError) {
     return (
-      <div className={`${containerClassName} ${radius} border border-gray-200/40 bg-white shrink-0 overflow-hidden shadow-2xs`}>
+      <div className={`${containerClassName} ${radius} bg-white shrink-0 overflow-hidden shadow-2xs`}>
         <img
           src={card.thumbnailUrl}
           alt={card.title || 'Thumbnail'}

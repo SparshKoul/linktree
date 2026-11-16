@@ -744,7 +744,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
             {/* The badge sits over the left edge of the pill. The text keeps
                 the room it needs, so a long name can take two lines and the
                 pill grows with it. */}
-            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-xs overflow-hidden p-0.5">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-xs overflow-hidden">
               <FaviconIcon card={card} className="w-6 h-6 text-[#111111]" containerClassName="w-full h-full flex items-center justify-center rounded-full" />
             </div>
 
