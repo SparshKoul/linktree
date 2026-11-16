@@ -406,10 +406,10 @@ function CardRendererView({ card, theme, isPreview = false }) {
             <Music className="w-5 h-5 opacity-80" />
           </div>
           <div className="text-left min-w-0">
-            <div className="font-bold text-xs break-words">{card.title}</div>
+            <div className="font-bold text-[13px] break-words">{card.title}</div>
             {/* The words under the title come only from what the owner wrote */}
             {card.subtitle ? (
-              <div className="text-[10px] opacity-70 break-words">{card.subtitle}</div>
+              <div className="text-[11px] opacity-70 break-words">{card.subtitle}</div>
             ) : null}
           </div>
         </div>
@@ -639,7 +639,7 @@ function CardRendererView({ card, theme, isPreview = false }) {
 
           {/* Details below media */}
           <div className="pt-3.5 pb-1 px-1 flex flex-col items-center justify-center">
-            <div className="font-bold text-sm sm:text-base text-center leading-snug break-words">
+            <div className="font-bold text-[15px] sm:text-base text-center leading-snug break-words">
               {card.title}
             </div>
             {subtitle && (
@@ -752,10 +752,10 @@ function CardRendererView({ card, theme, isPreview = false }) {
               {/* A long name goes onto the next line. Nothing is cut off
                   with an ellipsis, so the visitor reads the whole name. */}
               <div className="min-w-0">
-                <div className="font-bold text-xs leading-snug break-words">{card.title}</div>
+                <div className="font-bold text-[13px] leading-snug break-words">{card.title}</div>
                 {subtitle && (
                   <div
-                    className="text-[10px] mt-0.5 font-normal opacity-70 leading-tight break-words"
+                    className="text-[11px] mt-0.5 font-normal opacity-70 leading-tight break-words"
                     style={{ color: 'currentColor' }}
                   >
                     <span>{subtitle}</span>
@@ -768,13 +768,13 @@ function CardRendererView({ card, theme, isPreview = false }) {
           <div className="flex-1 text-center py-0.5 px-6">
             {/* A long name goes onto the next line. Nothing is cut off with
                 an ellipsis, so the visitor reads the whole name. */}
-            <div className="font-bold text-sm sm:text-base leading-snug break-words">{card.title}</div>
+            <div className="font-bold text-[15px] sm:text-base leading-snug break-words">{card.title}</div>
             {/* Whatever the owner wrote as the subtitle is shown here too —
                 for instagram, whatsapp, email, local media and every other
                 card without a thumbnail. A plain link keeps its clean pill. */}
             {subtitle && subtitle !== card.title && (
               <div
-                className="text-[10px] sm:text-[11px] font-normal opacity-70 mt-0.5 leading-tight break-words"
+                className="text-[11px] sm:text-xs font-normal opacity-70 mt-0.5 leading-tight break-words"
                 style={{ color: 'currentColor' }}
               >
                 {subtitle}
