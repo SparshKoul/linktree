@@ -691,7 +691,7 @@ export function PublicTreePage({ slug }) {
           })()}
 
           {/* Cards Stack */}
-          <div className="w-full space-y-3.5 pt-1 mb-8 sm:mb-10">
+          <div className="w-full space-y-3.5 pt-4 mb-8 sm:mb-10">
             {cards && cards.length > 0 ? (
               cards
                 .filter((c) => c.visible !== false)
