@@ -196,6 +196,10 @@ export function formatTreeRecord(data, cards = null, cardCount = 0) {
     socialLinks,
     social_links: socialLinks,
     seo,
+    // Set only by the Super Admin. It is read back here so the owner can be
+    // told their page is blocked, but it is deliberately absent from the
+    // fields updateTree writes, so no owner save can clear it.
+    blocked: data.blocked === true,
     viewsCount: Number(data.views_count || 0),
     clicksCount: Number(data.clicks_count || 0),
     createdAt: data.created_at,
@@ -929,6 +933,30 @@ export const db = {
     } catch (err) {
       console.warn('[DB deleteCard fallback]', err.message);
       return false;
+    }
+  },
+
+  /**
+   * Take one whole page (tree) off the public site, or put it back. Only the
+   * Super Admin calls this; the field is not part of what updateTree writes,
+   * so an owner's save can never clear it.
+   * @param {number} id tree id
+   * @param {boolean} blocked
+   * @returns {{tree?: object, error?: Error}} the tree, or why it failed
+   */
+  async setTreeBlocked(id, blocked) {
+    try {
+      const { data, error } = await supabase
+        .from('trees')
+        .update({ blocked: blocked === true, updated_at: new Date().toISOString() })
+        .eq('id', Number(id))
+        .select('*, cards(*)')
+        .single();
+      if (error) throw error;
+      return { tree: formatTreeRecord(data) };
+    } catch (err) {
+      console.warn('[DB setTreeBlocked failed]', err.message);
+      return { error: err };
     }
   },
 

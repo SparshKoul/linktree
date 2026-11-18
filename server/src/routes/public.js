@@ -53,6 +53,16 @@ export function registerPublicRoutes(app) {
         message: 'This digital card is temporarily unavailable because the account has been locked. Please contact the administrator at indiataps.vercel.app or india.taps7@gmail.com.',
       });
 
+    // One page was taken down by the Super Admin. The account and the other
+    // pages of the same client keep working.
+    const blockedPageResponse = () =>
+      res.status(403).json({
+        error: 'Page Blocked',
+        isBlocked: true,
+        slug,
+        message: 'This digital card is temporarily unavailable because it has been blocked. Please contact the administrator at indiataps.vercel.app or india.taps7@gmail.com.',
+      });
+
     // 1. Check in-memory fast cache.
     //    The lock check comes first: a blocked account must not be served from
     //    the cache.
@@ -62,11 +72,20 @@ export function registerPublicRoutes(app) {
       if (await isTreeOwnerBlocked(cachedAdminId, slug)) {
         return suspendedResponse();
       }
+      if (cached.payload?.tree?.blocked) {
+        return blockedPageResponse();
+      }
       return res.json(cached.payload);
     }
 
     const dbTree = await db.getTreeBySlug(slug);
     if (dbTree) {
+      // A page the Super Admin blocked is not served, even if its owner is
+      // fine.
+      if (dbTree.blocked) {
+        return blockedPageResponse();
+      }
+
       const adminId = dbTree.admin_id ?? dbTree.adminId;
       // The state of the owner came with the tree: no second question to
       // the database.
@@ -100,6 +119,10 @@ export function registerPublicRoutes(app) {
 
     const tree = store.trees.find((t) => t.slug === slug && !t.deletedAt && t.status === 'live');
     if (!tree) return res.status(404).json({ error: 'Tree not found or unpublished' });
+
+    if (tree.blocked) {
+      return blockedPageResponse();
+    }
 
     const isBlocked = await isTreeOwnerBlocked(tree.adminId, slug);
     if (isBlocked) {

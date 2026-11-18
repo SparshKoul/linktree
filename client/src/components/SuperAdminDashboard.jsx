@@ -17,6 +17,7 @@ import {
   RefreshCw,
   LayoutGrid,
   ShoppingBag,
+  Ban,
   X,
 } from 'lucide-react';
 
@@ -50,6 +51,11 @@ export function SuperAdminDashboard({
   // Copied state
   const [copiedKey, setCopiedKey] = useState(null);
 
+  // Per-page moderation. The Super Admin can take one whole page down while
+  // the client's other pages keep working.
+  const [blockingTreeId, setBlockingTreeId] = useState(null);
+  const [treeBlockError, setTreeBlockError] = useState('');
+
   const fetchUsers = async () => {
     setLoading(true);
     setError('');
@@ -70,6 +76,43 @@ export function SuperAdminDashboard({
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  // Take one whole page off the public site, or put it back. The account and
+  // the client's other pages are left alone.
+  const handleToggleTreeBlock = async (tree) => {
+    const nextBlocked = !tree.blocked;
+    const confirmMsg = nextBlocked
+      ? `Block the page /${tree.slug}? Visitors will see it as unavailable. The client's other pages stay online.`
+      : `Put the page /${tree.slug} back online?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    setBlockingTreeId(tree.id);
+    setTreeBlockError('');
+    try {
+      const res = await fetch(`/api/admin/trees/${tree.id}/block`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ blocked: nextBlocked }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.hint || data.error || 'Could not update this page');
+
+      setUsers((prev) =>
+        prev.map((u) => ({
+          ...u,
+          trees: (u.trees || []).map((t) =>
+            t.id === tree.id ? { ...t, blocked: nextBlocked } : t
+          ),
+        }))
+      );
+    } catch (err) {
+      setTreeBlockError(err.message);
+    } finally {
+      setBlockingTreeId(null);
+    }
+  };
 
   const handleToggleBlock = async (user) => {
     if (user.isSuperAdmin || user.email?.toLowerCase() === 'sparshkoul6@gmail.com') {
@@ -389,6 +432,13 @@ export function SuperAdminDashboard({
           </div>
         )}
 
+        {treeBlockError && (
+          <div className="p-4 bg-red-50 border-b border-red-100 text-xs text-red-700 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{treeBlockError}</span>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
@@ -411,8 +461,8 @@ export function SuperAdminDashboard({
                 filteredUsers.map((u) => {
                   const isSparsh = u.isSuperAdmin || u.email?.toLowerCase() === 'sparshkoul6@gmail.com';
                   return (
+                    <React.Fragment key={u.id}>
                     <tr
-                      key={u.id}
                       className={`hover:bg-gray-50/80 transition-colors ${
                         u.isBlocked ? 'bg-red-50/30' : ''
                       }`}
@@ -500,20 +550,60 @@ export function SuperAdminDashboard({
 
                       {/* Direct Card Links */}
                       <td className="py-3.5 px-4">
-                        <div className="flex flex-wrap gap-1.5 max-w-xs">
+                        <div className="flex flex-col gap-1.5 max-w-xs">
                           {u.trees && u.trees.length > 0 ? (
                             u.trees.map((t) => (
-                              <a
-                                key={t.id}
-                                href={`/${t.slug}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-50 hover:bg-[#D2E823] hover:text-[#1E3A1E] text-gray-700 border border-gray-200 font-mono text-[11px] font-bold transition-colors cursor-pointer group"
-                                title={`Open /${t.slug}`}
-                              >
-                                <span>/{t.slug}</span>
-                                <ExternalLink className="w-2.5 h-2.5 text-gray-400 group-hover:text-[#1E3A1E]" />
-                              </a>
+                              <div key={t.id} className="flex items-center gap-1.5">
+                                <a
+                                  href={`/${t.slug}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border font-mono text-[11px] font-bold transition-colors group ${
+                                    t.blocked
+                                      ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                                      : 'bg-gray-50 hover:bg-[#D2E823] hover:text-[#1E3A1E] text-gray-700 border-gray-200'
+                                  }`}
+                                  title={`Open /${t.slug}`}
+                                >
+                                  <span>/{t.slug}</span>
+                                  <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                                </a>
+
+                                {t.blocked && (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 text-[9px] font-bold">
+                                    <Ban className="w-2.5 h-2.5" />
+                                    Blocked
+                                  </span>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleTreeBlock(t)}
+                                  disabled={blockingTreeId === t.id}
+                                  className={`px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1 border transition-colors cursor-pointer disabled:opacity-50 ${
+                                    t.blocked
+                                      ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300'
+                                      : 'bg-white hover:bg-red-50 text-red-600 border-red-200'
+                                  }`}
+                                  title={
+                                    t.blocked
+                                      ? `Put /${t.slug} back online`
+                                      : `Take /${t.slug} off the public site`
+                                  }
+                                >
+                                  {t.blocked ? (
+                                    <>
+                                      <Unlock className="w-3 h-3" />
+                                      Unblock
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Ban className="w-3 h-3" />
+                                      Block
+                                    </>
+                                  )}
+                                </button>
+                              </div>
                             ))
                           ) : (
                             <span className="text-gray-400 italic text-[11px]">No cards created yet</span>
@@ -580,6 +670,7 @@ export function SuperAdminDashboard({
                         </div>
                       </td>
                     </tr>
+                    </React.Fragment>
                   );
                 })
               )}

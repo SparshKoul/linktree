@@ -21,6 +21,7 @@ export function PublicTreePage({ slug }) {
   const [copied, setCopied] = useState(false);
   const [isBlocked, setIsBlocked] = useState(false);
   const [blockedMessage, setBlockedMessage] = useState('');
+  const [blockedReason, setBlockedReason] = useState('');
   const [isDesktop, setIsDesktop] = useState(
     () => typeof window !== 'undefined' && window.innerWidth >= 640
   );
@@ -106,6 +107,7 @@ export function PublicTreePage({ slug }) {
           const data = body || {};
           if (!isMounted) return null;
           setIsBlocked(true);
+          setBlockedReason(data.error || '');
           setBlockedMessage(
             data.message ||
               'This digital card is temporarily unavailable because the account has been locked.'
@@ -250,6 +252,7 @@ export function PublicTreePage({ slug }) {
   );
 
   if (isBlocked) {
+    const isPageBlock = blockedReason === 'Page Blocked';
     return (
       <div className="min-h-screen bg-[#111318] text-white flex flex-col justify-between p-6 sm:p-10 relative overflow-hidden font-sans selection:bg-[#00E575] selection:text-black">
         {/* Subtle background glow */}
@@ -278,7 +281,7 @@ export function PublicTreePage({ slug }) {
         <main className="relative z-10 max-w-xl w-full mx-auto my-auto py-12 text-center space-y-6">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-mono font-bold tracking-wide">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span>ACCOUNT TEMPORARILY LOCKED</span>
+            <span>{isPageBlock ? 'PAGE TEMPORARILY BLOCKED' : 'ACCOUNT TEMPORARILY LOCKED'}</span>
           </div>
 
           <div className="space-y-3">
@@ -296,7 +299,9 @@ export function PublicTreePage({ slug }) {
               <span>Contact Administrator</span>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed">
-              If this is your business profile or client account, please contact the IndiaTaps administrator to reactivate your cards. Once unblocked, all your cards will automatically work normally as they used to.
+              {isPageBlock
+                ? 'If this is your business page, please contact the IndiaTaps administrator to reactivate it. Once unblocked, this page will automatically work normally again.'
+                : 'If this is your business profile or client account, please contact the IndiaTaps administrator to reactivate your cards. Once unblocked, all your cards will automatically work normally as they used to.'}
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
@@ -307,7 +312,9 @@ export function PublicTreePage({ slug }) {
                 indiataps.vercel.app
               </a>
               <a
-                href="mailto:india.taps7@gmail.com?subject=Reactivate%20IndiaTaps%20Card%20Account"
+                href={`mailto:india.taps7@gmail.com?subject=${encodeURIComponent(
+                  isPageBlock ? 'Reactivate IndiaTaps Page' : 'Reactivate IndiaTaps Card Account'
+                )}`}
                 className="flex-1 py-3 px-4 rounded-full bg-gray-800 hover:bg-gray-700 text-white font-bold text-xs transition-all text-center border border-gray-700"
               >
                 Email Administrator

@@ -180,6 +180,59 @@ export function registerTreeRoutes(app) {
     res.json({ ...tree, cards: treeCards });
   });
 
+  // Super Admin: take one whole page off the site, or put it back.
+  //
+  // This is the page-level version of locking an account: every other page of
+  // the same client keeps working. The flag lives in a column that updateTree
+  // never writes, so an owner's save can never clear it.
+  app.patch('/api/admin/trees/:id/block', async (req, res) => {
+    const callerId = req.userId;
+    if (!callerId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const isSuper = await isCallerSuperAdmin(callerId);
+    if (!isSuper) {
+      return res.status(403).json({ error: 'Forbidden: Super Admin access required' });
+    }
+
+    const treeId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(treeId)) {
+      return res.status(400).json({ error: 'Tree id is required' });
+    }
+
+    const blocked = req.body?.blocked !== undefined ? Boolean(req.body.blocked) : true;
+
+    // Look the page up first, so a missing column (migration not run yet)
+    // is not reported as a missing page.
+    const existing = await db.getTreeById(treeId);
+    if (!existing) {
+      return res.status(404).json({ error: 'Tree not found' });
+    }
+
+    const { tree: updated, error: blockError } = await db.setTreeBlocked(treeId, blocked);
+    if (!updated) {
+      return res.status(503).json({
+        error: 'This page could not be blocked. Nothing was changed.',
+        hint: dbErrorHint(blockError),
+      });
+    }
+
+    invalidatePublicTreeCache(updated.slug || existing.slug);
+
+    // Keep the copy in memory in step, so the console and the owner see the
+    // change without waiting for a reload.
+    const memTree = store.trees.find((t) => t.id === treeId);
+    if (memTree) memTree.blocked = blocked;
+
+    res.json({
+      success: true,
+      treeId,
+      blocked,
+      tree: updated,
+      message: blocked ? 'Page is now blocked' : 'Page is no longer blocked',
+    });
+  });
+
   // Update Tree (requires ownership & global slug uniqueness check)
   app.put('/api/admin/trees/:id', async (req, res) => {
     const currentId = req.userId;
@@ -238,6 +291,9 @@ export function registerTreeRoutes(app) {
     const updatedTree = {
       ...store.trees[treeIndex],
       ...req.body,
+      // Moderation is not the owner's to change. Even in the memory fallback
+      // the Super Admin's block must survive an owner's save.
+      blocked: store.trees[treeIndex].blocked === true,
       updatedAt: new Date().toISOString(),
     };
 

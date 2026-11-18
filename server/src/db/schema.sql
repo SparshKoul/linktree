@@ -66,6 +66,9 @@ CREATE TABLE IF NOT EXISTS public.trees (
   seo JSONB NOT NULL DEFAULT '{"title":"","description":"","faviconUrl":""}'::jsonb,
   views_count BIGINT NOT NULL DEFAULT 0,
   clicks_count BIGINT NOT NULL DEFAULT 0,
+  -- Set only by the Super Admin. An owner cannot write this field, so saving
+  -- a tree never clears a block. See migrations/005_tree_block.sql.
+  blocked BOOLEAN NOT NULL DEFAULT FALSE,
   deleted_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -86,6 +89,7 @@ ALTER TABLE public.trees ADD COLUMN IF NOT EXISTS social_links JSONB NOT NULL DE
 ALTER TABLE public.trees ADD COLUMN IF NOT EXISTS seo JSONB NOT NULL DEFAULT '{"title":"","description":"","faviconUrl":""}'::jsonb;
 ALTER TABLE public.trees ADD COLUMN IF NOT EXISTS views_count BIGINT NOT NULL DEFAULT 0;
 ALTER TABLE public.trees ADD COLUMN IF NOT EXISTS clicks_count BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE public.trees ADD COLUMN IF NOT EXISTS blocked BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- ------------------------------------------------------------------------------
 -- 3. Cards Table (Modular Link & Interactive Content Blocks)

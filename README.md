@@ -67,6 +67,10 @@ Copy `server/.env.example` to `server/.env` and fill it in:
     inside the database, so parallel clicks are never lost.
   - `003_analytics.sql` adds the column that tells the visitors apart, so the
     number of visitors is exact, and the indexes the numbers come from.
+  - `005_tree_block.sql` adds the `blocked` flag, so the Super Admin can take a
+    single page (`/riyast`, `/bistro`) off the public site without locking the
+    whole account. An owner's save can never clear it. It also removes the
+    card-level `blocked` column from the earlier draft.
 
 After the first install, set the super admin password with the query at the
 end of `schema.sql`.

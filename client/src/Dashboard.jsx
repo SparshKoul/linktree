@@ -37,6 +37,7 @@ import {
   LayoutGrid,
   Pencil,
   EyeOff,
+  ShieldAlert,
   GripVertical,
   ArrowUp,
   ArrowDown,
@@ -3081,6 +3082,17 @@ export function Dashboard() {
             >
               ✕
             </button>
+          )}
+
+          {/* The page the Super Admin took down. The owner can still edit it,
+              but visitors see the suspension screen until it is put back. */}
+          {currentTree?.blocked && (
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 w-[calc(100%-1.5rem)] max-w-[420px] rounded-2xl bg-red-600 text-white px-4 py-2.5 shadow-lg flex items-center gap-2.5">
+              <ShieldAlert className="w-4 h-4 shrink-0" />
+              <div className="text-[11px] font-semibold leading-tight">
+                This page is blocked by the administrator and is not visible to visitors. Only the administrator can restore it.
+              </div>
+            </div>
           )}
 
           <div className="relative w-full h-full lg:w-auto lg:h-auto flex items-center justify-center">

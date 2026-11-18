@@ -337,6 +337,9 @@ export function registerAuthRoutes(app) {
           slug: t.slug,
           status: t.status || 'live',
           cardCount: t.cardCount || 0,
+          // Set by the Super Admin. The console needs it to show which page is
+          // down and which button to offer.
+          blocked: t.blocked === true,
         })),
       };
     });

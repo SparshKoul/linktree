@@ -238,7 +238,11 @@ export function registerCardRoutes(app) {
     if (treeUpdates) {
       const treeIdx = store.trees.findIndex((t) => t.id === treeId);
       if (treeIdx !== -1) {
-        store.trees[treeIdx] = { ...store.trees[treeIdx], ...(savedTree || treeUpdates) };
+        const merged = { ...store.trees[treeIdx], ...(savedTree || treeUpdates) };
+        // Moderation is not the owner's to change. Keep the Super Admin's
+        // block even if the request body tried to carry one.
+        merged.blocked = store.trees[treeIdx].blocked === true;
+        store.trees[treeIdx] = merged;
       }
       store.cards = store.cards.filter((c) => c.treeId !== treeId);
       store.cards.push(...savedCards);

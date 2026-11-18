@@ -113,4 +113,11 @@ describe('Card fields', () => {
       expect(columns.has(column)).toBe(true);
     }
   });
+
+  it('cannot write a card-level block, since the page is what gets blocked', () => {
+    // The first draft put the block on a card. That was the wrong level, and
+    // the column is gone; nothing in the owner's field list may bring it back.
+    expect(CARD_COLUMN_BY_FIELD.blocked).toBeUndefined();
+    expect(cardColumnsFrom({ blocked: true, title: 'Hi' })).toEqual({ title: 'Hi' });
+  });
 });

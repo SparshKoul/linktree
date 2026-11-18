@@ -19,6 +19,9 @@ export function dbErrorHint(err) {
   if (message.includes('check constraint')) {
     return 'The database does not know this card type yet. Run server/src/db/migrations/001_allow_all_card_types.sql in the Supabase SQL editor.';
   }
+  if (message.includes("column") && message.includes("blocked")) {
+    return 'The database has no blocked column on trees yet. Run server/src/db/migrations/005_tree_block.sql in the Supabase SQL editor.';
+  }
   if (message.includes('row-level security') || message.includes('RLS')) {
     return 'The database refused the write because of its row level security rules.';
   }

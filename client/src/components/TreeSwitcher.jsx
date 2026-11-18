@@ -33,6 +33,11 @@ export function TreeSwitcher({
         <span className="font-bold text-xs truncate max-w-[120px]">
           {currentTree?.slug || 'riyast'}
         </span>
+        {currentTree?.blocked && (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200 text-[9px] font-black uppercase tracking-wide shrink-0">
+            Blocked
+          </span>
+        )}
         <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
       </button>
 
@@ -94,9 +99,15 @@ export function TreeSwitcher({
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[10px] font-semibold text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full bg-white">
-                        Free
-                      </span>
+                      {tree.blocked ? (
+                        <span className="text-[10px] font-bold text-red-700 border border-red-200 px-2 py-0.5 rounded-full bg-red-50">
+                          Blocked
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-gray-500 border border-gray-200 px-2 py-0.5 rounded-full bg-white">
+                          Free
+                        </span>
+                      )}
                       <button
                         type="button"
                         onClick={(e) => {
