@@ -565,8 +565,8 @@ export function PublicTreePage({ slug }) {
               // somebody else.
               const heroImage = heroUrl || avatarUrl || '';
               return (
-                <div className="w-full flex flex-col items-center text-center -mt-4 mb-0">
-                  <div className="w-full h-52 sm:h-64 relative overflow-hidden rounded-3xl shadow-md bg-black/5">
+                <div className="w-full flex flex-col items-center text-center -mt-4 mb-2">
+                  <div className="w-full h-52 sm:h-64 mb-5 relative overflow-hidden rounded-3xl shadow-md bg-black/5">
                     <SkeletonImage
                       src={heroImage}
                       alt="Hero"
@@ -588,7 +588,7 @@ export function PublicTreePage({ slug }) {
 
             if (layout === 'banner') {
               return (
-                <div className="w-full flex flex-col items-center text-center -mt-4 mb-0">
+                <div className="w-full flex flex-col items-center text-center -mt-4 mb-2">
                   <div className="w-full h-32 sm:h-40 relative overflow-hidden rounded-3xl bg-black/5 shadow-md">
                     <SkeletonImage
                       src={bannerImage}
