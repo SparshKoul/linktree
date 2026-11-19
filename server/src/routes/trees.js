@@ -330,6 +330,49 @@ export function registerTreeRoutes(app) {
     res.json({ success: true, id: treeId });
   });
 
+  // Super Admin: delete a whole page for good. This is not the owner's soft
+  // delete: the tree row and its cards are removed from the database, the
+  // page cannot be restored, and the slug becomes available again.
+  app.delete('/api/admin/trees/:id/permanent', async (req, res) => {
+    const callerId = req.userId;
+    if (!callerId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    const isSuper = await isCallerSuperAdmin(callerId);
+    if (!isSuper) {
+      return res.status(403).json({ error: 'Forbidden: Super Admin access required' });
+    }
+
+    const treeId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(treeId)) {
+      return res.status(400).json({ error: 'Tree id is required' });
+    }
+
+    const info = await db.getTreeInfo(treeId, { includeDeleted: true });
+    if (!info) {
+      return res.status(404).json({ error: 'Tree not found' });
+    }
+
+    const result = await db.hardDeleteTree(treeId);
+    if (!result.ok) {
+      return res.status(503).json({
+        error: 'This page could not be deleted. Nothing was changed.',
+        hint: dbErrorHint(result.error),
+      });
+    }
+
+    // A deleted page must stop being served on the next request.
+    invalidatePublicTreeCache(info.slug);
+    invalidatePublicTreeCache();
+    treeInfoCache.delete(treeId);
+
+    const treeIndex = store.trees.findIndex((t) => t.id === treeId);
+    if (treeIndex !== -1) store.trees.splice(treeIndex, 1);
+    store.cards = store.cards.filter((c) => c.treeId !== treeId);
+
+    res.json({ success: true, id: treeId, slug: info.slug, permanent: true });
+  });
+
   // Restore Tree (undo a delete, requires ownership)
   app.post('/api/admin/trees/:id/restore', async (req, res) => {
     const currentId = req.userId;

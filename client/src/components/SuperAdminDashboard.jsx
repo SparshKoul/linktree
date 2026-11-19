@@ -56,6 +56,10 @@ export function SuperAdminDashboard({
   const [blockingTreeId, setBlockingTreeId] = useState(null);
   const [treeBlockError, setTreeBlockError] = useState('');
 
+  // The Super Admin can remove a whole page for good. It is deliberately a
+  // separate, stronger action from the owner's soft delete.
+  const [deletingTreeId, setDeletingTreeId] = useState(null);
+
   const fetchUsers = async () => {
     setLoading(true);
     setError('');
@@ -111,6 +115,40 @@ export function SuperAdminDashboard({
       setTreeBlockError(err.message);
     } finally {
       setBlockingTreeId(null);
+    }
+  };
+
+  // Delete a whole page for good. The tree row, its cards and its assets are
+  // removed from the database; there is no restore for this action.
+  const handleDeleteTree = async (tree) => {
+    const confirmed = window.confirm(
+      `PERMANENTLY delete the page /${tree.slug}?\n\n` +
+      'The page and every card on it will be removed from the database. ' +
+      'This cannot be undone and the address will become available again.'
+    );
+    if (!confirmed) return;
+
+    setDeletingTreeId(tree.id);
+    setTreeBlockError('');
+    try {
+      const res = await fetch(`/api/admin/trees/${tree.id}/permanent`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.hint || data.error || 'Could not delete this page');
+
+      setUsers((prev) =>
+        prev.map((u) => ({
+          ...u,
+          trees: (u.trees || []).filter((t) => t.id !== tree.id),
+          treesCount: Math.max(0, (u.treesCount || u.trees?.length || 0) - 1),
+        }))
+      );
+    } catch (err) {
+      setTreeBlockError(err.message);
+    } finally {
+      setDeletingTreeId(null);
     }
   };
 
@@ -602,6 +640,16 @@ export function SuperAdminDashboard({
                                       Block
                                     </>
                                   )}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteTree(t)}
+                                  disabled={deletingTreeId === t.id}
+                                  className="p-1.5 rounded-md bg-white hover:bg-red-100 text-gray-400 hover:text-red-700 border border-gray-200 hover:border-red-300 cursor-pointer disabled:opacity-50 transition-colors"
+                                  title={`Permanently delete the whole page /${t.slug}`}
+                                >
+                                  <Trash2 className="w-3 h-3" />
                                 </button>
                               </div>
                             ))

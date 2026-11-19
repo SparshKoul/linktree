@@ -592,6 +592,43 @@ export const db = {
     }
   },
 
+  /**
+   * Remove a whole page for good: the tree, its cards and their pictures.
+   * Only the Super Admin calls this. The cards go first, because their
+   * tree_id references the tree.
+   * @returns {{ok?: boolean, error?: Error}}
+   */
+  async hardDeleteTree(id) {
+    try {
+      const treeId = Number(id);
+      if (!Number.isInteger(treeId)) throw new Error('Invalid tree id');
+
+      const { error: cardsError } = await supabase
+        .from('cards')
+        .delete()
+        .eq('tree_id', treeId);
+      if (cardsError) throw cardsError;
+
+      // The pictures uploaded for this page are tied to it by tree_id.
+      try {
+        await supabase.from('assets').delete().eq('tree_id', treeId);
+      } catch {
+        // A missing assets table must not stop the page from being deleted.
+      }
+
+      const { error: treeError } = await supabase
+        .from('trees')
+        .delete()
+        .eq('id', treeId);
+      if (treeError) throw treeError;
+
+      return { ok: true };
+    } catch (err) {
+      console.warn('[DB hardDeleteTree failed]', err.message);
+      return { error: err };
+    }
+  },
+
   async restoreTree(id) {
     try {
       const { data, error } = await supabase
