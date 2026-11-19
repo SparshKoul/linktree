@@ -9,7 +9,6 @@ import {
   getContrastingPatternColor,
   getPatternSvg,
 } from './constants/patternSvg.js';
-import { tintOverlayColor } from './constants/wallpaper.js';
 
 describe('Wallpaper Editor & Linktree Fidelity Logic', () => {
   it('correctly calculates contrasting pattern colors for light and dark backgrounds', () => {
@@ -38,34 +37,6 @@ describe('Wallpaper Editor & Linktree Fidelity Logic', () => {
 
   it('includes Sage Green (#638873) in solid color palette matching Screenshots 3 & 4', () => {
     expect(SOLID_PALETTE).toContain('#638873');
-  });
-
-  it('computes correct tint overlay rgba colors', () => {
-    const darkTint = -50;
-    const darkAlpha = (Math.abs(darkTint) / 100) * 0.75;
-    expect(darkAlpha).toBe(0.375);
-
-    const lightTint = 40;
-    const lightAlpha = (lightTint / 100) * 0.75;
-    expect(lightAlpha).toBeCloseTo(0.3);
-  });
-
-  it('never darkens a solid background with a stale tint', () => {
-    // A page with a light solid colour used to turn black when an old image
-    // wallpaper had left tint: -100 behind.
-    expect(tintOverlayColor({ backgroundType: 'solid', tint: -100 })).toBeNull();
-    expect(tintOverlayColor({ backgroundType: 'solid', tint: 60 })).toBeNull();
-  });
-
-  it('still tints picture wallpapers so the text stays readable', () => {
-    expect(tintOverlayColor({ backgroundType: 'image', tint: -100 })).toBe('rgba(0, 0, 0, 0.75)');
-    expect(tintOverlayColor({ backgroundType: 'blur', tint: 40 })).toBe('rgba(255, 255, 255, 0.3)');
-  });
-
-  it('draws no wash when there is no tint', () => {
-    expect(tintOverlayColor({ backgroundType: 'image', tint: 0 })).toBeNull();
-    expect(tintOverlayColor({ backgroundType: 'image' })).toBeNull();
-    expect(tintOverlayColor(null)).toBeNull();
   });
 
   it('supports configurable blur amount slider and presets', () => {

@@ -1,7 +1,5 @@
 import React, { useState, useRef } from 'react';
 import {
-  Moon,
-  Sun,
   Pencil,
   Ban,
   Droplets,
@@ -98,7 +96,6 @@ export function WallpaperEditor({ current, commitChange }) {
     (current.wallpaperStyle === 'video' ? current.backgroundImageUrl : '');
 
   const activeEffect = current.effect || 'none';
-  const tint = typeof current.tint === 'number' ? current.tint : 0;
   const noise = Boolean(current.noise);
   const activePattern = current.patternType || 'organic';
   const blurAmount = typeof current.blurAmount === 'number' ? current.blurAmount : 20;
@@ -145,9 +142,6 @@ export function WallpaperEditor({ current, commitChange }) {
       wallpaperVideoUrl: nextVideo,
       patternType: nextPattern,
       ...updates,
-      // A solid colour is already the choice of the owner. A dark tint left
-      // over from an earlier picture wallpaper would turn it grey/black.
-      ...(nextStyle === 'fill' ? { tint: 0 } : {}),
     });
   };
 
@@ -460,30 +454,6 @@ export function WallpaperEditor({ current, commitChange }) {
             </div>
           )}
 
-          {/* Tint Slider */}
-          <div className="flex items-center justify-between">
-            <div className="max-w-[240px]">
-              <span className="text-xs font-bold text-[#111111] block">Tint</span>
-              <p className="text-[11px] text-gray-500 leading-snug">
-                Improves text visibility and helps make your content more accessible
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 w-52 sm:w-60">
-              <Moon className="w-4 h-4 text-gray-400 shrink-0 stroke-[1.8]" />
-              <input
-                type="range"
-                min="-100"
-                max="100"
-                step="5"
-                value={tint}
-                onChange={(e) => commitChange({ tint: parseInt(e.target.value, 10) })}
-                className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
-              />
-              <Sun className="w-4 h-4 text-gray-400 shrink-0 stroke-[1.8]" />
-            </div>
-          </div>
-
           {/* Noise Toggle */}
           <div className="flex items-center justify-between">
             <div>
@@ -765,30 +735,6 @@ export function WallpaperEditor({ current, commitChange }) {
             ))}
           </div>
 
-          {/* Tint Slider */}
-          <div className="flex items-center justify-between">
-            <div className="max-w-[240px]">
-              <span className="text-xs font-bold text-[#111111] block">Tint</span>
-              <p className="text-[11px] text-gray-500 leading-snug">
-                Improves text visibility and helps make your content more accessible
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 w-52 sm:w-60">
-              <Moon className="w-4 h-4 text-gray-400 shrink-0 stroke-[1.8]" />
-              <input
-                type="range"
-                min="-100"
-                max="100"
-                step="5"
-                value={tint}
-                onChange={(e) => commitChange({ tint: parseInt(e.target.value, 10) })}
-                className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
-              />
-              <Sun className="w-4 h-4 text-gray-400 shrink-0 stroke-[1.8]" />
-            </div>
-          </div>
-
           {/* Noise Toggle */}
           <div className="flex items-center justify-between">
             <div>
@@ -853,30 +799,6 @@ export function WallpaperEditor({ current, commitChange }) {
                 <Upload className="w-3.5 h-3.5" />
                 Select from device
               </button>
-            </div>
-          </div>
-
-          {/* Tint Slider */}
-          <div className="flex items-center justify-between">
-            <div className="max-w-[240px]">
-              <span className="text-xs font-bold text-[#111111] block">Tint</span>
-              <p className="text-[11px] text-gray-500 leading-snug">
-                Improves text visibility and helps make your content more accessible
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 w-52 sm:w-60">
-              <Moon className="w-4 h-4 text-gray-400 shrink-0 stroke-[1.8]" />
-              <input
-                type="range"
-                min="-100"
-                max="100"
-                step="5"
-                value={tint}
-                onChange={(e) => commitChange({ tint: parseInt(e.target.value, 10) })}
-                className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-black"
-              />
-              <Sun className="w-4 h-4 text-gray-400 shrink-0 stroke-[1.8]" />
             </div>
           </div>
 

@@ -292,7 +292,6 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
       wallpaperVideoUrl: null,
       wallpaperStyle: themeObj.theme.backgroundType === 'solid' ? 'fill' : null,
       effect: 'none',
-      tint: 0,
       noise: false,
       patternType: null,
       buttonStyle: themeObj.theme.buttonStyle,
@@ -934,7 +933,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
                     ? (current.backgroundValue?.startsWith('#') ? current.backgroundValue : (current.backgroundColor || '#F3F3F1'))
                     : current.backgroundImageUrl
                     ? `url("${current.backgroundImageUrl}") center / cover no-repeat`
-                    : current.backgroundValue || current.backgroundColor || '#111111',
+                    : current.backgroundValue || current.backgroundColor || '#F3F3F1',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 filter:
@@ -1128,7 +1127,7 @@ export function DesignEditor({ currentTree, onUpdateTree, onSaveTree, onBack, on
               <div
                 className="w-8 h-8 rounded-lg border border-gray-300 overflow-hidden shadow-2xs group-hover:scale-105 transition-transform"
                 style={{
-                  background: current.backgroundValue || '#111111',
+                  background: current.backgroundValue || '#F3F3F1',
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                 }}

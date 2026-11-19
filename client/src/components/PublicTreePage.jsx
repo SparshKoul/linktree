@@ -9,7 +9,6 @@ import { storage } from '../services/storage.js';
 import { TreeSkeleton } from './TreeSkeleton.jsx';
 import { SkeletonImage } from './SkeletonImage.jsx';
 import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
-import { tintOverlayColor } from '../constants/wallpaper.js';
 
 // How long a saved copy of a public page may be shown before it is fetched
 // again. Short enough that an owner never sees their own old links.
@@ -251,7 +250,6 @@ export function PublicTreePage({ slug }) {
     }),
     [basePreset, themeSource.customTheme]
   );
-  const tintColor = tintOverlayColor(activeTheme);
 
   if (isBlocked) {
     const isPageBlock = blockedReason === 'Page Blocked';
@@ -443,12 +441,12 @@ export function PublicTreePage({ slug }) {
                 style={{
                   backgroundColor: activeTheme?.backgroundImageUrl
                     ? 'transparent'
-                    : activeTheme?.backgroundColor || '#050F15',
+                    : activeTheme?.backgroundColor || '#F3F3F1',
                   backgroundImage: `url("${getPatternSvg(
                     activeTheme?.patternType || 'organic',
                     activeTheme?.backgroundImageUrl
-                      ? (activeTheme?.backgroundColor || '#050F15')
-                      : getContrastingPatternColor(activeTheme?.backgroundColor || '#050F15'),
+                      ? (activeTheme?.backgroundColor || '#F3F3F1')
+                      : getContrastingPatternColor(activeTheme?.backgroundColor || '#F3F3F1'),
                     activeTheme?.backgroundImageUrl ? 0.45 : 0.3
                   )}")`,
                   backgroundRepeat: 'repeat',
@@ -457,12 +455,7 @@ export function PublicTreePage({ slug }) {
               />
             )}
 
-          {/* 4. Tint Overlay */}
-          {tintColor && (
-            <div className="absolute inset-0" style={{ backgroundColor: tintColor }} />
-          )}
-
-          {/* 5. Noise Texture Overlay */}
+          {/* 4. Noise Texture Overlay */}
           {activeTheme?.noise && (
             <div
               className="absolute inset-0 opacity-25 mix-blend-overlay"

@@ -71,7 +71,6 @@ import { DesignEditor } from './components/DesignEditor.jsx';
 import { getPatternSvg, getContrastingPatternColor } from './constants/patternSvg.js';
 import { loadFont } from './constants/fonts.js';
 import { PRESET_THEMES } from './constants/themes.js';
-import { tintOverlayColor } from './constants/wallpaper.js';
 import { storage } from './services/storage.js';
 import { navigate } from './router.js';
 import { LandingPage } from './components/LandingPage.jsx';
@@ -490,7 +489,6 @@ export function Dashboard() {
               wallpaperStyle: activeTheme.wallpaperStyle,
               wallpaperVideoUrl: activeTheme.wallpaperVideoUrl,
               patternType: activeTheme.patternType,
-              tint: activeTheme.tint,
               noise: activeTheme.noise,
               effect: activeTheme.effect,
               blurAmount: activeTheme.blurAmount ?? 20,
@@ -1179,7 +1177,6 @@ export function Dashboard() {
   if (!activeTheme.backgroundValue) {
     activeTheme.backgroundValue = basePreset.backgroundValue;
   }
-  const tintColor = tintOverlayColor(activeTheme);
   // The wallpaper can be stored as a full CSS value such as
   // url("...image.webp") center / cover no-repeat. The address inside it is
   // what the preview needs.
@@ -3179,22 +3176,18 @@ export function Dashboard() {
                     style={{
                       backgroundColor: activeTheme?.backgroundImageUrl
                         ? 'transparent'
-                        : activeTheme?.backgroundColor || '#050F15',
+                        : activeTheme?.backgroundColor || '#F3F3F1',
                       backgroundImage: `url("${getPatternSvg(
                         activeTheme?.patternType || 'organic',
                         activeTheme?.backgroundImageUrl
-                          ? (activeTheme?.backgroundColor || '#050F15')
-                          : getContrastingPatternColor(activeTheme?.backgroundColor || '#050F15'),
+                          ? (activeTheme?.backgroundColor || '#F3F3F1')
+                          : getContrastingPatternColor(activeTheme?.backgroundColor || '#F3F3F1'),
                         activeTheme?.backgroundImageUrl ? 0.45 : 0.3
                       )}")`,
                       backgroundRepeat: 'repeat',
                       mixBlendMode: activeTheme?.backgroundImageUrl ? 'multiply' : 'normal',
                     }}
                   />
-                )}
-
-                {tintColor && (
-                  <div className="absolute inset-0" style={{ backgroundColor: tintColor }} />
                 )}
 
                 {activeTheme?.noise && (

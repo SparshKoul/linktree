@@ -23,6 +23,19 @@ function isMissingVisitorHash(error) {
 }
 
 /**
+ * The tint wash has been removed: a wallpaper must show exactly as it was
+ * uploaded. An older client can still send these keys, so they are dropped
+ * before anything reaches the database.
+ * @param {object|null} theme
+ * @returns {object}
+ */
+function withoutRetiredThemeFields(theme) {
+  if (!theme || typeof theme !== 'object') return {};
+  const { tint, tintFor, ...rest } = theme;
+  return rest;
+}
+
+/**
  * A name for a visitor of an event that was written before the visitor
  * column existed: the address and the browser together.
  * @param {string|null} ipHash
@@ -322,7 +335,7 @@ export const db = {
           title: treeData.title,
           bio: treeData.bio || '',
           theme_id: treeData.themeId || 'classic-light',
-          custom_theme: treeData.customTheme || {},
+          custom_theme: withoutRetiredThemeFields(treeData.customTheme),
         })
         .select()
         .single();
@@ -521,7 +534,7 @@ export const db = {
         if (curr?.custom_theme) existingTheme = curr.custom_theme;
       } catch {}
 
-      payload.custom_theme = {
+      payload.custom_theme = withoutRetiredThemeFields({
         ...existingTheme,
         ...baseTheme,
         ...(backgroundValue !== undefined ? { backgroundValue } : {}),
@@ -540,7 +553,7 @@ export const db = {
         ...(footerTextVal !== undefined ? { footerText: footerTextVal } : {}),
         ...(socialLinksVal !== undefined ? { socialLinks: socialLinksVal } : {}),
         ...(seoVal !== undefined ? { seo: seoVal } : {}),
-      };
+      });
 
       if (updates.status !== undefined) payload.status = updates.status;
       payload.deleted_at = null;
