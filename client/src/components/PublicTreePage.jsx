@@ -9,6 +9,7 @@ import { storage } from '../services/storage.js';
 import { TreeSkeleton } from './TreeSkeleton.jsx';
 import { SkeletonImage } from './SkeletonImage.jsx';
 import { getCanonicalTreeUrl, copyToClipboard } from '../constants/urls.js';
+import { tintOverlayColor } from '../constants/wallpaper.js';
 
 // How long a saved copy of a public page may be shown before it is fetched
 // again. Short enough that an owner never sees their own old links.
@@ -250,6 +251,7 @@ export function PublicTreePage({ slug }) {
     }),
     [basePreset, themeSource.customTheme]
   );
+  const tintColor = tintOverlayColor(activeTheme);
 
   if (isBlocked) {
     const isPageBlock = blockedReason === 'Page Blocked';
@@ -456,16 +458,8 @@ export function PublicTreePage({ slug }) {
             )}
 
           {/* 4. Tint Overlay */}
-          {typeof activeTheme?.tint === 'number' && activeTheme.tint !== 0 && (
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundColor:
-                  activeTheme.tint < 0
-                    ? `rgba(0, 0, 0, ${(Math.abs(activeTheme.tint) / 100) * 0.75})`
-                    : `rgba(255, 255, 255, ${(activeTheme.tint / 100) * 0.75})`,
-              }}
-            />
+          {tintColor && (
+            <div className="absolute inset-0" style={{ backgroundColor: tintColor }} />
           )}
 
           {/* 5. Noise Texture Overlay */}

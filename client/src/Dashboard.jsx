@@ -71,6 +71,7 @@ import { DesignEditor } from './components/DesignEditor.jsx';
 import { getPatternSvg, getContrastingPatternColor } from './constants/patternSvg.js';
 import { loadFont } from './constants/fonts.js';
 import { PRESET_THEMES } from './constants/themes.js';
+import { tintOverlayColor } from './constants/wallpaper.js';
 import { storage } from './services/storage.js';
 import { navigate } from './router.js';
 import { LandingPage } from './components/LandingPage.jsx';
@@ -1178,6 +1179,7 @@ export function Dashboard() {
   if (!activeTheme.backgroundValue) {
     activeTheme.backgroundValue = basePreset.backgroundValue;
   }
+  const tintColor = tintOverlayColor(activeTheme);
   // The wallpaper can be stored as a full CSS value such as
   // url("...image.webp") center / cover no-repeat. The address inside it is
   // what the preview needs.
@@ -3191,16 +3193,8 @@ export function Dashboard() {
                   />
                 )}
 
-                {typeof activeTheme?.tint === 'number' && activeTheme.tint !== 0 && (
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      backgroundColor:
-                        activeTheme.tint < 0
-                          ? `rgba(0, 0, 0, ${(Math.abs(activeTheme.tint) / 100) * 0.75})`
-                          : `rgba(255, 255, 255, ${(activeTheme.tint / 100) * 0.75})`,
-                    }}
-                  />
+                {tintColor && (
+                  <div className="absolute inset-0" style={{ backgroundColor: tintColor }} />
                 )}
 
                 {activeTheme?.noise && (

@@ -145,6 +145,9 @@ export function WallpaperEditor({ current, commitChange }) {
       wallpaperVideoUrl: nextVideo,
       patternType: nextPattern,
       ...updates,
+      // A solid colour is already the choice of the owner. A dark tint left
+      // over from an earlier picture wallpaper would turn it grey/black.
+      ...(nextStyle === 'fill' ? { tint: 0 } : {}),
     });
   };
 
